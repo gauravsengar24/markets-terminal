@@ -30,46 +30,61 @@ export function FilterDropdown({ label, options, selected, onChange }: Props) {
   }
 
   function toggleAll() {
-    if (allSelected) {
-      onChange([])
-    } else {
-      onChange([...options])
-    }
+    if (allSelected) onChange([])
+    else onChange([...options])
   }
 
   const display = allSelected ? `All ${label}s` : `${selected.length} ${label}${selected.length > 1 ? "s" : ""}`
-
   if (!options.length) return null
 
   return (
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="text-xs md:text-sm text-term-muted hover:text-term-text px-2 md:px-3 py-1.5 md:py-1.5 border border-term-border hover:border-term-muted cursor-pointer transition-colors bg-term-bg whitespace-nowrap"
+        className="action-link text-xs"
       >
         {display} ▾
       </button>
       {open && (
-        <div className="fixed left-2 right-2 md:absolute md:left-0 md:right-auto md:top-full mt-1 bg-term-surface border border-term-border shadow-lg z-50 min-w-40 max-h-72 overflow-y-auto">
+        <div
+          className="fixed left-2 right-2 md:absolute md:left-0 md:right-auto md:top-full mt-1 z-50 min-w-40 max-h-72 overflow-y-auto"
+          style={{
+            background: 'rgba(10, 10, 12, 0.85)',
+            backdropFilter: 'blur(30px) saturate(220%)',
+            WebkitBackdropFilter: 'blur(30px) saturate(220%)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '12px',
+            padding: '0.25rem',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+          }}
+        >
           <button
             onClick={toggleAll}
-            className="w-full text-left text-sm md:text-sm px-3 py-2.5 md:py-1.5 border-b border-term-border hover:bg-term-bg cursor-pointer transition-colors text-term-muted min-h-[44px] md:min-h-0"
+            style={{
+              width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', fontSize: '0.78rem',
+              borderBottom: '1px solid var(--glass-border)', background: 'transparent',
+              cursor: 'pointer', color: 'var(--text-muted)',
+            }}
           >
             {allSelected ? "Deselect all" : "Select all"}
           </button>
-          {options.map(opt => (
-            <button
-              key={opt}
-              onClick={() => toggle(opt)}
-              className={`w-full text-left text-sm md:text-sm px-3 py-2.5 md:py-1.5 cursor-pointer transition-colors hover:bg-term-bg min-h-[44px] md:min-h-0 ${
-                selected.includes(opt) || allSelected
-                  ? "text-term-text bg-term-accent/10"
-                  : "text-term-muted"
-              }`}
-            >
-              {(selected.includes(opt) || allSelected) ? "✓ " : "  "}{opt}
-            </button>
-          ))}
+          {options.map(opt => {
+            const checked = selected.includes(opt) || allSelected
+            return (
+              <button
+                key={opt}
+                onClick={() => toggle(opt)}
+                style={{
+                  width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', fontSize: '0.78rem',
+                  background: checked ? 'rgba(47, 128, 237, 0.1)' : 'transparent',
+                  cursor: 'pointer', color: checked ? 'var(--electric-blue)' : 'var(--text-muted)',
+                  borderRadius: '6px',
+                }}
+              >
+                {checked ? "✓ " : "  "}{opt}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>
