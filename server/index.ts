@@ -23,6 +23,24 @@ function detectSubCategory(title: string, snippet: string): string {
   return "stocks"
 }
 
+const IMPACT_RULES: { regex: RegExp; category: string; volatility: string }[] = [
+  { regex: /fed|federal reserve|ecb|central bank|interest rate|rate hike|rate cut|monetary policy|inflation|cpi|ppi|quantitative easing|tightening/i, category: "central-bank", volatility: "high" },
+  { regex: /war|conflict|sanctions|military|invasion|nuclear|missile|geopolitical|tension|defense|espionage/i, category: "geopolitical", volatility: "high" },
+  { regex: /crisis|crash|collapse|bankruptcy|default|bailout|recession|depression|liquidity|contagion|systemic/i, category: "crisis", volatility: "high" },
+  { regex: /pandemic|epidemic|outbreak|virus|covid|quarantine|lockdown|health emergency|vaccine mandate/i, category: "pandemic", volatility: "high" },
+  { regex: /tariff|trade war|trade deal|import|export|wto|trade dispute|dumping|protectionism|reciprocal/i, category: "trade", volatility: "medium" },
+  { regex: /election|vote|electoral|polling|presidency|parliament|campaign|runoff|swing state|midterm/i, category: "election", volatility: "medium" },
+  { regex: /currency|forex|exchange rate|dollar index|devaluation|appreciation|stablecoin|peg|reserve currency/i, category: "currency", volatility: "medium" },
+]
+
+function detectImpactCategory(title: string, snippet: string): { impactCategory: string; volatility: string } | null {
+  const t = (title + " " + snippet).toLowerCase()
+  for (const rule of IMPACT_RULES) {
+    if (rule.regex.test(t)) return { impactCategory: rule.category, volatility: rule.volatility }
+  }
+  return null
+}
+
 function runConcurrent<T>(items: T[], fn: (item: T) => Promise<void>, limit = 5): Promise<void> {
   let i = 0
   const next = async (): Promise<void> => {
@@ -113,6 +131,7 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
         seen.add(url)
         const snippet = item.description.replace(/<[^>]+>/g, "").slice(0, 280)
         const sub = feed.subCategory === "stocks" ? detectSubCategory(item.title, snippet) : feed.subCategory
+        const impact = detectImpactCategory(item.title, snippet)
         articles.push({
           id: id(),
           title: item.title.slice(0, 200),
@@ -123,6 +142,8 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
           assetClass: sub === "crypto" ? "crypto" : sub === "commodities" ? "commodities" : "stocks",
           subCategory: sub,
           publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+          impactCategory: impact?.impactCategory,
+          volatility: impact?.volatility,
         })
       }
     } catch (_) {}

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Outlet, useNavigate } from "react-router-dom"
 import { fetchNews } from "../lib/api"
 import { getPersisted, setPersisted, STORAGE_KEYS } from "../lib/persist"
@@ -7,10 +7,12 @@ import type { NewsArticle } from "@shared/types"
 import { BreakingNewsBar } from "./BreakingNewsBar"
 import { MarketTicker } from "./MarketTicker"
 import { LastUpdated } from "./LastUpdated"
+import { ImpactFilterBar } from "./ImpactFilterBar"
 
 export function Layout() {
   const navigate = useNavigate()
   const client = useQueryClient()
+  const [selectedImpact, setSelectedImpact] = useState("all")
 
   const news = useQuery({
     queryKey: ["news"],
@@ -78,8 +80,14 @@ export function Layout() {
       <BreakingNewsBar onSelect={handleBreakingNewsSelect} />
       <MarketTicker />
 
+      <ImpactFilterBar
+        selected={selectedImpact}
+        onSelect={setSelectedImpact}
+        articles={news.data ?? []}
+      />
+
       <div className="flex-1 overflow-y-auto">
-        <Outlet context={{ articles: news.data ?? [] }} />
+        <Outlet context={{ articles: news.data ?? [], selectedImpact, setSelectedImpact }} />
       </div>
     </div>
   )

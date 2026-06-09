@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { useParams, useNavigate, useOutletContext } from "react-router-dom"
-import type { NewsArticle } from "@shared/types"
+import type { NewsArticle, LayoutContext } from "@shared/types"
 import { SectionHeading } from "../components/SectionHeading"
 import { Pagination } from "../components/Pagination"
 
@@ -20,18 +20,27 @@ const SECTION_FILTERS: Record<string, (a: NewsArticle) => boolean> = {
   ipo: (a) => a.subCategory === "ipo",
 }
 
+const VOLATILITY_COLORS: Record<string, string> = {
+  high: "#ef4444",
+  medium: "#f59e0b",
+}
+
 export function SectionPage() {
   const { section } = useParams<{ section: string }>()
   const navigate = useNavigate()
-  const { articles } = useOutletContext<{ articles: NewsArticle[] }>()
+  const { articles, selectedImpact } = useOutletContext<LayoutContext>()
   const [page, setPage] = useState(1)
 
   const filter = SECTION_FILTERS[section ?? ""]
   const label = SECTION_LABELS[section ?? ""] ?? "News"
 
   const filtered = useMemo(() => {
-    return filter ? articles.filter(filter) : []
-  }, [articles, filter])
+    let result = filter ? articles.filter(filter) : []
+    if (selectedImpact !== "all") {
+      result = result.filter(a => a.impactCategory === selectedImpact)
+    }
+    return result
+  }, [articles, filter, selectedImpact])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
   const safePage = Math.min(page, totalPages)
@@ -50,6 +59,23 @@ export function SectionPage() {
             <div className="mac-card-body">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="mac-source">{a.source}</span>
+                {a.volatility && (
+                  <span
+                    style={{
+                      fontSize: "0.5rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      padding: "0.1rem 0.35rem",
+                      borderRadius: "4px",
+                      background: `${VOLATILITY_COLORS[a.volatility]}15`,
+                      border: `1px solid ${VOLATILITY_COLORS[a.volatility]}30`,
+                      color: VOLATILITY_COLORS[a.volatility],
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    {a.volatility}
+                  </span>
+                )}
                 <span className="mac-meta">{fmtRelative(a.publishedAt)}</span>
               </div>
               <div className="mac-title">{a.title}</div>

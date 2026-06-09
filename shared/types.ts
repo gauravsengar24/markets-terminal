@@ -8,6 +8,14 @@ export interface NewsArticle {
   assetClass: string
   subCategory: string
   publishedAt: string
+  impactCategory?: string
+  volatility?: string
+}
+
+export interface LayoutContext {
+  articles: NewsArticle[]
+  selectedImpact: string
+  setSelectedImpact: (cat: string) => void
 }
 
 export interface BreakingNews {
