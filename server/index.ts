@@ -14,8 +14,6 @@ app.use(express.json())
 function id() { return Math.random().toString(36).slice(2, 10) }
 
 function buildQueries(regions: string[], assets: string[]): { q: string; region: string; assetClass: string }[] {
-  const r = regions.length ? regions : [...REGIONS]
-  const a = assets.length ? assets : [...ASSET_CLASSES]
   const result: { q: string; region: string; assetClass: string }[] = []
   if (regions.length && assets.length) {
     for (const rv of regions) {
@@ -31,17 +29,15 @@ function buildQueries(regions: string[], assets: string[]): { q: string; region:
   } else if (assets.length) {
     for (const av of assets) {
       for (const q of ASSET_QUERIES[av] ?? []) {
-        result.push({ q: `${q} global market`, region: "USA", assetClass: av })
+        result.push({ q, region: "USA", assetClass: av })
       }
     }
   } else {
     for (const rv of REGIONS) {
-      for (const dq of DEFAULT_ASSET_QUERIES) {
-        result.push({ q: `${dq} ${rv}`, region: rv, assetClass: "stocks" })
-      }
+      result.push({ q: `${DEFAULT_ASSET_QUERIES[0]} ${rv}`, region: rv, assetClass: "stocks" })
     }
   }
-  return result.slice(0, 12)
+  return result
 }
 
 function runConcurrent<T>(items: T[], fn: (item: T) => Promise<void>, limit = 4): Promise<void> {
@@ -53,6 +49,18 @@ function runConcurrent<T>(items: T[], fn: (item: T) => Promise<void>, limit = 4)
     }
   }
   return Promise.allSettled(Array.from({ length: limit }, () => next())).then(() => {})
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit & { timeout?: number } = {}): Promise<Response> {
+  const { timeout = 10000, ...fetchInit } = init
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+  try {
+    const resp = await fetch(url, { ...fetchInit, signal: controller.signal })
+    return resp
+  } finally {
+    clearTimeout(id)
+  }
 }
 
 // ── News ──────────────────────────────────────────────────────────
@@ -81,8 +89,9 @@ app.get("/api/news", async (req, res) => {
 
       await runConcurrent(queries, async ({ q, region, assetClass }) => {
         try {
-          const resp = await fetch(
-            `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=3`
+          const resp = await fetchWithTimeout(
+            `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=3`,
+            { timeout: 8000 }
           )
           if (!resp.ok) {
             const body = await resp.text().catch(() => "")
@@ -120,8 +129,9 @@ app.get("/api/news", async (req, res) => {
 
       await runConcurrent(queries, async ({ q, region, assetClass }) => {
         try {
-          const resp = await fetch("https://api.spider.cloud/v1/search", {
+          const resp = await fetchWithTimeout("https://api.spider.cloud/v1/search", {
             method: "POST",
+            timeout: 10000,
             headers: {
               Authorization: `Bearer ${apiKey}`,
               "Content-Type": "application/json",
@@ -162,9 +172,10 @@ app.get("/api/news", async (req, res) => {
 
       await runConcurrent(queries, async ({ q, region, assetClass }) => {
         try {
-          const resp = await fetch(
+          const resp = await fetchWithTimeout(
             `https://s.jina.ai/${encodeURIComponent(q)}`,
             {
+              timeout: 10000,
               headers: {
                 Authorization: `Bearer ${jinaKey}`,
                 "Accept": "text/plain",
@@ -249,7 +260,8 @@ app.post("/api/summary", async (req, res) => {
     const jinaKey = process.env.JINA_API_KEY
     if (!jinaKey) return res.status(500).json({ error: "JINA_API_KEY not set" })
 
-    const resp = await fetch(`https://r.jina.ai/${url}`, {
+    const resp = await fetchWithTimeout(`https://r.jina.ai/${url}`, {
+      timeout: 15000,
       headers: {
         Authorization: `Bearer ${jinaKey}`,
         "X-Return-Format": "markdown",
