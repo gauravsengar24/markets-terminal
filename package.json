@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "express": "^5.1.0",
-    "firecrawl": "^1.29.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "@tanstack/react-query": "^5.75.0"

@@ -1,16 +1,9 @@
 import express from "express"
 import path from "path"
 import { fileURLToPath } from "url"
-import { getClient } from "./firecrawl.js"
 import { get, set } from "./cache.js"
-import {
-  REGIONS,
-  ASSET_CLASSES,
-  REGION_SEARCH,
-  ASSET_QUERIES,
-  TICKERS,
-} from "../shared/constants.js"
-import type { NewsArticle, MarketSnapshot, Quote, ArticleSummary } from "../shared/types.js"
+import { REGIONS, ASSET_CLASSES, REGION_SEARCH, ASSET_QUERIES, DEFAULT_ASSET_QUERIES } from "../shared/constants.js"
+import type { NewsArticle, ArticleSummary } from "../shared/types.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -18,11 +11,35 @@ const PORT = parseInt(process.env.PORT || "3001")
 
 app.use(express.json())
 
-function id() {
-  return Math.random().toString(36).slice(2, 10)
+function id() { return Math.random().toString(36).slice(2, 10) }
+
+function buildQueries(regions: string[], assets: string[]): { q: string; region: string; assetClass: string }[] {
+  if (regions.length && assets.length) {
+    const result: { q: string; region: string; assetClass: string }[] = []
+    for (const r of regions) {
+      for (const a of assets) {
+        const term = ASSET_QUERIES[a]?.[0]
+        if (term) result.push({ q: `${REGION_SEARCH[r]} ${term}`, region: r, assetClass: a })
+      }
+    }
+    return result
+  }
+  if (regions.length) {
+    return regions.map(r => ({ q: REGION_SEARCH[r], region: r, assetClass: "stocks" }))
+  }
+  if (assets.length) {
+    const result: { q: string; region: string; assetClass: string }[] = []
+    for (const a of assets) {
+      for (const q of ASSET_QUERIES[a] ?? []) {
+        result.push({ q, region: "USA", assetClass: a })
+      }
+    }
+    return result
+  }
+  return DEFAULT_ASSET_QUERIES.map(q => ({ q, region: "USA", assetClass: "stocks" }))
 }
 
-// GET /api/news?regions=USA,China&assetClasses=oil,stocks
+// ── News via NewsData.io ──────────────────────────────────────────
 app.get("/api/news", async (req, res) => {
   try {
     const rawRegions = (req.query.regions as string)?.split(",").filter(Boolean) ?? []
@@ -34,122 +51,69 @@ app.get("/api/news", async (req, res) => {
     const cached = get<NewsArticle[]>(cacheKey)
     if (cached) return res.json(cached)
 
-    const queries: string[] = []
-    for (const r of selectedRegions) queries.push(REGION_SEARCH[r] ?? r)
-    for (const ac of selectedAssets) {
-      const qs = ASSET_QUERIES[ac]
-      if (qs) queries.push(...qs)
-    }
-
-    const firecrawl = getClient()
+    const queries = buildQueries(rawRegions, rawAssets)
     const articles: NewsArticle[] = []
     const seen = new Set<string>()
 
-    for (let i = 0; i < queries.length; i += 4) {
-      const batch = queries.slice(i, i + 4)
-      const results = await Promise.allSettled(
-        batch.map((q) =>
-          firecrawl.search(q, { scrapeOptions: { formats: ["markdown"] }, limit: 6 })
+    const apiKey = process.env.NEWSDATA_API_KEY
+    if (!apiKey) return res.status(500).json({ error: "NEWSDATA_API_KEY not set in environment" })
+
+    let lastError: string | null = null
+
+    for (const { q, region, assetClass } of queries) {
+      try {
+        const resp = await fetch(
+          `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=3`
         )
-      )
-
-      for (let j = 0; j < results.length; j++) {
-        const r = results[j]
-        if (r.status === "rejected") continue
-
-        const q = batch[j]
-        let region = selectedRegions.find((rg) =>
-          q.toLowerCase().includes((REGION_SEARCH[rg] ?? rg).split(" ")[0]!.toLowerCase())
-        ) ?? "USA"
-        let assetClass = selectedAssets.find((ac) =>
-          (ASSET_QUERIES[ac] ?? []).some((aq) =>
-            q.toLowerCase().includes(aq.split(" ")[0]!.toLowerCase())
-          )
-        ) ?? "stocks"
-
-        for (const doc of r.value.data ?? []) {
-          const url = doc.url
+        if (!resp.ok) {
+          lastError = `NewsData returned ${resp.status} for query "${q}"`
+          continue
+        }
+        const json = await resp.json() as any
+        if (json.status !== "success") {
+          lastError = `NewsData error: ${json.status} - ${json.results?.message ?? "unknown"}`
+          continue
+        }
+        for (const item of json.results ?? []) {
+          const url = item.link
           if (!url || seen.has(url)) continue
           seen.add(url)
           articles.push({
             id: id(),
-            title: doc.title ?? doc.metadata?.title ?? doc.metadata?.ogTitle ?? "Untitled",
+            title: item.title ?? "Untitled",
             url,
-            source: new URL(url).hostname.replace("www.", ""),
-            snippet: (doc.description ?? doc.markdown ?? "").slice(0, 280),
+            source: item.source_id ?? "NewsData",
+            snippet: (item.description ?? "").slice(0, 280),
             region,
             assetClass,
-            publishedAt: doc.metadata?.publishedTime ?? new Date().toISOString(),
+            publishedAt: item.pubDate ?? new Date().toISOString(),
           })
         }
+      } catch (e: any) {
+        lastError = `Fetch error for "${q}": ${e.message}`
       }
+    }
+
+    if (articles.length === 0) {
+      console.error("News fetch returned no articles. Last error:", lastError)
+      return res.status(502).json({
+        error: "No news articles returned from NewsData.io",
+        detail: lastError ?? "Unknown error",
+        hint: "The free NewsData.io plan has a 200 req/day limit. Check your key or try again tomorrow.",
+      })
     }
 
     articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     set(cacheKey, articles, 25_000)
     res.json(articles)
   } catch (err: any) {
-    if (err.message?.includes("402") || err.status?.toString() === "402") {
-      return res.status(402).json({ error: "Firecrawl credits exhausted" })
-    }
     console.error("News fetch error:", err)
     res.status(500).json({ error: "Failed to fetch news" })
   }
 })
 
-// GET /api/snapshot
-app.get("/api/snapshot", async (_req, res) => {
-  try {
-    const cached = get<MarketSnapshot>("snapshot")
-    if (cached) return res.json(cached)
-
-    const firecrawl = getClient()
-
-    const prompt = TICKERS.map((t) => t.name).join(", ")
-    const symbols = TICKERS.map((t) => t.symbol)
-
-    const result = await firecrawl.scrapeUrl("https://www.google.com/finance", {
-      formats: ["extract"],
-      extract: {
-        prompt: `Extract current price, change and percentage change for: ${prompt}. Return a JSON object where keys are the symbol codes and values are {price, change, changePercent}. Symbol codes to use: ${symbols.join(", ")}. Only include values you can find on the page.`,
-      },
-    })
-
-    const extractMap: Record<string, { price?: number; change?: number; changePercent?: number }> = {}
-    if (result.success && result.extract) {
-      const raw = result.extract
-      if (typeof raw === "object" && raw !== null) {
-        for (const [k, v] of Object.entries(raw)) {
-          const match = TICKERS.find((t) => k.toLowerCase().includes(t.symbol.toLowerCase()) || t.name.toLowerCase().includes(k.toLowerCase()))
-          if (match && typeof v === "object" && v !== null) {
-            extractMap[match.symbol] = v as any
-          }
-        }
-      }
-    }
-
-    const quotes: Quote[] = TICKERS.map((t) => {
-      const e = extractMap[t.symbol]
-      return {
-        symbol: t.symbol,
-        name: t.name,
-        price: e?.price ?? 0,
-        change: e?.change ?? 0,
-        changePercent: e?.changePercent ?? 0,
-      }
-    })
-
-    const snapshot: MarketSnapshot = { quotes, updatedAt: new Date().toISOString() }
-    set("snapshot", snapshot, 25_000)
-    res.json(snapshot)
-  } catch (err) {
-    console.error("Snapshot error:", err)
-    res.status(500).json({ error: "Failed to fetch snapshot" })
-  }
-})
-
-// POST /api/summary
-app.post<{}, {}, { url: string }>("/api/summary", async (req, res) => {
+// ── Article Summary via Jina Reader ───────────────────────────────
+app.post("/api/summary", async (req, res) => {
   try {
     const { url } = req.body
     if (!url) return res.status(400).json({ error: "url required" })
@@ -157,38 +121,42 @@ app.post<{}, {}, { url: string }>("/api/summary", async (req, res) => {
     const cached = get<ArticleSummary>(`summary:${url}`, 120_000)
     if (cached) return res.json(cached)
 
-    const firecrawl = getClient()
-    const result = await firecrawl.scrapeUrl(url, {
-      formats: ["markdown", "extract"],
-      extract: { prompt: "Summarize this article in 2-3 sentences about market impact." },
+    const jinaKey = process.env.JINA_API_KEY
+    if (!jinaKey) return res.status(500).json({ error: "JINA_API_KEY not set" })
+
+    const resp = await fetch(`https://r.jina.ai/${url}`, {
+      headers: {
+        Authorization: `Bearer ${jinaKey}`,
+        "X-Return-Format": "markdown",
+        "X-With-Generated-Alt": "true",
+      },
     })
+    if (!resp.ok) throw new Error(`Jina returned ${resp.status}`)
 
-    if (result.success) {
-      const summary: ArticleSummary = {
-        url,
-        title: result.metadata?.title ?? "Article",
-        summary: typeof result.extract === "string"
-          ? result.extract
-          : result.markdown?.slice(0, 500) ?? "No summary available.",
-      }
-      set(`summary:${url}`, summary, 120_000)
-      return res.json(summary)
-    }
+    const text = await resp.text()
+    const title = text.split("\n")[0]?.replace(/^#+\s*/, "").slice(0, 200) ?? "Article"
+    const summary = text.slice(0, 1000).trim()
 
-    res.json({ url, title: "Unavailable", summary: "Could not generate summary." })
+    const result: ArticleSummary = { url, title, summary }
+    set(`summary:${url}`, result, 120_000)
+    res.json(result)
   } catch (err) {
     console.error("Summary error:", err)
-    res.status(500).json({ error: "Failed to generate summary" })
+    res.status(500).json({ error: "Failed to fetch article" })
   }
 })
 
-// Serve static files in production
+// ── Static files ──────────────────────────────────────────────────
 const distClient = path.join(__dirname, "../client")
 app.use(express.static(distClient))
-app.get("/{*splat}", (_req, res) => {
-  res.sendFile(path.join(distClient, "index.html"))
+app.use((req, res, next) => {
+  if (req.method === "GET" && !req.path.startsWith("/api")) {
+    res.sendFile(path.join(distClient, "index.html"))
+  } else {
+    next()
+  }
 })
 
 app.listen(PORT, () => {
-  console.log(`Markets Terminal server running on http://localhost:${PORT}`)
+  console.log(`Markets Terminal running on http://localhost:${PORT}`)
 })
