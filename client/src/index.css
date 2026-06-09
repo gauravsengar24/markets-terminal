@@ -2,32 +2,38 @@
 @import "tailwindcss";
 
 :root {
-  --oled-black: #09090b;
-  --space-deep: #111117;
-  --surface-raised: #1c1c24;
-  --text-primary: #f5f5f7;
-  --text-secondary: #a1a1a6;
-  --text-tertiary: #6b6b70;
-  --accent-glow-cyan: rgba(6, 182, 212, 0.12);
-  --accent-glow-purple: rgba(168, 85, 247, 0.1);
-  --accent-glow-gold: rgba(180, 140, 255, 0.08);
-  --electric-blue: #2f80ed;
-  --glass-bg: rgba(255, 255, 255, 0.04);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-hover: rgba(255, 255, 255, 0.16);
-  --glass-highlight: rgba(255, 255, 255, 0.03);
+  --oled-black: #0b0b16;
+  --space-deep: #12121e;
+  --surface-raised: #1e1e2e;
+  --text-primary: #f0f0f5;
+  --text-secondary: #b0b0bc;
+  --text-tertiary: #78788a;
+  --accent-glow-cyan: rgba(96, 205, 255, 0.08);
+  --accent-glow-purple: rgba(180, 140, 255, 0.08);
+  --accent-glow-gold: rgba(255, 180, 50, 0.06);
+  --electric-blue: #60cdff;
+  --win-accent: #60cdff;
+  --glass-bg: rgba(255, 255, 255, 0.045);
+  --glass-border: rgba(255, 255, 255, 0.07);
+  --glass-border-hover: rgba(255, 255, 255, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.04);
   --color-positive: #22c55e;
   --color-negative: #ef4444;
   --color-accent: #f0b429;
-  --card-radius: 16px;
+  --card-radius: 18px;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --space-unit: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --font-base: 1rem;
+  --font-sm: 0.875rem;
 }
 
 body {
   background-color: var(--oled-black);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  font-family: 'Inter', "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -35,24 +41,37 @@ body {
   position: relative;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 17px;
 }
 
 body::before {
   content: "";
   position: fixed;
-  width: 600px;
-  height: 600px;
+  width: 700px;
+  height: 700px;
   border-radius: 50%;
-  filter: blur(160px);
+  filter: blur(180px);
   z-index: -1;
   pointer-events: none;
-  opacity: 0.4;
-  top: -150px;
-  left: -150px;
-  background: radial-gradient(circle, var(--accent-glow-cyan) 0%, transparent 70%);
+  opacity: 0.3;
+  top: -200px;
+  left: -200px;
+  background: radial-gradient(circle, rgba(96, 205, 255, 0.07) 0%, transparent 70%);
 }
 
 body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+#root::before {
   content: "";
   position: fixed;
   width: 500px;
@@ -61,13 +80,13 @@ body::after {
   filter: blur(140px);
   z-index: -1;
   pointer-events: none;
-  opacity: 0.35;
-  bottom: 5%;
-  right: -100px;
-  background: radial-gradient(circle, var(--accent-glow-purple) 0%, transparent 70%);
+  opacity: 0.12;
+  bottom: 10%;
+  right: -150px;
+  background: radial-gradient(circle, rgba(180, 140, 255, 0.06) 0%, transparent 70%);
 }
 
-#root::before {
+#root::after {
   content: "";
   position: fixed;
   width: 400px;
@@ -76,10 +95,10 @@ body::after {
   filter: blur(120px);
   z-index: -1;
   pointer-events: none;
-  opacity: 0.15;
-  top: 40%;
-  left: 60%;
-  background: radial-gradient(circle, var(--accent-glow-gold) 0%, transparent 70%);
+  opacity: 0.08;
+  top: 35%;
+  left: 50%;
+  background: radial-gradient(circle, rgba(255, 180, 50, 0.05) 0%, transparent 70%);
 }
 
 html, body, #root {
@@ -100,10 +119,11 @@ html {
 /* ─── Navbar (macOS toolbar style) ─── */
 
 .glass-nav {
-  background: rgba(9, 9, 11, 0.8);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(11, 11, 22, 0.85);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
   border-bottom: 1px solid var(--glass-border);
+  padding: 0.15rem 0;
 }
 
 /* ─── Card: macOS Acrylic Panel ─── */
@@ -160,14 +180,14 @@ html {
 }
 
 .mac-source {
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-tertiary);
   letter-spacing: 0.02em;
 }
 
 .mac-meta {
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   font-weight: 400;
   color: var(--text-tertiary);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -175,7 +195,7 @@ html {
 
 .mac-title {
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 1rem;
   line-height: 1.45;
   color: var(--text-primary);
   display: -webkit-box;
@@ -190,7 +210,7 @@ html {
 }
 
 .mac-snippet {
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   line-height: 1.55;
   color: var(--text-secondary);
   margin-top: 0.35rem;
@@ -205,7 +225,7 @@ html {
 .mac-section-title {
   font-family: Inter, sans-serif;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.15rem;
   color: var(--text-primary);
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -236,9 +256,9 @@ html {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0.35rem 0.75rem;
+  padding: 0.4rem 0.9rem;
   border-radius: 9999px;
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 500;
   font-family: Inter, sans-serif;
   letter-spacing: -0.01em;
@@ -273,7 +293,7 @@ html {
 .impact-pill .pill-dot.all { background: #6b7280; }
 
 .mac-count-badge {
-  font-size: 0.55rem;
+  font-size: 0.68rem;
   font-weight: 500;
   color: var(--text-tertiary);
   background: rgba(255, 255, 255, 0.04);
@@ -288,7 +308,7 @@ html {
 .mac-view-all {
   display: inline-flex;
   align-items: center;
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent;
@@ -306,7 +326,7 @@ html {
 /* ─── Chip (IPO/ICO labels) ─── */
 
 .mac-chip {
-  font-size: 0.5rem;
+  font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -358,7 +378,7 @@ html {
 /* ─── Sidebar ─── */
 
 .mac-side-title {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -370,7 +390,7 @@ html {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent;
@@ -398,13 +418,13 @@ html {
 }
 
 .mac-side-stat-label {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 450;
   color: var(--text-secondary);
 }
 
 .mac-side-stat-count {
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 500;
   color: var(--text-tertiary);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -480,7 +500,7 @@ html {
 }
 
 .impact-left-title {
-  font-size: 0.78rem;
+  font-size: 0.92rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -489,7 +509,7 @@ html {
 }
 
 .impact-left-badge {
-  font-size: 0.5rem;
+  font-size: 0.6rem;
   font-weight: 500;
   color: var(--text-tertiary);
   background: rgba(255, 255, 255, 0.04);
@@ -500,7 +520,7 @@ html {
 }
 
 .impact-left-subtitle {
-  font-size: 0.55rem;
+  font-size: 0.68rem;
   color: var(--text-tertiary);
   display: block;
 }
@@ -590,7 +610,7 @@ html {
 }
 
 .impact-left-cat-name {
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -599,18 +619,18 @@ html {
 }
 
 .impact-left-tag {
-  font-size: 0.45rem;
+  font-size: 0.58rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 0.06rem 0.3rem;
+  padding: 0.1rem 0.4rem;
   border-radius: 4px;
   border: 1px solid;
   flex-shrink: 0;
 }
 
 .impact-left-bar-track {
-  height: 4px;
+  height: 6px;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.05);
   overflow: hidden;
@@ -640,13 +660,13 @@ html {
 }
 
 .impact-left-articles {
-  font-size: 0.5rem;
+  font-size: 0.62rem;
   color: var(--text-tertiary);
   font-family: 'JetBrains Mono', monospace;
 }
 
 .impact-left-score {
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
@@ -704,7 +724,7 @@ html {
 
 .impact-left-reasoning-item {
   position: relative;
-  font-size: 0.55rem;
+  font-size: 0.68rem;
   line-height: 1.5;
   color: var(--text-secondary);
   padding-left: 0.85rem;
@@ -732,7 +752,7 @@ html {
 }
 
 .impact-left-reasoning-empty {
-  font-size: 0.55rem;
+  font-size: 0.68rem;
   color: var(--text-tertiary);
   padding: 0.25rem 0.55rem 0.55rem;
   margin: 0;
@@ -744,7 +764,7 @@ html {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.48rem;
+  font-size: 0.6rem;
   color: var(--text-tertiary);
 }
 
@@ -798,7 +818,7 @@ html {
   align-items: center;
   color: var(--text-primary);
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 500;
   padding: 0.35rem 0.85rem;
   background: rgba(255, 255, 255, 0.05);
@@ -825,7 +845,7 @@ html {
 /* ─── Ticker ─── */
 
 .glass-ticker {
-  background: rgba(5, 5, 8, 0.45);
+  background: rgba(11, 11, 22, 0.5);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--glass-border);
@@ -869,14 +889,14 @@ html {
 }
 
 .ticker-sym {
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--text-secondary);
 }
 
 .ticker-price {
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-primary);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -884,7 +904,7 @@ html {
 }
 
 .ticker-change {
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   font-weight: 600;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
 }
@@ -893,16 +913,16 @@ html {
 
 .article-title {
   font-weight: 450;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   line-height: 1.4;
   color: var(--text-primary);
 }
 @media (min-width: 768px) {
-  .article-title { font-size: 0.95rem; }
+  .article-title { font-size: 1.1rem; }
 }
 
 .article-snippet {
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   line-height: 1.5;
   color: var(--text-muted);
 }
@@ -948,7 +968,7 @@ html {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 500;
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.04);
@@ -991,7 +1011,7 @@ html {
 
 .page-ellipsis {
   color: var(--text-tertiary);
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   padding: 0 0.1rem;
 }
 

@@ -37,7 +37,7 @@ export function ImpactFilterBar({ selected, onSelect, articles }: Props) {
           >
             <span className={`pill-dot ${cat.vol}`} />
             {cat.label}
-            <span style={{ fontSize: "0.6rem", color: "var(--text-tertiary)", marginLeft: "1px" }}>
+            <span style={{ fontSize: "0.72rem", color: "var(--text-tertiary)", marginLeft: "1px" }}>
               {count}
             </span>
           </button>

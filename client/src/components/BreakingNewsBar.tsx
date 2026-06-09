@@ -31,7 +31,7 @@ export function BreakingNewsBar({ onSelect }: Props) {
   return (
     <div className="glass-ticker">
       <div className="flex items-center gap-3 md:gap-4 px-3 md:px-5 py-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        <span className="flex items-center gap-1.5 shrink-0" style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', color: 'var(--color-negative)' }}>
+        <span className="flex items-center gap-1.5 shrink-0" style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.1em', color: 'var(--color-negative)' }}>
           <span className="pulse-dot" />
           BREAKING
         </span>
@@ -45,10 +45,10 @@ export function BreakingNewsBar({ onSelect }: Props) {
                 style={{ padding: '0.4rem 0.75rem', minWidth: '200px', textAlign: 'left', cursor: 'pointer', borderLeft: '2px solid rgba(6, 182, 212, 0.3)' }}
               >
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span style={{ fontSize: '0.5rem', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(6, 182, 212, 0.8)' }}>{REGION_FLAGS[b.region] ?? b.region}</span>
-                  <span className="mono" style={{ fontSize: '0.45rem', color: 'var(--text-tertiary)' }}>{fmtTime(b.articles[0].publishedAt)}</span>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(6, 182, 212, 0.8)' }}>{REGION_FLAGS[b.region] ?? b.region}</span>
+                  <span className="mono" style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)' }}>{fmtTime(b.articles[0].publishedAt)}</span>
                 </div>
-                <div style={{ fontSize: '0.7rem', lineHeight: 1.35, fontWeight: 450, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.82rem', lineHeight: 1.35, fontWeight: 450, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                   {b.articles[0].title}
                 </div>
               </button>

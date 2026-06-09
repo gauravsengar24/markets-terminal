@@ -103,7 +103,7 @@ export function ImpactAnalysis() {
                         {cat.short}
                       </span>
                       <span className={`impact-left-chevron ${isOpen ? "open" : ""}`}>
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                        <svg width="14" height="14" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                           <path d="M3 3.5L5 6L7 3.5" />
                         </svg>
                       </span>
