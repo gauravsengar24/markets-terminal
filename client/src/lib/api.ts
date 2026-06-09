@@ -1,11 +1,7 @@
 const BASE = "/api"
 
-export async function fetchNews(provider = "newsdata", regions?: string[], assetClasses?: string[]) {
-  const params = new URLSearchParams()
-  params.set("provider", provider)
-  if (regions?.length) params.set("regions", regions.join(","))
-  if (assetClasses?.length) params.set("assetClasses", assetClasses.join(","))
-  const res = await fetch(`${BASE}/news?${params}`)
+export async function fetchNews() {
+  const res = await fetch(`${BASE}/news`)
   if (!res.ok) throw new Error(await res.text().catch(() => `News fetch failed: ${res.status}`))
   return res.json()
 }

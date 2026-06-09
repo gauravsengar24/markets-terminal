@@ -63,185 +63,156 @@ async function fetchWithTimeout(url: string, init: RequestInit & { timeout?: num
   }
 }
 
-// ── News ──────────────────────────────────────────────────────────
+const ONE_HOUR = 3_600_000
+
+async function fetchNewsData(queries: { q: string; region: string; assetClass: string }[], seen: Set<string>): Promise<NewsArticle[]> {
+  const apiKey = process.env.NEWSDATA_API_KEY
+  if (!apiKey) return []
+  const articles: NewsArticle[] = []
+  let lastErr: string | null = null
+  await runConcurrent(queries.slice(0, 7), async ({ q, region, assetClass }) => {
+    try {
+      const resp = await fetchWithTimeout(
+        `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=3`,
+        { timeout: 8000 }
+      )
+      if (!resp.ok) { lastErr = `NewsData returned ${resp.status}`; return }
+      const json = await resp.json() as any
+      if (json.status !== "success") { lastErr = `NewsData error: ${json.status}`; return }
+      for (const item of json.results ?? []) {
+        const url = item.link
+        if (!url || seen.has(url)) continue
+        seen.add(url)
+        articles.push({
+          id: id(), title: item.title ?? "Untitled", url, source: item.source_id ?? "NewsData",
+          snippet: (item.description ?? "").slice(0, 280), region, assetClass,
+          publishedAt: item.pubDate ?? new Date().toISOString(),
+        })
+      }
+    } catch (e: any) { lastErr = `NewsData error: ${e.message}` }
+  })
+  if (lastErr) console.error("NewsData warn:", lastErr)
+  return articles
+}
+
+async function fetchSpiderCloud(queries: string[], seen: Set<string>): Promise<NewsArticle[]> {
+  const apiKey = process.env.SPIDER_CLOUD_API_KEY
+  if (!apiKey) return []
+  const articles: NewsArticle[] = []
+  await runConcurrent(queries, async (q) => {
+    try {
+      const resp = await fetchWithTimeout("https://api.spider.cloud/v1/search", {
+        method: "POST", timeout: 10000,
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ search: q, search_limit: 5, fetch_page_content: false, return_format: "markdown" }),
+      })
+      if (!resp.ok) return
+      const json = await resp.json() as any
+      for (const item of json?.content ?? []) {
+        const url = item.url
+        if (!url || seen.has(url)) continue
+        seen.add(url)
+        articles.push({
+          id: id(), title: item.title ?? "Untitled", url, source: "Spider Cloud",
+          snippet: (item.description ?? "").slice(0, 280),
+          region: guessRegion(item.title, item.description),
+          assetClass: guessAsset(item.title, item.description),
+          publishedAt: new Date().toISOString(),
+        })
+      }
+    } catch (_) {}
+  })
+  return articles
+}
+
+async function fetchCrawl4AI(queries: string[], seen: Set<string>): Promise<NewsArticle[]> {
+  const jinaKey = process.env.JINA_API_KEY
+  if (!jinaKey) return []
+  const articles: NewsArticle[] = []
+  await runConcurrent(queries, async (q) => {
+    try {
+      const resp = await fetchWithTimeout(`https://s.jina.ai/${encodeURIComponent(q)}`, {
+        timeout: 10000,
+        headers: { Authorization: `Bearer ${jinaKey}`, "Accept": "text/plain" },
+      })
+      if (!resp.ok) return
+      const text = await resp.text()
+      const matches = [...text.matchAll(/\[\d+\]\s*Title:\s*(.+)\n\[\d+\]\s*URL Source:\s*(\S+)(?:\n\[\d+\]\s*Description:\s*(.+?))?(?=\n\[\d+\]|\n\n|$)/g)]
+      if (!matches.length) {
+        const m = text.match(/^\[1\]\s*Title:\s*(.+)\n\[1\]\s*URL Source:\s*(\S+)(?:\n\[1\]\s*Description:\s*(.+?))?(?=\n|$)/m)
+        if (m) matches.push(m as any)
+      }
+      for (const m of matches) {
+        const url = m[2].trim()
+        if (!url || seen.has(url)) continue
+        seen.add(url)
+        articles.push({
+          id: id(), title: m[1].trim().slice(0, 200), url, source: "Crawl4AI",
+          snippet: (m[3] ?? "").trim().slice(0, 280),
+          region: guessRegion(m[1], m[3]),
+          assetClass: guessAsset(m[1], m[3]),
+          publishedAt: new Date().toISOString(),
+        })
+      }
+    } catch (_) {}
+  })
+  return articles
+}
+
+function guessRegion(title: string, desc: string | null): string {
+  const t = `${title} ${desc ?? ""}`.toLowerCase()
+  if (/\b(europe|ftse|dax|euro|uk |london|paris|frankfurt)\b/i.test(t)) return "Europe"
+  if (/\b(china|shanghai|shenzhen|beijing|hong kong|hang seng)\b/i.test(t)) return "China"
+  if (/\b(japan|nikkei|tokyo|jpy|yen)\b/i.test(t)) return "Japan"
+  if (/\b(india|nifty|sensex|mumbai|bse|nse|rupee)\b/i.test(t)) return "India"
+  if (/\b(korea|kospi|seoul|won)\b/i.test(t)) return "Korea"
+  if (/\b(australia|asx|sydney|australian|aussie)\b/i.test(t)) return "Australia"
+  if (/\b(usa?|united states|wall street|dow jones|s&p |nasdaq|nyse|dollar|federal reserve|treasury)\b/i.test(t)) return "USA"
+  return "USA"
+}
+
+function guessAsset(title: string, desc: string | null): string {
+  const t = `${title} ${desc ?? ""}`.toLowerCase()
+  if (/\b(bitcoin|ethereum|crypto|cryptocurrency|blockchain|defi|ico|altcoin|token)\b/i.test(t)) return "crypto"
+  if (/\b(crude oil|oil |petroleum|opec|gasoline)\b/i.test(t)) return "oil"
+  if (/\b(gold |silver|copper|platinum|commodit)\b/i.test(t)) return "commodities"
+  if (/\betf\b/i.test(t)) return "ETFs"
+  if (/\bmutual fund\b/i.test(t)) return "mutual_funds"
+  if (/\b(stock |equit|share|market|index|ipo|trading|rally|bull |bear )\b/i.test(t)) return "stocks"
+  return "stocks"
+}
+
+// ── Merged News (all providers) ───────────────────────────────────
 app.get("/api/news", async (req, res) => {
   try {
-    const rawRegions = (req.query.regions as string)?.split(",").filter(Boolean) ?? []
-    const rawAssets = (req.query.assetClasses as string)?.split(",").filter(Boolean) ?? []
-    const provider = (req.query.provider as string) || "newsdata"
-    const selectedRegions = rawRegions.length ? rawRegions : [...REGIONS]
-    const selectedAssets = rawAssets.length ? rawAssets : [...ASSET_CLASSES]
-
-    const cacheKey = `news:${provider}:${selectedRegions.join(",")}:${selectedAssets.join(",")}`
-    const cached = get<NewsArticle[]>(cacheKey)
+    const cached = get<NewsArticle[]>("news:merged")
     if (cached) return res.json(cached)
 
-    const queries = buildQueries(rawRegions, rawAssets)
-    const articles: NewsArticle[] = []
     const seen = new Set<string>()
+    const regionQueries = REGIONS.map(r => ({ q: REGION_SEARCH[r], region: r, assetClass: "stocks" }))
 
-    let lastError: string | null = null
+    const [nd, sc, c4] = await Promise.allSettled([
+      fetchNewsData(regionQueries, seen),
+      fetchSpiderCloud(["stock market today global", "cryptocurrency bitcoin economy", "world business finance news"], seen),
+      fetchCrawl4AI(["stock market today global", "cryptocurrency bitcoin economy", "world business finance news"], seen),
+    ])
 
-    // ── NewsData.io ────────────────────────────────────────────────
-    if (provider === "newsdata") {
-      const apiKey = process.env.NEWSDATA_API_KEY
-      if (!apiKey) return res.status(500).json({ error: "NEWSDATA_API_KEY not set" })
+    const all = [
+      ...(nd.status === "fulfilled" ? nd.value : []),
+      ...(sc.status === "fulfilled" ? sc.value : []),
+      ...(c4.status === "fulfilled" ? c4.value : []),
+    ]
 
-      await runConcurrent(queries, async ({ q, region, assetClass }) => {
-        try {
-          const resp = await fetchWithTimeout(
-            `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=3`,
-            { timeout: 8000 }
-          )
-          if (!resp.ok) {
-            const body = await resp.text().catch(() => "")
-            lastError = `NewsData returned ${resp.status} for "${q}": ${body.slice(0, 200)}`
-            return
-          }
-          const json = await resp.json() as any
-          if (json.status !== "success") {
-            lastError = `NewsData error: ${json.status} - ${json.results?.message ?? json.message ?? ""}`
-            return
-          }
-          for (const item of json.results ?? []) {
-            const url = item.link
-            if (!url || seen.has(url)) continue
-            seen.add(url)
-            articles.push({
-              id: id(),
-              title: item.title ?? "Untitled",
-              url,
-              source: item.source_id ?? "NewsData",
-              snippet: (item.description ?? "").slice(0, 280),
-              region,
-              assetClass,
-              publishedAt: item.pubDate ?? new Date().toISOString(),
-            })
-          }
-        } catch (e: any) { lastError = `Fetch error for "${q}": ${e.message}` }
-      })
-    }
-
-    // ── Spider Cloud ───────────────────────────────────────────────
-    if (provider === "spidercloud") {
-      const apiKey = process.env.SPIDER_CLOUD_API_KEY
-      if (!apiKey) return res.status(500).json({ error: "SPIDER_CLOUD_API_KEY not set" })
-
-      await runConcurrent(queries, async ({ q, region, assetClass }) => {
-        try {
-          const resp = await fetchWithTimeout("https://api.spider.cloud/v1/search", {
-            method: "POST",
-            timeout: 10000,
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              search: q,
-              search_limit: 3,
-              fetch_page_content: false,
-              return_format: "markdown",
-            }),
-          })
-          if (!resp.ok) { lastError = `Spider Cloud returned ${resp.status} for "${q}"`; return }
-          const json = await resp.json() as any
-          const results = json?.content ?? []
-          for (const item of results) {
-            const url = item.url
-            if (!url || seen.has(url)) continue
-            seen.add(url)
-            articles.push({
-              id: id(),
-              title: item.title ?? "Untitled",
-              url,
-              source: item.domain ?? "Spider Cloud",
-              snippet: (item.description ?? "").slice(0, 280),
-              region,
-              assetClass,
-              publishedAt: new Date().toISOString(),
-            })
-          }
-        } catch (e: any) { lastError = `Spider error for "${q}": ${e.message}` }
-      })
-    }
-
-    // ── Crawl4AI ────────────────────────────────────────────────────
-    if (provider === "crawl4ai") {
-      const jinaKey = process.env.JINA_API_KEY
-      if (!jinaKey) return res.status(500).json({ error: "JINA_API_KEY not set" })
-
-      await runConcurrent(queries, async ({ q, region, assetClass }) => {
-        try {
-          const resp = await fetchWithTimeout(
-            `https://s.jina.ai/${encodeURIComponent(q)}`,
-            {
-              timeout: 10000,
-              headers: {
-                Authorization: `Bearer ${jinaKey}`,
-                "Accept": "text/plain",
-              },
-            }
-          )
-          if (!resp.ok) { lastError = `Crawl4AI returned ${resp.status} for "${q}"`; return }
-          const text = await resp.text()
-          const allResults = text.match(/\[\d+\]\s*Title:\s*(.+)\n\[\d+\]\s*URL Source:\s*(\S+)(?:\n\[\d+\]\s*Description:\s*(.+?))?(?=\n\[\d+\]|\n\n|$)/g)
-          if (!allResults) {
-            const firstResult = text.match(/^\[1\]\s*Title:\s*(.+)\n\[1\]\s*URL Source:\s*(\S+)(?:\n\[1\]\s*Description:\s*(.+?))?(?=\n|$)/m)
-            if (firstResult) {
-              const url = firstResult[2].trim()
-              if (url && !seen.has(url)) {
-                seen.add(url)
-                articles.push({
-                  id: id(),
-                  title: firstResult[1].trim().slice(0, 200),
-                  url,
-                  source: q,
-                  snippet: (firstResult[3] ?? "").trim().slice(0, 280),
-                  region,
-                  assetClass,
-                  publishedAt: new Date().toISOString(),
-                })
-              }
-            }
-            return
-          }
-          for (const result of allResults) {
-            const m = result.match(/\[\d+\]\s*Title:\s*(.+)\n\[\d+\]\s*URL Source:\s*(\S+)(?:\n\[\d+\]\s*Description:\s*(.+?))?/)
-            if (!m) continue
-            const url = m[2].trim()
-            if (!url || seen.has(url)) continue
-            seen.add(url)
-            articles.push({
-              id: id(),
-              title: m[1].trim().slice(0, 200),
-              url,
-              source: q,
-              snippet: (m[3] ?? "").trim().slice(0, 280),
-              region,
-              assetClass,
-              publishedAt: new Date().toISOString(),
-            })
-          }
-        } catch (e: any) { lastError = `Crawl4AI error for "${q}": ${e.message}` }
-      })
-    }
-
-    if (articles.length === 0) {
-      console.error(`[${provider}] No articles. Last error:`, lastError)
+    if (!all.length) {
       return res.status(502).json({
-        error: `No articles returned from ${provider}`,
-        detail: lastError ?? "Unknown error",
-        hint: provider === "newsdata"
-          ? "NewsData free plan: 200 req/day limit. Try Spider Cloud."
-          : provider === "crawl4ai"
-          ? "Crawl4AI uses Jina Reader search. Make sure JINA_API_KEY is set."
-          : undefined,
+        error: "No articles returned from any provider",
+        detail: "All news providers failed to return results. Check API keys.",
       })
     }
 
-    articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    set(cacheKey, articles, 25_000)
-    res.json(articles)
+    all.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    set("news:merged", all, ONE_HOUR)
+    res.json(all)
   } catch (err: any) {
     console.error("News fetch error:", err)
     res.status(500).json({ error: "Failed to fetch news" })

@@ -5,11 +5,11 @@ export function LastUpdated({ at }: { at: number }) {
 
   useEffect(() => {
     function tick() {
-      if (!at) return setLabel("--")
+      if (!at) return setLabel("")
       const s = Math.floor((Date.now() - at) / 1000)
-      if (s < 5) setLabel("just now")
-      else if (s < 60) setLabel(`${s}s ago`)
-      else setLabel(`${Math.floor(s / 60)}m ago`)
+      if (s < 60) setLabel("just now")
+      else if (s < 3600) setLabel(`${Math.floor(s / 60)}m ago`)
+      else setLabel(`${Math.floor(s / 3600)}h ago`)
     }
     tick()
     const id = setInterval(tick, 10_000)

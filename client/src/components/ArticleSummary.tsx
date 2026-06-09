@@ -30,7 +30,7 @@ export function ArticleSummary({ url }: { url: string | null }) {
       ) : query.data ? (
         <>
           <h4 className="text-base font-semibold text-term-text mb-3 leading-relaxed">{query.data.title}</h4>
-          <p className="text-base text-term-muted leading-relaxed">{query.data.summary}</p>
+          <p className="text-base text-term-muted leading-relaxed whitespace-pre-wrap">{query.data.summary}</p>
           <a href={query.data.url} target="_blank" rel="noopener noreferrer"
             className="inline-block mt-4 text-base text-term-accent hover:underline">Read full article →</a>
         </>

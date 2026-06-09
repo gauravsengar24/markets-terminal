@@ -1,87 +1,57 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState, useCallback } from "react"
+import { useState, useMemo } from "react"
 import { fetchNews } from "./lib/api"
 import type { NewsArticle } from "@shared/types"
-import { REGIONS, ASSET_CLASSES, NEWS_PROVIDERS } from "@shared/constants"
-import { FilterRail } from "./components/FilterRail"
+import { REGIONS, ASSET_CLASSES } from "@shared/constants"
 import { NewsTerminal } from "./components/NewsTerminal"
 import { ArticleSummary } from "./components/ArticleSummary"
 import { LastUpdated } from "./components/LastUpdated"
-
-function useUrlFilters() {
-  const params = new URLSearchParams(window.location.search)
-  const regions = params.get("regions")?.split(",").filter(Boolean) ?? []
-  const assets = params.get("assetClasses")?.split(",").filter(Boolean) ?? []
-  const provider = params.get("provider") || "newsdata"
-
-  const setFilters = useCallback((r: string[], a: string[], p?: string) => {
-    const sp = new URLSearchParams()
-    if (r.length) sp.set("regions", r.join(","))
-    if (a.length) sp.set("assetClasses", a.join(","))
-    if (p && p !== "newsdata") sp.set("provider", p)
-    const qs = sp.toString()
-    window.history.replaceState(null, "", qs ? `?${qs}` : "/")
-  }, [])
-
-  return { regions, assets, provider, setFilters }
-}
+import { FilterDropdown } from "./components/FilterDropdown"
 
 export default function App() {
-  const { regions, assets, provider, setFilters } = useUrlFilters()
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null)
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([])
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([])
   const client = useQueryClient()
 
   const news = useQuery({
-    queryKey: ["news", provider, regions, assets],
-    queryFn: () => fetchNews(provider, regions, assets) as Promise<NewsArticle[]>,
-    refetchInterval: 60_000,
+    queryKey: ["news"],
+    queryFn: () => fetchNews() as Promise<NewsArticle[]>,
+    refetchInterval: 3_600_000,
+    staleTime: 3_600_000,
   })
 
-  const toggleRegion = (r: string) => {
-    const next = regions.includes(r) ? regions.filter((x) => x !== r) : [...regions, r]
-    setFilters(next, assets, provider)
-  }
-
-  const toggleAsset = (a: string) => {
-    const next = assets.includes(a) ? assets.filter((x) => x !== a) : [...assets, a]
-    setFilters(regions, next, provider)
-  }
-
-  const setProvider = (p: string) => {
-    setFilters(regions, assets, p)
-  }
+  const filtered = useMemo(() => {
+    const all = news.data ?? []
+    if (!selectedRegions.length && !selectedAssets.length) return all
+    return all.filter(a => {
+      if (selectedRegions.length && !selectedRegions.includes(a.region)) return false
+      if (selectedAssets.length && !selectedAssets.includes(a.assetClass)) return false
+      return true
+    })
+  }, [news.data, selectedRegions, selectedAssets])
 
   const refresh = () => client.invalidateQueries({ queryKey: ["news"] })
+
+  const allRegions = useMemo(() => {
+    const s = new Set(news.data?.map(a => a.region) ?? [])
+    return REGIONS.filter(r => s.has(r))
+  }, [news.data])
+
+  const allAssets = useMemo(() => {
+    const s = new Set(news.data?.map(a => a.assetClass) ?? [])
+    return ASSET_CLASSES.filter(ac => s.has(ac))
+  }, [news.data])
 
   return (
     <div className="h-full flex flex-col bg-term-bg">
       <div className="flex flex-1 overflow-hidden">
-        <FilterRail
-          regions={regions}
-          assets={assets}
-          onToggleRegion={toggleRegion}
-          onToggleAsset={toggleAsset}
-        />
-
-        <div className="flex flex-col flex-1 overflow-hidden border-l border-term-border">
-          <div className="flex items-center justify-between px-5 py-2.5 border-b border-term-border bg-term-surface shrink-0">
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-2.5 border-b border-term-border bg-term-surface shrink-0 flex-wrap gap-2">
             <div className="flex items-center gap-4">
-              <span className="text-term-accent font-bold text-base uppercase tracking-widest">News Terminal</span>
-              <div className="flex gap-1.5">
-                {NEWS_PROVIDERS.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setProvider(p.id)}
-                    className={`text-sm uppercase px-3 py-1.5 border cursor-pointer transition-colors ${
-                      provider === p.id
-                        ? "bg-term-accent/20 text-term-accent border-term-accent"
-                        : "text-term-muted border-term-border hover:text-term-text hover:border-term-muted"
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
+              <span className="text-term-accent font-bold text-base uppercase tracking-widest">Markets Terminal</span>
+              <FilterDropdown label="Region" options={allRegions} selected={selectedRegions} onChange={setSelectedRegions} />
+              <FilterDropdown label="Asset" options={allAssets} selected={selectedAssets} onChange={setSelectedAssets} />
             </div>
             <div className="flex items-center gap-4">
               <LastUpdated at={news.dataUpdatedAt} />
@@ -97,22 +67,20 @@ export default function App() {
 
           {news.error && (
             <div className="bg-term-red/10 border-b border-term-red/30 px-5 py-2.5 text-base text-term-red shrink-0">
-              {(news.error as any)?.detail
-                ? `${NEWS_PROVIDERS.find(p => p.id === provider)?.label ?? provider}: ${(news.error as any).detail}`
-                : `Failed to load news from ${NEWS_PROVIDERS.find(p => p.id === provider)?.label ?? provider}.`}
+              Failed to load news. Check API keys or try again later.
             </div>
           )}
 
           <div className="flex flex-1 overflow-hidden">
             <div className="flex-1 overflow-y-auto">
               <NewsTerminal
-                articles={news.data ?? []}
+                articles={filtered}
                 selectedUrl={selectedUrl}
                 onSelect={setSelectedUrl}
               />
             </div>
 
-            <div className="w-80 border-l border-term-border overflow-y-auto shrink-0">
+            <div className="w-96 border-l border-term-border overflow-y-auto shrink-0">
               <ArticleSummary url={selectedUrl} />
             </div>
           </div>

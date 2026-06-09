@@ -18,23 +18,26 @@ const regionColors: Record<string, string> = {
 
 export function NewsTerminal({ articles, selectedUrl, onSelect }: Props) {
   if (!articles.length) {
-    return <div className="p-12 text-center text-base text-term-muted">No articles match the current filters.</div>
+    return <div className="p-12 text-center text-lg text-term-muted">No articles match the current filters.</div>
   }
 
   return (
     <div className="divide-y divide-term-border/50">
       {articles.map((a) => (
         <button key={a.id} onClick={() => onSelect(selectedUrl === a.url ? null : a.url)}
-          className={`w-full text-left px-5 py-3 text-base cursor-pointer transition-colors hover:bg-term-bg/80 ${
+          className={`w-full text-left px-5 py-3.5 text-base cursor-pointer transition-colors hover:bg-term-bg/80 ${
             selectedUrl === a.url ? "bg-term-accent/5 border-l-2 border-term-accent" : ""
           }`}>
           <div className="flex items-start gap-3">
             <span className="w-16 shrink-0 text-term-muted mono text-sm">{fmtTime(a.publishedAt)}</span>
             <span className={`w-16 shrink-0 text-sm font-bold uppercase ${regionColors[a.region] ?? "text-term-muted"}`}>{a.region}</span>
             <span className="w-20 shrink-0 text-term-muted text-sm uppercase">{a.assetClass.replace("_", " ")}</span>
-            <span className="text-term-text flex-1 leading-relaxed">{a.title}</span>
+            <span className="text-term-text flex-1 leading-relaxed text-base">{a.title}</span>
             <span className="shrink-0 text-term-muted text-sm">{a.source}</span>
           </div>
+          {a.snippet && (
+            <div className="mt-1.5 ml-12 text-sm text-term-muted leading-relaxed line-clamp-2">{a.snippet}</div>
+          )}
         </button>
       ))}
     </div>
