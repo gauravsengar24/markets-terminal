@@ -95,11 +95,11 @@ async function fetchNewsData(queries: { q: string; region: string; assetClass: s
   return articles
 }
 
-async function fetchSpiderCloud(queries: string[], seen: Set<string>): Promise<NewsArticle[]> {
+async function fetchSpiderCloud(queries: { q: string; region: string; assetClass: string }[], seen: Set<string>): Promise<NewsArticle[]> {
   const apiKey = process.env.SPIDER_CLOUD_API_KEY
   if (!apiKey) return []
   const articles: NewsArticle[] = []
-  await runConcurrent(queries, async (q) => {
+  await runConcurrent(queries, async ({ q, region, assetClass }) => {
     try {
       const resp = await fetchWithTimeout("https://api.spider.cloud/v1/search", {
         method: "POST", timeout: 10000,
@@ -114,9 +114,7 @@ async function fetchSpiderCloud(queries: string[], seen: Set<string>): Promise<N
         seen.add(url)
         articles.push({
           id: id(), title: item.title ?? "Untitled", url, source: "Spider Cloud",
-          snippet: (item.description ?? "").slice(0, 280),
-          region: guessRegion(item.title, item.description),
-          assetClass: guessAsset(item.title, item.description),
+          snippet: (item.description ?? "").slice(0, 280), region, assetClass,
           publishedAt: new Date().toISOString(),
         })
       }
@@ -125,11 +123,11 @@ async function fetchSpiderCloud(queries: string[], seen: Set<string>): Promise<N
   return articles
 }
 
-async function fetchCrawl4AI(queries: string[], seen: Set<string>): Promise<NewsArticle[]> {
+async function fetchCrawl4AI(queries: { q: string; region: string; assetClass: string }[], seen: Set<string>): Promise<NewsArticle[]> {
   const jinaKey = process.env.JINA_API_KEY
   if (!jinaKey) return []
   const articles: NewsArticle[] = []
-  await runConcurrent(queries, async (q) => {
+  await runConcurrent(queries, async ({ q, region, assetClass }) => {
     try {
       const resp = await fetchWithTimeout(`https://s.jina.ai/${encodeURIComponent(q)}`, {
         timeout: 10000,
@@ -148,38 +146,13 @@ async function fetchCrawl4AI(queries: string[], seen: Set<string>): Promise<News
         seen.add(url)
         articles.push({
           id: id(), title: m[1].trim().slice(0, 200), url, source: "Crawl4AI",
-          snippet: (m[3] ?? "").trim().slice(0, 280),
-          region: guessRegion(m[1], m[3]),
-          assetClass: guessAsset(m[1], m[3]),
+          snippet: (m[3] ?? "").trim().slice(0, 280), region, assetClass,
           publishedAt: new Date().toISOString(),
         })
       }
     } catch (_) {}
   })
   return articles
-}
-
-function guessRegion(title: string, desc: string | null): string {
-  const t = `${title} ${desc ?? ""}`.toLowerCase()
-  if (/\b(europe|ftse|dax|euro|uk |london|paris|frankfurt)\b/i.test(t)) return "Europe"
-  if (/\b(china|shanghai|shenzhen|beijing|hong kong|hang seng)\b/i.test(t)) return "China"
-  if (/\b(japan|nikkei|tokyo|jpy|yen)\b/i.test(t)) return "Japan"
-  if (/\b(india|nifty|sensex|mumbai|bse|nse|rupee)\b/i.test(t)) return "India"
-  if (/\b(korea|kospi|seoul|won)\b/i.test(t)) return "Korea"
-  if (/\b(australia|asx|sydney|australian|aussie)\b/i.test(t)) return "Australia"
-  if (/\b(usa?|united states|wall street|dow jones|s&p |nasdaq|nyse|dollar|federal reserve|treasury)\b/i.test(t)) return "USA"
-  return "USA"
-}
-
-function guessAsset(title: string, desc: string | null): string {
-  const t = `${title} ${desc ?? ""}`.toLowerCase()
-  if (/\b(bitcoin|ethereum|crypto|cryptocurrency|blockchain|defi|ico|altcoin|token)\b/i.test(t)) return "crypto"
-  if (/\b(crude oil|oil |petroleum|opec|gasoline)\b/i.test(t)) return "oil"
-  if (/\b(gold |silver|copper|platinum|commodit)\b/i.test(t)) return "commodities"
-  if (/\betf\b/i.test(t)) return "ETFs"
-  if (/\bmutual fund\b/i.test(t)) return "mutual_funds"
-  if (/\b(stock |equit|share|market|index|ipo|trading|rally|bull |bear )\b/i.test(t)) return "stocks"
-  return "stocks"
 }
 
 // ── Merged News (all providers) ───────────────────────────────────
@@ -191,10 +164,12 @@ app.get("/api/news", async (req, res) => {
     const seen = new Set<string>()
     const regionQueries = REGIONS.map(r => ({ q: REGION_SEARCH[r], region: r, assetClass: "stocks" }))
 
+    const taggedQueries = REGIONS.map(r => ({ q: REGION_SEARCH[r], region: r, assetClass: "stocks" }))
+
     const [nd, sc, c4] = await Promise.allSettled([
       fetchNewsData(regionQueries, seen),
-      fetchSpiderCloud(["stock market today global", "cryptocurrency bitcoin economy", "world business finance news"], seen),
-      fetchCrawl4AI(["stock market today global", "cryptocurrency bitcoin economy", "world business finance news"], seen),
+      fetchSpiderCloud(taggedQueries, seen),
+      fetchCrawl4AI(taggedQueries, seen),
     ])
 
     const all = [
