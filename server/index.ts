@@ -39,15 +39,16 @@ function buildQueries(regions: string[], assets: string[]): { q: string; region:
   return DEFAULT_ASSET_QUERIES.map(q => ({ q, region: "USA", assetClass: "stocks" }))
 }
 
-// ── News via NewsData.io ──────────────────────────────────────────
+// ── News ──────────────────────────────────────────────────────────
 app.get("/api/news", async (req, res) => {
   try {
     const rawRegions = (req.query.regions as string)?.split(",").filter(Boolean) ?? []
     const rawAssets = (req.query.assetClasses as string)?.split(",").filter(Boolean) ?? []
+    const provider = (req.query.provider as string) || "newsdata"
     const selectedRegions = rawRegions.length ? rawRegions : [...REGIONS]
     const selectedAssets = rawAssets.length ? rawAssets : [...ASSET_CLASSES]
 
-    const cacheKey = `news:${selectedRegions.join(",")}:${selectedAssets.join(",")}`
+    const cacheKey = `news:${provider}:${selectedRegions.join(",")}:${selectedAssets.join(",")}`
     const cached = get<NewsArticle[]>(cacheKey)
     if (cached) return res.json(cached)
 
@@ -55,51 +56,152 @@ app.get("/api/news", async (req, res) => {
     const articles: NewsArticle[] = []
     const seen = new Set<string>()
 
-    const apiKey = process.env.NEWSDATA_API_KEY
-    if (!apiKey) return res.status(500).json({ error: "NEWSDATA_API_KEY not set in environment" })
-
     let lastError: string | null = null
 
-    for (const { q, region, assetClass } of queries) {
-      try {
-        const resp = await fetch(
-          `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=3`
-        )
-        if (!resp.ok) {
-          lastError = `NewsData returned ${resp.status} for query "${q}"`
-          continue
-        }
-        const json = await resp.json() as any
-        if (json.status !== "success") {
-          lastError = `NewsData error: ${json.status} - ${json.results?.message ?? "unknown"}`
-          continue
-        }
-        for (const item of json.results ?? []) {
-          const url = item.link
-          if (!url || seen.has(url)) continue
-          seen.add(url)
-          articles.push({
-            id: id(),
-            title: item.title ?? "Untitled",
-            url,
-            source: item.source_id ?? "NewsData",
-            snippet: (item.description ?? "").slice(0, 280),
-            region,
-            assetClass,
-            publishedAt: item.pubDate ?? new Date().toISOString(),
+    // ── NewsData.io ────────────────────────────────────────────────
+    if (provider === "newsdata") {
+      const apiKey = process.env.NEWSDATA_API_KEY
+      if (!apiKey) return res.status(500).json({ error: "NEWSDATA_API_KEY not set" })
+
+      for (const { q, region, assetClass } of queries) {
+        try {
+          const resp = await fetch(
+            `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=3`
+          )
+          if (!resp.ok) { lastError = `NewsData returned ${resp.status} for "${q}"`; continue }
+          const json = await resp.json() as any
+          if (json.status !== "success") { lastError = `NewsData error: ${json.status}`; continue }
+          for (const item of json.results ?? []) {
+            const url = item.link
+            if (!url || seen.has(url)) continue
+            seen.add(url)
+            articles.push({
+              id: id(),
+              title: item.title ?? "Untitled",
+              url,
+              source: item.source_id ?? "NewsData",
+              snippet: (item.description ?? "").slice(0, 280),
+              region,
+              assetClass,
+              publishedAt: item.pubDate ?? new Date().toISOString(),
+            })
+          }
+        } catch (e: any) { lastError = `Fetch error for "${q}": ${e.message}` }
+      }
+    }
+
+    // ── Spider Cloud ───────────────────────────────────────────────
+    if (provider === "spidercloud") {
+      const apiKey = process.env.SPIDER_CLOUD_API_KEY
+      if (!apiKey) return res.status(500).json({ error: "SPIDER_CLOUD_API_KEY not set" })
+
+      for (const { q, region, assetClass } of queries) {
+        try {
+          const resp = await fetch("https://api.spider.cloud/v1/search", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              search: q,
+              search_limit: 3,
+              fetch_page_content: false,
+              return_format: "markdown",
+            }),
           })
-        }
-      } catch (e: any) {
-        lastError = `Fetch error for "${q}": ${e.message}`
+          if (!resp.ok) { lastError = `Spider Cloud returned ${resp.status} for "${q}"`; continue }
+          const json = await resp.json() as any
+          const results = json?.content ?? []
+          for (const item of results) {
+            const url = item.url
+            if (!url || seen.has(url)) continue
+            seen.add(url)
+            articles.push({
+              id: id(),
+              title: item.title ?? "Untitled",
+              url,
+              source: item.domain ?? "Spider Cloud",
+              snippet: (item.description ?? "").slice(0, 280),
+              region,
+              assetClass,
+              publishedAt: new Date().toISOString(),
+            })
+          }
+        } catch (e: any) { lastError = `Spider error for "${q}": ${e.message}` }
+      }
+    }
+
+    // ── Crawl4AI ────────────────────────────────────────────────────
+    if (provider === "crawl4ai") {
+      const jinaKey = process.env.JINA_API_KEY
+      if (!jinaKey) return res.status(500).json({ error: "JINA_API_KEY not set" })
+
+      for (const { q, region, assetClass } of queries) {
+        try {
+          const resp = await fetch(
+            `https://s.jina.ai/${encodeURIComponent(q)}`,
+            {
+              headers: {
+                Authorization: `Bearer ${jinaKey}`,
+                "Accept": "text/plain",
+              },
+            }
+          )
+          if (!resp.ok) { lastError = `Crawl4AI returned ${resp.status} for "${q}"`; continue }
+          const text = await resp.text()
+          const allResults = text.match(/\[\d+\]\s*Title:\s*(.+)\n\[\d+\]\s*URL Source:\s*(\S+)(?:\n\[\d+\]\s*Description:\s*(.+?))?(?=\n\[\d+\]|\n\n|$)/g)
+          if (!allResults) {
+            const firstResult = text.match(/^\[1\]\s*Title:\s*(.+)\n\[1\]\s*URL Source:\s*(\S+)(?:\n\[1\]\s*Description:\s*(.+?))?(?=\n|$)/m)
+            if (firstResult) {
+              const url = firstResult[2].trim()
+              if (url && !seen.has(url)) {
+                seen.add(url)
+                articles.push({
+                  id: id(),
+                  title: firstResult[1].trim().slice(0, 200),
+                  url,
+                  source: q,
+                  snippet: (firstResult[3] ?? "").trim().slice(0, 280),
+                  region,
+                  assetClass,
+                  publishedAt: new Date().toISOString(),
+                })
+              }
+            }
+            continue
+          }
+          for (const result of allResults) {
+            const m = result.match(/\[\d+\]\s*Title:\s*(.+)\n\[\d+\]\s*URL Source:\s*(\S+)(?:\n\[\d+\]\s*Description:\s*(.+?))?/)
+            if (!m) continue
+            const url = m[2].trim()
+            if (!url || seen.has(url)) continue
+            seen.add(url)
+            articles.push({
+              id: id(),
+              title: m[1].trim().slice(0, 200),
+              url,
+              source: q,
+              snippet: (m[3] ?? "").trim().slice(0, 280),
+              region,
+              assetClass,
+              publishedAt: new Date().toISOString(),
+            })
+          }
+        } catch (e: any) { lastError = `Crawl4AI error for "${q}": ${e.message}` }
       }
     }
 
     if (articles.length === 0) {
-      console.error("News fetch returned no articles. Last error:", lastError)
+      console.error(`[${provider}] No articles. Last error:`, lastError)
       return res.status(502).json({
-        error: "No news articles returned from NewsData.io",
+        error: `No articles returned from ${provider}`,
         detail: lastError ?? "Unknown error",
-        hint: "The free NewsData.io plan has a 200 req/day limit. Check your key or try again tomorrow.",
+        hint: provider === "newsdata"
+          ? "NewsData free plan: 200 req/day limit. Try Spider Cloud."
+          : provider === "crawl4ai"
+          ? "Crawl4AI uses Jina Reader search. Make sure JINA_API_KEY is set."
+          : undefined,
       })
     }
 

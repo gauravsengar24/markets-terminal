@@ -16,6 +16,12 @@ export const REGION_SEARCH: Record<string, string> = {
   Australia: "Australia stock market ASX",
 }
 
+export const NEWS_PROVIDERS = [
+  { id: "newsdata", label: "NewsData.io" },
+  { id: "spidercloud", label: "Spider Cloud" },
+  { id: "crawl4ai", label: "Crawl4AI" },
+] as const
+
 export const ASSET_QUERIES: Record<string, string[]> = {
   oil: ["crude oil", "oil market"],
   stocks: ["stock market", "equities"],

@@ -1,7 +1,8 @@
 const BASE = "/api"
 
-export async function fetchNews(regions?: string[], assetClasses?: string[]) {
+export async function fetchNews(provider = "newsdata", regions?: string[], assetClasses?: string[]) {
   const params = new URLSearchParams()
+  params.set("provider", provider)
   if (regions?.length) params.set("regions", regions.join(","))
   if (assetClasses?.length) params.set("assetClasses", assetClasses.join(","))
   const res = await fetch(`${BASE}/news?${params}`)
