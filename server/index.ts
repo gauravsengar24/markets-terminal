@@ -68,9 +68,16 @@ app.get("/api/news", async (req, res) => {
           const resp = await fetch(
             `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=3`
           )
-          if (!resp.ok) { lastError = `NewsData returned ${resp.status} for "${q}"`; continue }
+          if (!resp.ok) {
+            const body = await resp.text().catch(() => "")
+            lastError = `NewsData returned ${resp.status} for "${q}": ${body.slice(0, 200)}`
+            continue
+          }
           const json = await resp.json() as any
-          if (json.status !== "success") { lastError = `NewsData error: ${json.status}`; continue }
+          if (json.status !== "success") {
+            lastError = `NewsData error: ${json.status} - ${json.results?.message ?? json.message ?? ""}`
+            continue
+          }
           for (const item of json.results ?? []) {
             const url = item.link
             if (!url || seen.has(url)) continue
