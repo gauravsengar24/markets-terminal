@@ -63,7 +63,7 @@ export function Layout() {
               disabled={news.isRefetching}
               className="action-link text-xs"
               aria-label="Refresh news"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.3rem 0.75rem', fontSize: '0.82rem' }}
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.95rem' }}
             >
               {news.isRefetching ? "⟳" : "↻"}
             </button>

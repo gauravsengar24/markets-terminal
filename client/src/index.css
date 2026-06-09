@@ -41,7 +41,7 @@ body {
   position: relative;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-size: 17px;
+  font-size: 18px;
 }
 
 body::before {
@@ -180,14 +180,14 @@ html {
 }
 
 .mac-source {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-tertiary);
   letter-spacing: 0.02em;
 }
 
 .mac-meta {
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 400;
   color: var(--text-tertiary);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -195,7 +195,7 @@ html {
 
 .mac-title {
   font-weight: 500;
-  font-size: 1rem;
+  font-size: 1.15rem;
   line-height: 1.45;
   color: var(--text-primary);
   display: -webkit-box;
@@ -210,7 +210,7 @@ html {
 }
 
 .mac-snippet {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   line-height: 1.55;
   color: var(--text-secondary);
   margin-top: 0.35rem;
@@ -225,7 +225,7 @@ html {
 .mac-section-title {
   font-family: Inter, sans-serif;
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   color: var(--text-primary);
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -256,9 +256,9 @@ html {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0.4rem 0.9rem;
+  padding: 0.45rem 1rem;
   border-radius: 9999px;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   font-weight: 500;
   font-family: Inter, sans-serif;
   letter-spacing: -0.01em;
@@ -293,7 +293,7 @@ html {
 .impact-pill .pill-dot.all { background: #6b7280; }
 
 .mac-count-badge {
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-tertiary);
   background: rgba(255, 255, 255, 0.04);
@@ -308,7 +308,7 @@ html {
 .mac-view-all {
   display: inline-flex;
   align-items: center;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent;
@@ -326,7 +326,7 @@ html {
 /* ─── Chip (IPO/ICO labels) ─── */
 
 .mac-chip {
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -378,7 +378,7 @@ html {
 /* ─── Sidebar ─── */
 
 .mac-side-title {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -390,7 +390,7 @@ html {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent;
@@ -418,13 +418,13 @@ html {
 }
 
 .mac-side-stat-label {
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 450;
   color: var(--text-secondary);
 }
 
 .mac-side-stat-count {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-tertiary);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -500,7 +500,7 @@ html {
 }
 
 .impact-left-title {
-  font-size: 0.92rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -509,7 +509,7 @@ html {
 }
 
 .impact-left-badge {
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: var(--text-tertiary);
   background: rgba(255, 255, 255, 0.04);
@@ -520,7 +520,7 @@ html {
 }
 
 .impact-left-subtitle {
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   color: var(--text-tertiary);
   display: block;
 }
@@ -610,7 +610,7 @@ html {
 }
 
 .impact-left-cat-name {
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -619,7 +619,7 @@ html {
 }
 
 .impact-left-tag {
-  font-size: 0.58rem;
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -660,13 +660,13 @@ html {
 }
 
 .impact-left-articles {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   color: var(--text-tertiary);
   font-family: 'JetBrains Mono', monospace;
 }
 
 .impact-left-score {
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
@@ -724,7 +724,7 @@ html {
 
 .impact-left-reasoning-item {
   position: relative;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   line-height: 1.5;
   color: var(--text-secondary);
   padding-left: 0.85rem;
@@ -752,7 +752,7 @@ html {
 }
 
 .impact-left-reasoning-empty {
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   color: var(--text-tertiary);
   padding: 0.25rem 0.55rem 0.55rem;
   margin: 0;
@@ -764,7 +764,7 @@ html {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   color: var(--text-tertiary);
 }
 
@@ -818,7 +818,7 @@ html {
   align-items: center;
   color: var(--text-primary);
   text-decoration: none;
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   font-weight: 500;
   padding: 0.35rem 0.85rem;
   background: rgba(255, 255, 255, 0.05);
@@ -889,14 +889,14 @@ html {
 }
 
 .ticker-sym {
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--text-secondary);
 }
 
 .ticker-price {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-primary);
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -904,7 +904,7 @@ html {
 }
 
 .ticker-change {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 600;
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
 }
@@ -913,16 +913,16 @@ html {
 
 .article-title {
   font-weight: 450;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   line-height: 1.4;
   color: var(--text-primary);
 }
 @media (min-width: 768px) {
-  .article-title { font-size: 1.1rem; }
+  .article-title { font-size: 1.3rem; }
 }
 
 .article-snippet {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   line-height: 1.5;
   color: var(--text-muted);
 }

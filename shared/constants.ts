@@ -28,7 +28,6 @@ export const BREAKING_RSS_FEEDS: RssFeed[] = [
   { url: 'https://www.abc.net.au/news/feed/51260/rss.xml', region: 'Australia', subCategory: 'stocks' },
   { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', region: 'USA', subCategory: 'crypto' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://seekingalpha.com/feed.xml', region: 'USA', subCategory: 'stocks' },
 ]
 
 export const RSS_FEEDS: RssFeed[] = [

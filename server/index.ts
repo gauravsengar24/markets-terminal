@@ -150,6 +150,8 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
         const snippet = item.description.replace(/<[^>]+>/g, "").slice(0, 280)
         const cleanTitle = (item.title || "").replace(/<[^>]+>/g, "").trim()
         if (!cleanTitle || cleanTitle.length < 10) continue
+        const lowerUrl = url.toLowerCase()
+        if (/seekingalpha|seeking.?alpha|etfreplay|barrons\.com|investopedia\.com|fool\.com|zacks|kiplinger/i.test(lowerUrl)) continue
         const alphaRatio = (snippet.match(/[a-zA-Z]/g) || []).length / (snippet.length || 1)
         if (snippet.length > 0 && (alphaRatio < 0.3 || snippet.length < 20)) continue
         const sub = feed.subCategory === "stocks" ? detectSubCategory(cleanTitle, snippet) : feed.subCategory
@@ -420,7 +422,11 @@ function cleanArticleContent(raw: string): string {
     return entities[m.toLowerCase()] || m
   })
   text = text.replace(/ShareSaveAdd.*?(?=[A-Z])/g, "")
-  text = text.replace(/FollowFollow\d+/g, "")
+  text = text.replace(/FollowFollow\d*/g, "")
+  text = text.replace(/ShareSavePlay.*?(?=[A-Z])/gi, "")
+  text = text.replace(/(\d+\s*)?(min|hr|hrs|sec)\s*(read|play|ago)/gi, "")
+  text = text.replace(/Followers?\d*/gi, "")
+  text = text.replace(/Summary/i, "")
   text = text.replace(/Comments?\d*/gi, "")
   text = text.replace(/\b\d+\s*(m|h|min)\s*ago\b/gi, "")
   text = text.replace(/Getty Images/i, "")
@@ -445,7 +451,12 @@ function cleanArticleContent(raw: string): string {
 function buildBriefing(title: string, content: string, url: string) {
   const sentences = content.split(/[.!?]+/).filter(s => {
     const t = s.trim()
-    return t.length > 30 && t.length < 500 && !/^[{\["]/.test(t) && (t.match(/[a-zA-Z]/g) || []).length > t.length * 0.4
+    if (t.length < 35 || t.length > 600) return false
+    if (/^[{\["]/.test(t)) return false
+    if ((t.match(/[a-zA-Z]/g) || []).length < t.length * 0.35) return false
+    if (/(seeking alpha|disclaimer|this account|not managed|not monitored|follow us|subscribe|sign up|all rights reserved|terms of service|privacy policy|past performance|investment advice|for informational)/i.test(t)) return false
+    if (t.split(/\s+/).length < 5) return false
+    return true
   })
 
   const whatHappened = sentences.slice(0, 4).map(s => s.trim() + ".")
