@@ -12,11 +12,15 @@ export function IPOSection({ articles, maxArticles, viewAllLink }: Props) {
   if (!ipoArticles.length) return null
 
   return (
-    <div>
-      <div className="flex items-center gap-3 px-3 md:px-5 py-1.5" style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--glass-border)' }}>
-        <span style={{ fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--color-positive)' }}>Stock IPO</span>
-        <span style={{ color: 'var(--glass-border)' }}>|</span>
-        <span style={{ fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(168, 85, 247, 0.9)' }}>Crypto ICO</span>
+    <div className="mb-5">
+      <div className="flex items-center gap-3 px-3 md:px-5 py-1.5">
+        <span className="mac-chip" style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-positive)', borderColor: 'rgba(34, 197, 94, 0.2)' }}>
+          Stock IPO
+        </span>
+        <span style={{ color: 'var(--glass-border)', fontSize: '0.6rem' }}>/</span>
+        <span className="mac-chip" style={{ background: 'rgba(168, 85, 247, 0.1)', color: 'rgba(168, 85, 247, 0.9)', borderColor: 'rgba(168, 85, 247, 0.2)' }}>
+          Crypto ICO
+        </span>
       </div>
       <NewsSection
         title="IPO"

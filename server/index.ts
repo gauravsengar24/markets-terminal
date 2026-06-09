@@ -2,10 +2,8 @@ import express from "express"
 import path from "path"
 import { fileURLToPath } from "url"
 import { initCache, get, set } from "./cache.js"
-import {
-  REGIONS, ASSET_QUERIES, DEFAULT_ASSET_QUERIES, REGION_SEARCH,
-  CRYPTO_QUERIES, IPO_QUERIES, BREAKING_NEWS_QUERIES, RSS_FEEDS,
-} from "../shared/constants.js"
+import { RSS_FEEDS, BREAKING_RSS_FEEDS } from "../shared/constants.js"
+import type { RssFeed } from "../shared/constants.js"
 import type { NewsArticle, BreakingNews, MarketPrice } from "../shared/types.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -25,7 +23,7 @@ function detectSubCategory(title: string, snippet: string): string {
   return "stocks"
 }
 
-function runConcurrent<T>(items: T[], fn: (item: T) => Promise<void>, limit = 4): Promise<void> {
+function runConcurrent<T>(items: T[], fn: (item: T) => Promise<void>, limit = 5): Promise<void> {
   let i = 0
   const next = async (): Promise<void> => {
     while (i < items.length) {
@@ -52,67 +50,79 @@ const ONE_HOUR = 3_600_000
 const TEN_MIN = 600_000
 const FIVE_MIN = 300_000
 
-async function fetchRSS(feeds: string[], seen: Set<string>): Promise<NewsArticle[]> {
-  const jinaKey = process.env.JINA_API_KEY
-  if (!jinaKey) return []
-  const articles: NewsArticle[] = []
-  await runConcurrent(feeds.slice(0, 6), async (feedUrl) => {
-    try {
-      const resp = await fetchWithTimeout(`https://r.jina.ai/${encodeURIComponent(feedUrl)}`, {
-        timeout: 10000,
-        headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" },
-      })
-      if (!resp.ok) return
-      const text = await resp.text()
-      const items = text.split("\n\n").filter(b => b.includes("Title:") && b.includes("URL Source:"))
-      for (const item of items) {
-        const titleMatch = item.match(/Title:\s*(.+)/)
-        const urlMatch = item.match(/URL Source:\s*(\S+)/)
-        const descMatch = item.match(/Description:\s*(.+?)(?=\n|$)/)
-        const title = titleMatch?.[1]?.trim()
-        const url = urlMatch?.[1]?.trim()
-        if (!title || !url || seen.has(url)) continue
-        seen.add(url)
-        const snippet = (descMatch?.[1] ?? "").trim().slice(0, 280)
-        const sub = detectSubCategory(title, snippet)
-        articles.push({
-          id: id(), title, url, source: "RSS",
-          snippet, region: "USA",
-          assetClass: sub === "crypto" ? "crypto" : sub === "commodities" ? "commodities" : "stocks",
-          subCategory: sub,
-          publishedAt: new Date().toISOString(),
-        })
-      }
-    } catch (_) {}
-  })
-  return articles
+function parseRSSXml(xml: string): Array<{ title: string; link: string; description: string; pubDate: string }> {
+  const items: Array<{ title: string; link: string; description: string; pubDate: string }> = []
+  const itemRegex = /<item>([\s\S]*?)<\/item>/gi
+  let match
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const block = match[1]
+    const getTag = (tag: string) => {
+      const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'))
+      return m ? m[1].trim() : ''
+    }
+    const getCDATA = (tag: string) => {
+      const m = block.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, 'i'))
+      return m ? m[1].trim() : getTag(tag)
+    }
+    items.push({
+      title: getCDATA('title'),
+      link: getTag('link'),
+      description: getCDATA('description'),
+      pubDate: getTag('pubDate'),
+    })
+  }
+  return items
 }
 
-async function fetchNewsData(queries: { q: string; region: string; assetClass: string }[], seen: Set<string>): Promise<NewsArticle[]> {
-  const apiKey = process.env.NEWSDATA_API_KEY
-  if (!apiKey) return []
+function parseAtomXml(xml: string): Array<{ title: string; link: string; description: string; pubDate: string }> {
+  const items: Array<{ title: string; link: string; description: string; pubDate: string }> = []
+  const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi
+  let match
+  while ((match = entryRegex.exec(xml)) !== null) {
+    const block = match[1]
+    const getTag = (tag: string) => {
+      const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'))
+      return m ? m[1].trim() : ''
+    }
+    const linkMatch = block.match(/<link[^>]*href=["']([^"']+)["']/)
+    items.push({
+      title: getTag('title'),
+      link: linkMatch?.[1] ?? '',
+      description: getTag('summary') || getTag('content') || '',
+      pubDate: getTag('published') || getTag('updated'),
+    })
+  }
+  return items
+}
+
+async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticle[]> {
   const articles: NewsArticle[] = []
-  await runConcurrent(queries.slice(0, 7), async ({ q, region, assetClass }) => {
+  await runConcurrent(feeds, async (feed) => {
     try {
-      const resp = await fetchWithTimeout(
-        `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=4`,
-        { timeout: 8000 }
-      )
+      const resp = await fetchWithTimeout(feed.url, {
+        timeout: 10000,
+        headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+      })
       if (!resp.ok) return
-      const json = await resp.json() as any
-      if (json.status !== "success") return
-      for (const item of json.results ?? []) {
+      const xml = await resp.text()
+      let items = parseRSSXml(xml)
+      if (!items.length) items = parseAtomXml(xml)
+      for (const item of items) {
         const url = item.link
         if (!url || seen.has(url)) continue
         seen.add(url)
-        const snippet = (item.description ?? "").slice(0, 280)
-        const sub = detectSubCategory(item.title ?? "", snippet)
+        const snippet = item.description.replace(/<[^>]+>/g, "").slice(0, 280)
+        const sub = feed.subCategory === "stocks" ? detectSubCategory(item.title, snippet) : feed.subCategory
         articles.push({
-          id: id(), title: item.title ?? "Untitled", url,
-          source: item.source_id ?? "NewsData",
-          snippet, region, assetClass,
+          id: id(),
+          title: item.title.slice(0, 200),
+          url,
+          source: new URL(url).hostname.replace("www.", ""),
+          snippet,
+          region: feed.region,
+          assetClass: sub === "crypto" ? "crypto" : sub === "commodities" ? "commodities" : "stocks",
           subCategory: sub,
-          publishedAt: item.pubDate ?? new Date().toISOString(),
+          publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
         })
       }
     } catch (_) {}
@@ -120,102 +130,233 @@ async function fetchNewsData(queries: { q: string; region: string; assetClass: s
   return articles
 }
 
-async function fetchSpiderCloud(queries: { q: string; region: string; assetClass: string }[], seen: Set<string>): Promise<NewsArticle[]> {
-  const apiKey = process.env.SPIDER_CLOUD_API_KEY
-  if (!apiKey) return []
-  const articles: NewsArticle[] = []
-  await runConcurrent(queries, async ({ q, region, assetClass }) => {
-    try {
-      const resp = await fetchWithTimeout("https://api.spider.cloud/v1/search", {
-        method: "POST", timeout: 10000,
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ search: q, search_limit: 5, fetch_page_content: false, return_format: "markdown" }),
-      })
-      if (!resp.ok) return
-      const json = await resp.json() as any
-      for (const item of json?.content ?? []) {
-        const url = item.url
-        if (!url || seen.has(url)) continue
-        seen.add(url)
-        const snippet = (item.description ?? "").slice(0, 280)
-        const sub = detectSubCategory(item.title ?? "", snippet)
-        articles.push({
-          id: id(), title: item.title ?? "Untitled", url,
-          source: "Spider Cloud",
-          snippet, region, assetClass,
-          subCategory: sub,
-          publishedAt: new Date().toISOString(),
-        })
-      }
-    } catch (_) {}
-  })
-  return articles
+// ════════════════════════════════════════════════════════════════
+//  MARKET SNAPSHOT — Crypto movers, S&P 500 movers, Nifty 50 movers
+// ════════════════════════════════════════════════════════════════
+
+async function fetchCryptoTicker(): Promise<MarketPrice[]> {
+  try {
+    const resp = await fetchWithTimeout(
+      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=100&page=1&price_change_percentage=24h",
+      { timeout: 8000 }
+    )
+    if (!resp.ok) return []
+    const json = await resp.json() as any[]
+    const sorted = [...json].sort((a, b) => (b.price_change_percentage_24h ?? 0) - (a.price_change_percentage_24h ?? 0))
+    const gainers = sorted.slice(0, 10)
+    const losers = sorted.slice(-5).reverse()
+    return [...gainers, ...losers].map(coin => ({
+      symbol: coin.symbol.toUpperCase(),
+      name: coin.name,
+      price: coin.current_price,
+      change: coin.price_change_24h ?? 0,
+      changePercent: coin.price_change_percentage_24h ?? 0,
+      assetType: "crypto" as const,
+    }))
+  } catch { return [] }
 }
 
-async function fetchJina(queries: { q: string; region: string; assetClass: string }[], seen: Set<string>): Promise<NewsArticle[]> {
+async function fetchYahooMovers(region: string, scrId: string, count: number): Promise<MarketPrice[]> {
+  try {
+    const resp = await fetchWithTimeout(
+      `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=true&lang=en-US&region=${region}&scrIds=${scrId}&count=${count}`,
+      { timeout: 12000, headers: { "User-Agent": "Mozilla/5.0" } }
+    )
+    if (!resp.ok) return []
+    const json = await resp.json() as any
+    const quotes: any[] = json?.finance?.result?.[0]?.quotes ?? []
+    if (!quotes.length) return []
+    return quotes.map(q => ({
+      symbol: q.symbol,
+      name: q.shortName ?? q.symbol,
+      price: q.regularMarketPrice?.raw ?? q.regularMarketPrice ?? 0,
+      change: q.regularMarketChange?.raw ?? q.regularMarketChange ?? 0,
+      changePercent: q.regularMarketChangePercent?.raw ?? q.regularMarketChangePercent ?? 0,
+      assetType: "stock" as const,
+    }))
+  } catch { return [] }
+}
+
+async function fetchStockMoversViaJina(): Promise<MarketPrice[]> {
   const jinaKey = process.env.JINA_API_KEY
   if (!jinaKey) return []
-  const articles: NewsArticle[] = []
-  await runConcurrent(queries, async ({ q, region, assetClass }) => {
+  const results: MarketPrice[] = []
+  const queries = [
+    "top stock market gainers today S&P 500",
+    "top stock market losers today S&P 500",
+  ]
+  for (const q of queries) {
     try {
-      const resp = await fetchWithTimeout(`https://s.jina.ai/${encodeURIComponent(q)}`, {
-        timeout: 10000,
-        headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" },
-      })
-      if (!resp.ok) return
+      const resp = await fetchWithTimeout(
+        `https://s.jina.ai/${encodeURIComponent(q)}`,
+        { timeout: 10000, headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" } }
+      )
+      if (!resp.ok) continue
       const text = await resp.text()
-      const matches = [...text.matchAll(/\[\d+\]\s*Title:\s*(.+)\n\[\d+\]\s*URL Source:\s*(\S+)(?:\n\[\d+\]\s*Description:\s*(.+?))?(?=\n\[\d+\]|\n\n|$)/g)]
+      const matches = text.matchAll(/([A-Z]{1,5})\s*[:\s]*\$?([0-9,]+(?:\.[0-9]+)?)\s*[^0-9]*([+-]?\d+\.?\d*)\s*%/g)
       for (const m of matches) {
-        const url = m[2].trim()
-        if (!url || seen.has(url)) continue
-        seen.add(url)
-        const snippet = (m[3] ?? "").trim().slice(0, 280)
-        const sub = detectSubCategory(m[1] ?? "", snippet)
-        articles.push({
-          id: id(), title: m[1].trim().slice(0, 200), url,
-          source: "Jina AI",
-          snippet, region, assetClass,
-          subCategory: sub,
-          publishedAt: new Date().toISOString(),
-        })
+        const price = parseFloat(m[2].replace(/,/g, ""))
+        const changePct = parseFloat(m[3])
+        if (price > 0 && results.length < 20) {
+          results.push({
+            symbol: m[1].toUpperCase(),
+            name: m[1].toUpperCase(),
+            price,
+            change: 0,
+            changePercent: changePct,
+            assetType: "stock",
+          })
+        }
       }
-    } catch (_) {}
-  })
-  return articles
+    } catch {}
+  }
+  return results
 }
 
-async function fetchSpecificQueries(
-  queries: string[], region: string, assetClass: string, subCategory: string,
-  seen: Set<string>, provider: "newsdata" | "jina" = "jina"
-): Promise<NewsArticle[]> {
-  const articles: NewsArticle[] = []
+async function fetchNiftyViaJina(): Promise<MarketPrice[]> {
   const jinaKey = process.env.JINA_API_KEY
-  if (provider !== "jina" || !jinaKey) return articles
-  await runConcurrent(queries, async (q) => {
-    try {
-      const resp = await fetchWithTimeout(`https://s.jina.ai/${encodeURIComponent(q + " news")}`, {
-        timeout: 10000,
-        headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" },
-      })
-      if (!resp.ok) return
-      const text = await resp.text()
-      const matches = [...text.matchAll(/\[\d+\]\s*Title:\s*(.+)\n\[\d+\]\s*URL Source:\s*(\S+)(?:\n\[\d+\]\s*Description:\s*(.+?))?(?=\n\[\d+\]|\n\n|$)/g)]
-      for (const m of matches) {
-        const url = m[2].trim()
-        if (!url || seen.has(url)) continue
-        seen.add(url)
-        articles.push({
-          id: id(), title: m[1].trim().slice(0, 200), url,
-          source: "Jina AI",
-          snippet: (m[3] ?? "").trim().slice(0, 280),
-          region, assetClass, subCategory,
-          publishedAt: new Date().toISOString(),
-        })
+  if (!jinaKey) return []
+  try {
+    const resp = await fetchWithTimeout(
+      "https://s.jina.ai/top gainers and losers nifty 50 today stock market",
+      { timeout: 10000, headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" } }
+    )
+    if (!resp.ok) return []
+    const text = await resp.text()
+    const results: MarketPrice[] = []
+    const lines = text.split("\n")
+    for (const line of lines) {
+      const m = line.match(/([A-Z]{1,10})\s*(?:\([^)]*\))?[:\s]*₹?\s*([0-9,]+(?:\.[0-9]+)?)\s*[^0-9]*([+-]?\d+\.?\d*)\s*%/i)
+      if (m) {
+        const price = parseFloat(m[2].replace(/,/g, ""))
+        const changePct = parseFloat(m[3])
+        if (price > 0) {
+          results.push({
+            symbol: m[1].toUpperCase(),
+            name: m[1].toUpperCase(),
+            price,
+            change: 0,
+            changePercent: changePct,
+            assetType: "stock",
+          })
+        }
       }
-    } catch (_) {}
-  })
-  return articles
+    }
+    return results.slice(0, 10)
+  } catch { return [] }
 }
+
+app.get("/api/market-snapshot", async (_req, res) => {
+  try {
+    const cached = await get<MarketPrice[]>("market:snapshot")
+    if (cached) return res.json(cached)
+
+    const [crypto, spGainers, spLosers, stockJina, nifty] = await Promise.all([
+      fetchCryptoTicker(),
+      fetchYahooMovers("US", "day_gainers", 5),
+      fetchYahooMovers("US", "day_losers", 5),
+      fetchStockMoversViaJina(),
+      fetchNiftyViaJina(),
+    ])
+
+    const stocks = spGainers.length + spLosers.length >= 4
+      ? [...spGainers, ...spLosers]
+      : stockJina
+
+    const prices: MarketPrice[] = [...crypto, ...stocks, ...nifty]
+
+    if (!prices.length) {
+      try {
+        const resp = await fetchWithTimeout(
+          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true",
+          { timeout: 5000 }
+        )
+        if (resp.ok) {
+          const json = await resp.json() as any
+          if (json.bitcoin) {
+            prices.push({
+              symbol: "BTC", name: "Bitcoin",
+              price: json.bitcoin.usd,
+              change: 0, changePercent: json.bitcoin.usd_24h_change ?? 0,
+              assetType: "crypto",
+            })
+          }
+        }
+      } catch {}
+    }
+
+    await set("market:snapshot", prices, FIVE_MIN)
+    res.json(prices)
+  } catch (err: any) {
+    console.error("Market snapshot error:", err)
+    res.status(500).json({ error: "Failed to fetch market snapshot" })
+  }
+})
+
+// ════════════════════════════════════════════════════════════════
+//  BREAKING NEWS — one top story per region from key RSS feeds
+// ════════════════════════════════════════════════════════════════
+
+app.get("/api/breaking-news", async (_req, res) => {
+  try {
+    const cached = await get<BreakingNews[]>("news:breaking")
+    if (cached) return res.json(cached)
+
+    const seen = new Set<string>()
+    const articles = await fetchRSS(BREAKING_RSS_FEEDS, seen)
+
+    const byRegion = new Map<string, NewsArticle[]>()
+    for (const a of articles) {
+      if (!byRegion.has(a.region)) byRegion.set(a.region, [])
+      byRegion.get(a.region)!.push(a)
+    }
+
+    const result: BreakingNews[] = []
+    for (const [region, arts] of byRegion) {
+      arts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      result.push({ region, articles: arts.slice(0, 1) })
+    }
+
+    await set("news:breaking", result, TEN_MIN)
+    res.json(result)
+  } catch (err: any) {
+    console.error("Breaking news error:", err)
+    res.status(500).json({ error: "Failed to fetch breaking news" })
+  }
+})
+
+// ════════════════════════════════════════════════════════════════
+//  MERGED NEWS — all RSS feeds, no paid APIs
+// ════════════════════════════════════════════════════════════════
+
+app.get("/api/news", async (_req, res) => {
+  try {
+    const cached = await get<NewsArticle[]>("news:merged")
+    if (cached) return res.json(cached)
+
+    const seen = new Set<string>()
+    const articles = await fetchRSS(RSS_FEEDS, seen)
+
+    const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
+    if (!valid.length) {
+      return res.status(502).json({
+        error: "No articles returned from any RSS feed",
+        detail: "Check network connectivity.",
+      })
+    }
+
+    valid.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    await set("news:merged", valid, 1800_000)
+    res.json(valid)
+  } catch (err: any) {
+    console.error("News fetch error:", err)
+    res.status(500).json({ error: "Failed to fetch news" })
+  }
+})
+
+// ════════════════════════════════════════════════════════════════
+//  BRIEFING
+// ════════════════════════════════════════════════════════════════
 
 function buildBriefing(title: string, content: string, url: string) {
   const clean = content
@@ -238,262 +379,6 @@ function buildBriefing(title: string, content: string, url: string) {
 
   return { url, title, whatHappened, marketContext, keyTakeaways }
 }
-
-// ════════════════════════════════════════════════════════════════
-//  MARKET SNAPSHOT
-// ════════════════════════════════════════════════════════════════
-
-app.get("/api/market-snapshot", async (_req, res) => {
-  try {
-    const cached = await get<MarketPrice[]>("market:snapshot")
-    if (cached) return res.json(cached)
-
-    const prices: MarketPrice[] = []
-    const jinaKey = process.env.JINA_API_KEY
-
-    if (jinaKey) {
-      try {
-        const resp = await fetchWithTimeout("https://s.jina.ai/bitcoin price today USD", {
-          timeout: 8000,
-          headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" },
-        })
-        if (resp.ok) {
-          const text = await resp.text()
-          const priceMatch = text.match(/\$?([0-9,]+(?:\.[0-9]+)?)\s*(?:USD|usd)?/)
-          const changeMatch = text.match(/([+-]?\d+\.?\d*)\s*%/);
-          (changeMatch)
-          if (priceMatch) {
-            prices.push({
-              symbol: "BTC", name: "Bitcoin",
-              price: parseFloat(priceMatch[1].replace(/,/g, "")),
-              change: 0, changePercent: changeMatch ? parseFloat(changeMatch[1]) : 0,
-              assetType: "crypto",
-            })
-          }
-        }
-      } catch (_) {}
-    }
-
-    try {
-      const resp = await fetchWithTimeout("https://s.jina.ai/gold price spot today USD", {
-        timeout: 8000,
-        headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" },
-      })
-      if (resp.ok) {
-        const text = await resp.text()
-        const priceMatch = text.match(/\$?([0-9,]+(?:\.[0-9]+)?)\s*(?:USD|usd)?/)
-        const changeMatch = text.match(/([+-]?\d+\.?\d*)\s*%/);
-        (changeMatch)
-        if (priceMatch) {
-          prices.push({
-            symbol: "XAU", name: "Gold",
-            price: parseFloat(priceMatch[1].replace(/,/g, "")),
-            change: 0, changePercent: changeMatch ? parseFloat(changeMatch[1]) : 0,
-            assetType: "commodity",
-          })
-        }
-      }
-    } catch (_) {}
-
-    try {
-      const resp = await fetchWithTimeout("https://s.jina.ai/silver price spot today USD", {
-        timeout: 8000,
-        headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" },
-      })
-      if (resp.ok) {
-        const text = await resp.text()
-        const priceMatch = text.match(/\$?([0-9,]+(?:\.[0-9]+)?)\s*(?:USD|usd)?/)
-        const changeMatch = text.match(/([+-]?\d+\.?\d*)\s*%/);
-        (changeMatch)
-        if (priceMatch) {
-          prices.push({
-            symbol: "XAG", name: "Silver",
-            price: parseFloat(priceMatch[1].replace(/,/g, "")),
-            change: 0, changePercent: changeMatch ? parseFloat(changeMatch[1]) : 0,
-            assetType: "commodity",
-          })
-        }
-      }
-    } catch (_) {}
-
-    try {
-      const resp = await fetchWithTimeout("https://s.jina.ai/top stock market gainers today", {
-        timeout: 8000,
-        headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" },
-      })
-      if (resp.ok) {
-        const text = await resp.text()
-        const gainerMatch = text.match(/([A-Z]{1,5})\s*(?:\([^)]*\))?[:\s]*\$?([0-9,]+(?:\.[0-9]+)?)[^0-9]*([+-]?\d+\.?\d*)\s*%/)
-        if (gainerMatch) {
-          prices.push({
-            symbol: gainerMatch[1], name: gainerMatch[1],
-            price: parseFloat(gainerMatch[2].replace(/,/g, "")),
-            change: 0, changePercent: parseFloat(gainerMatch[3]),
-            assetType: "stock",
-          })
-        }
-      }
-    } catch (_) {}
-
-    if (!prices.length) {
-      try {
-        const resp = await fetchWithTimeout(
-          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true",
-          { timeout: 5000 }
-        )
-        if (resp.ok) {
-          const json = await resp.json() as any
-          if (json.bitcoin) {
-            prices.push({
-              symbol: "BTC", name: "Bitcoin",
-              price: json.bitcoin.usd,
-              change: 0, changePercent: json.bitcoin.usd_24h_change ?? 0,
-              assetType: "crypto",
-            })
-          }
-        }
-      } catch (_) {}
-    }
-
-    await set("market:snapshot", prices, FIVE_MIN)
-    res.json(prices)
-  } catch (err: any) {
-    console.error("Market snapshot error:", err)
-    res.status(500).json({ error: "Failed to fetch market snapshot" })
-  }
-})
-
-// ════════════════════════════════════════════════════════════════
-//  BREAKING NEWS
-// ════════════════════════════════════════════════════════════════
-
-app.get("/api/breaking-news", async (_req, res) => {
-  try {
-    const cached = await get<BreakingNews[]>("news:breaking")
-    if (cached) return res.json(cached)
-
-    const seen = new Set<string>()
-    const all: BreakingNews[] = []
-    const jinaKey = process.env.JINA_API_KEY
-    const apiKey = process.env.NEWSDATA_API_KEY
-
-    await runConcurrent(Object.entries(BREAKING_NEWS_QUERIES), async ([region, q]) => {
-      let articles: NewsArticle[] = []
-
-      if (apiKey) {
-        try {
-          const resp = await fetchWithTimeout(
-            `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=1`,
-            { timeout: 6000 }
-          )
-          if (resp.ok) {
-            const json = await resp.json() as any
-            for (const item of json.results ?? []) {
-              const url = item.link
-              if (!url || seen.has(url)) continue
-              seen.add(url)
-              articles.push({
-                id: id(), title: item.title ?? "Untitled", url,
-                source: item.source_id ?? "NewsData",
-                snippet: (item.description ?? "").slice(0, 200),
-                region, assetClass: "stocks", subCategory: "stocks",
-                publishedAt: item.pubDate ?? new Date().toISOString(),
-              })
-            }
-          }
-        } catch (_) {}
-      }
-
-      if (!articles.length && jinaKey) {
-        try {
-          const resp = await fetchWithTimeout(`https://s.jina.ai/${encodeURIComponent(q)}`, {
-            timeout: 6000,
-            headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" },
-          })
-          if (resp.ok) {
-            const text = await resp.text()
-            const m = text.match(/\[1\]\s*Title:\s*(.+)\n\[1\]\s*URL Source:\s*(\S+)/)
-            if (m) {
-              const url = m[2].trim()
-              if (!seen.has(url)) {
-                seen.add(url)
-                articles.push({
-                  id: id(), title: m[1].trim().slice(0, 200), url,
-                  source: "Jina AI",
-                  snippet: "", region, assetClass: "stocks", subCategory: "stocks",
-                  publishedAt: new Date().toISOString(),
-                })
-              }
-            }
-          }
-        } catch (_) {}
-      }
-
-      all.push({ region, articles })
-    })
-
-    const result = all.filter(b => b.articles.length > 0)
-    await set("news:breaking", result, TEN_MIN)
-    res.json(result)
-  } catch (err: any) {
-    console.error("Breaking news error:", err)
-    res.status(500).json({ error: "Failed to fetch breaking news" })
-  }
-})
-
-// ════════════════════════════════════════════════════════════════
-//  MERGED NEWS
-// ════════════════════════════════════════════════════════════════
-
-app.get("/api/news", async (req, res) => {
-  try {
-    const cached = await get<NewsArticle[]>("news:merged")
-    if (cached) return res.json(cached)
-
-    const seen = new Set<string>()
-    const regionQueries = REGIONS.map(r => ({ q: REGION_SEARCH[r], region: r, assetClass: "stocks" }))
-
-    const [rss, nd, sc, jn] = await Promise.allSettled([
-      fetchRSS(RSS_FEEDS, seen),
-      fetchNewsData(regionQueries, seen),
-      fetchSpiderCloud(regionQueries, seen),
-      fetchJina(regionQueries, seen),
-    ])
-
-    const cryptoArticles = await fetchSpecificQueries(CRYPTO_QUERIES, "USA", "crypto", "crypto", seen, "jina")
-    const ipoStock = await fetchSpecificQueries(IPO_QUERIES.ipo, "USA", "stocks", "ipo", seen, "jina")
-    const icoCrypto = await fetchSpecificQueries(IPO_QUERIES.ico, "USA", "crypto", "ipo", seen, "jina")
-    const ipoArticles = [...ipoStock, ...icoCrypto]
-
-    const all = [
-      ...(rss.status === "fulfilled" ? rss.value : []),
-      ...(nd.status === "fulfilled" ? nd.value : []),
-      ...(sc.status === "fulfilled" ? sc.value : []),
-      ...(jn.status === "fulfilled" ? jn.value : []),
-      ...cryptoArticles,
-      ...ipoArticles,
-    ]
-
-    const valid = all.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
-    if (!valid.length) {
-      return res.status(502).json({
-        error: "No articles returned from any provider",
-        detail: "Check API keys.",
-      })
-    }
-
-    valid.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    await set("news:merged", valid, 1800_000)
-    res.json(valid)
-  } catch (err: any) {
-    console.error("News fetch error:", err)
-    res.status(500).json({ error: "Failed to fetch news" })
-  }
-})
-
-// ════════════════════════════════════════════════════════════════
-//  BRIEFING
-// ════════════════════════════════════════════════════════════════
 
 app.post("/api/briefing", async (req, res) => {
   try {

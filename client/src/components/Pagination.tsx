@@ -13,42 +13,51 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Props) {
   for (let i = start; i <= end; i++) pages.push(i)
 
   return (
-    <div className="flex items-center justify-center gap-2 px-3 md:px-5 py-4">
+    <div className="flex items-center justify-center gap-1.5 px-3 md:px-5 py-4">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}
-        className="action-link text-xs"
+        className="page-btn"
       >
-        ← Prev
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M7.5 2.5L4 6L7.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span style={{ marginLeft: '0.25rem' }}>Prev</span>
       </button>
-      {start > 1 && (
-        <>
-          <button onClick={() => onPageChange(1)} className="action-link text-xs">1</button>
-          {start > 2 && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>…</span>}
-        </>
-      )}
-      {pages.map(p => (
-        <button
-          key={p}
-          onClick={() => onPageChange(p)}
-          className="action-link text-xs"
-          style={p === currentPage ? { background: 'rgba(47, 128, 237, 0.2)', borderColor: 'rgba(47, 128, 237, 0.4)', color: 'var(--electric-blue)' } : {}}
-        >
-          {p}
-        </button>
-      ))}
-      {end < totalPages && (
-        <>
-          {end < totalPages - 1 && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>…</span>}
-          <button onClick={() => onPageChange(totalPages)} className="action-link text-xs">{totalPages}</button>
-        </>
-      )}
+
+      <div className="flex items-center gap-1">
+        {start > 1 && (
+          <>
+            <button onClick={() => onPageChange(1)} className="page-btn page-num">1</button>
+            {start > 2 && <span className="page-ellipsis">…</span>}
+          </>
+        )}
+        {pages.map(p => (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={`page-btn page-num ${p === currentPage ? 'page-active' : ''}`}
+          >
+            {p}
+          </button>
+        ))}
+        {end < totalPages && (
+          <>
+            {end < totalPages - 1 && <span className="page-ellipsis">…</span>}
+            <button onClick={() => onPageChange(totalPages)} className="page-btn page-num">{totalPages}</button>
+          </>
+        )}
+      </div>
+
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages}
-        className="action-link text-xs"
+        className="page-btn"
       >
-        Next →
+        <span style={{ marginRight: '0.25rem' }}>Next</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </button>
     </div>
   )

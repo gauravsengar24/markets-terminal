@@ -20,11 +20,6 @@ const SECTION_FILTERS: Record<string, (a: NewsArticle) => boolean> = {
   ipo: (a) => a.subCategory === "ipo",
 }
 
-const REGION_COLORS: Record<string, string> = {
-  USA: "#60a5fa", Europe: "#22d3ee", China: "#f59e0b",
-  Japan: "#f59e0b", India: "#22c55e", Korea: "#86868b", Australia: "#86868b",
-}
-
 export function SectionPage() {
   const { section } = useParams<{ section: string }>()
   const navigate = useNavigate()
@@ -44,38 +39,35 @@ export function SectionPage() {
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0.5rem 0' }}>
-      <div style={{ borderBottom: '1px solid var(--glass-border)' }}>
-        <SectionHeading>{label}</SectionHeading>
-        <div className="px-3 md:px-5 py-3 space-y-3">
-          {display.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => navigate(`/article/${a.id}`)}
-              className="vibrant-glass-card w-full text-left cursor-pointer"
-              style={{ padding: '0.75rem 1rem' }}
-            >
-              <div className="flex items-start gap-2">
-                <span className="card-source" style={{ minWidth: '4rem' }}>{a.source}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="article-title">{a.title}</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="mono" style={{ fontSize: '0.65rem', color: REGION_COLORS[a.region] ?? 'var(--text-muted)' }}>{a.region}</span>
-                    <span className="mono" style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{fmtTime(a.publishedAt)}</span>
-                  </div>
-                  {a.snippet && (
-                    <div className="article-snippet mt-1 line-clamp-2">{a.snippet}</div>
-                  )}
-                </div>
+      <SectionHeading count={filtered.length}>{label}</SectionHeading>
+      <div className="px-3 md:px-5 grid gap-2.5 pb-1">
+        {display.map((a) => (
+          <button
+            key={a.id}
+            onClick={() => navigate(`/article/${a.id}`)}
+            className="mac-card w-full text-left cursor-pointer"
+          >
+            <div className="mac-card-body">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="mac-source">{a.source}</span>
+                <span className="mac-meta">{fmtRelative(a.publishedAt)}</span>
               </div>
-            </button>
-          ))}
-        </div>
+              <div className="mac-title">{a.title}</div>
+              {a.snippet && (
+                <div className="mac-snippet">{a.snippet}</div>
+              )}
+            </div>
+          </button>
+        ))}
       </div>
       <Pagination currentPage={safePage} totalPages={totalPages} onPageChange={setPage} />
     </div>
   )
 }
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+function fmtRelative(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }

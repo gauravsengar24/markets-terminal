@@ -13,16 +13,18 @@ export function MarketTicker() {
   const prices = query.data ?? []
   if (!prices.length) return null
 
+  const items = [...prices, ...prices]
+
   return (
-    <div className="glass-ticker">
-      <div className="flex items-center gap-2 md:gap-3 px-3 md:px-5 py-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        {prices.map((p) => (
-          <div key={p.symbol} className="glass-badge">
-            <span style={{ fontSize: '0.65rem', fontWeight: 600, marginRight: '0.35rem', color: 'var(--electric-blue)' }}>{p.symbol}</span>
-            <span className="mono" style={{ fontSize: '0.75rem', fontWeight: 500 }}>
+    <div className="glass-ticker ticker-wrap">
+      <div className="ticker-strip">
+        {items.map((p, i) => (
+          <div key={`${p.symbol}-${i}`} className="ticker-item">
+            <span className="ticker-sym">{p.symbol}</span>
+            <span className="ticker-price">
               ${p.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className={`mono ${p.changePercent >= 0 ? 'pos' : 'neg'}`} style={{ fontSize: '0.65rem', marginLeft: '0.35rem' }}>
+            <span className={`ticker-change ${p.changePercent >= 0 ? 'pos' : 'neg'}`}>
               {p.changePercent >= 0 ? "▲" : "▼"}{Math.abs(p.changePercent).toFixed(1)}%
             </span>
           </div>

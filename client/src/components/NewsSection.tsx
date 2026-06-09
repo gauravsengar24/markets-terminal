@@ -11,11 +11,6 @@ interface Props {
   viewAllLink?: string
 }
 
-const regionColors: Record<string, string> = {
-  USA: "#60a5fa", Europe: "#22d3ee", China: "#f59e0b",
-  Japan: "#f59e0b", India: "#22c55e", Korea: "#86868b", Australia: "#86868b",
-}
-
 export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props) {
   const navigate = useNavigate()
   const display = maxArticles ? articles.slice(0, maxArticles) : articles
@@ -23,36 +18,38 @@ export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props
   if (!display.length) return null
 
   return (
-    <div style={{ borderBottom: '1px solid var(--glass-border)' }}>
-      <SectionHeading>{title}</SectionHeading>
-      <div className="px-3 md:px-5 py-3 md:py-4 space-y-3">
-        {display.map((a) => (
+    <div className="mb-5">
+      <SectionHeading count={articles.length}>{title}</SectionHeading>
+      <div className="px-3 md:px-5 grid gap-2.5">
+        {display.map((a, i) => (
           <button
             key={a.id}
             onClick={() => navigate(`/article/${a.id}`)}
-            className="vibrant-glass-card w-full text-left cursor-pointer"
-            style={{ padding: '0.75rem 1rem' }}
+            className="mac-card w-full text-left cursor-pointer"
           >
-            <div className="flex items-start gap-2">
-              <span className="card-source" style={{ minWidth: '4rem' }}>{a.source}</span>
-              <div className="flex-1 min-w-0">
-                <div className="article-title">{a.title}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="mono" style={{ fontSize: '0.65rem', color: regionColors[a.region] ?? 'var(--text-muted)' }}>{a.region}</span>
-                  <span className="mono" style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{fmtTime(a.publishedAt)}</span>
-                </div>
-                {a.snippet && (
-                  <div className="article-snippet mt-1 line-clamp-2">{a.snippet}</div>
-                )}
+            <div className="mac-card-body">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="mac-source">{a.source}</span>
+                <span className="mac-meta">{fmtRelative(a.publishedAt)}</span>
               </div>
+              <div className="mac-title">{a.title}</div>
+              {a.snippet && (
+                <div className="mac-snippet">{a.snippet}</div>
+              )}
             </div>
           </button>
         ))}
       </div>
       {viewAllLink && articles.length > (maxArticles ?? Infinity) && (
-        <div className="px-3 md:px-5 pb-4">
-          <button onClick={() => navigate(viewAllLink)} className="action-link text-xs">
-            View all {articles.length} articles →
+        <div className="px-3 md:px-5 mt-2.5">
+          <button
+            onClick={() => navigate(viewAllLink)}
+            className="mac-view-all"
+          >
+            View all in {title.toLowerCase()}
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ marginLeft: '0.35rem' }}>
+              <path d="M3.5 1.5L7 5L3.5 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
         </div>
       )}
@@ -60,6 +57,9 @@ export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props
   )
 }
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+function fmtRelative(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }

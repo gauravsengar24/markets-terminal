@@ -1,18 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState, useMemo, useEffect } from "react"
+import { useEffect } from "react"
 import { Outlet, useNavigate } from "react-router-dom"
 import { fetchNews } from "../lib/api"
 import { getPersisted, setPersisted, STORAGE_KEYS } from "../lib/persist"
 import type { NewsArticle } from "@shared/types"
-import { REGIONS, ASSET_CLASSES } from "@shared/constants"
 import { BreakingNewsBar } from "./BreakingNewsBar"
 import { MarketTicker } from "./MarketTicker"
 import { LastUpdated } from "./LastUpdated"
-import { FilterDropdown } from "./FilterDropdown"
 
 export function Layout() {
-  const [selectedRegions, setSelectedRegions] = useState<string[]>([])
-  const [selectedAssets, setSelectedAssets] = useState<string[]>([])
   const navigate = useNavigate()
   const client = useQueryClient()
 
@@ -34,27 +30,7 @@ export function Layout() {
     }
   }, [news.data])
 
-  const filtered = useMemo(() => {
-    const all = news.data ?? []
-    if (!selectedRegions.length && !selectedAssets.length) return all
-    return all.filter(a => {
-      if (selectedRegions.length && !selectedRegions.includes(a.region)) return false
-      if (selectedAssets.length && !selectedAssets.includes(a.assetClass)) return false
-      return true
-    })
-  }, [news.data, selectedRegions, selectedAssets])
-
   const refresh = () => client.invalidateQueries({ queryKey: ["news"] })
-
-  const allRegions = useMemo(() => {
-    const s = new Set(news.data?.map(a => a.region) ?? [])
-    return REGIONS.filter(r => s.has(r))
-  }, [news.data])
-
-  const allAssets = useMemo(() => {
-    const s = new Set(news.data?.map(a => a.assetClass) ?? [])
-    return ASSET_CLASSES.filter(ac => s.has(ac))
-  }, [news.data])
 
   function handleBreakingNewsSelect(url: string) {
     const article = news.data?.find(a => a.url === url)
@@ -64,25 +40,28 @@ export function Layout() {
   return (
     <div className="h-full flex flex-col" style={{ background: 'var(--oled-black)' }}>
       <div className="glass-nav shrink-0 z-10">
-        <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-2.5 flex-wrap gap-1.5 md:gap-2">
-          <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+        <div className="flex items-center justify-between px-4 md:px-5 py-2.5 md:py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 mr-1">
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(6, 182, 212, 0.7)', display: 'inline-block' }} />
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(240, 180, 41, 0.5)', display: 'inline-block' }} />
+            </div>
             <button
               onClick={() => navigate("/")}
-              className="text-term-accent font-bold text-sm md:text-base uppercase tracking-[0.15em] hover:opacity-80 transition-opacity cursor-pointer"
-              style={{ color: 'var(--color-accent)' }}
+              className="font-semibold text-sm md:text-base tracking-[-0.01em] hover:opacity-80 transition-opacity cursor-pointer"
+              style={{ color: 'var(--text-primary)' }}
             >
               Markets Terminal
             </button>
-            <FilterDropdown label="Region" options={allRegions} selected={selectedRegions} onChange={setSelectedRegions} />
-            <FilterDropdown label="Asset" options={allAssets} selected={selectedAssets} onChange={setSelectedAssets} />
           </div>
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-3">
             <LastUpdated at={news.dataUpdatedAt} />
             <button
               onClick={refresh}
               disabled={news.isRefetching}
               className="action-link text-xs"
               aria-label="Refresh news"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.3rem 0.65rem', fontSize: '0.65rem' }}
             >
               {news.isRefetching ? "⟳" : "↻"}
             </button>
@@ -100,7 +79,7 @@ export function Layout() {
       <MarketTicker />
 
       <div className="flex-1 overflow-y-auto">
-        <Outlet context={{ articles: filtered, selectedRegions, selectedAssets }} />
+        <Outlet context={{ articles: news.data ?? [] }} />
       </div>
     </div>
   )
