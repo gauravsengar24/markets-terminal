@@ -203,29 +203,34 @@ app.post("/api/summary", async (req, res) => {
     const cached = get<ArticleSummary>(`summary:${url}`, 120_000)
     if (cached) return res.json(cached)
 
-    const jinaKey = process.env.JINA_API_KEY
-    if (!jinaKey) return res.status(500).json({ error: "JINA_API_KEY not set" })
-
-    const resp = await fetchWithTimeout(`https://r.jina.ai/${url}`, {
-      timeout: 15000,
+    const resp = await fetchWithTimeout(url, {
+      timeout: 10000,
       headers: {
-        Authorization: `Bearer ${jinaKey}`,
-        "X-Return-Format": "markdown",
-        "X-With-Generated-Alt": "true",
+        "User-Agent": "Mozilla/5.0 (compatible; NewsBot)",
+        "Accept": "text/html, text/plain",
       },
     })
-    if (!resp.ok) throw new Error(`Jina returned ${resp.status}`)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
 
-    const text = await resp.text()
-    const title = text.split("\n")[0]?.replace(/^#+\s*/, "").slice(0, 200) ?? "Article"
-    const summary = text.slice(0, 1000).trim()
+    const html = await resp.text()
+    const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim()?.slice(0, 200)
+      ?? html.split("\n").find(l => l.trim().startsWith("#"))?.replace(/^#+\s*/, "").slice(0, 200)
+      ?? "Article"
+    const clean = html
+      .replace(/<style[^>]*>[^<]*<\/style>/gis, "")
+      .replace(/<script[^>]*>[^<]*<\/script>/gis, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&[a-z]+;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+    const summary = clean.slice(0, 1500).trim()
 
     const result: ArticleSummary = { url, title, summary }
     set(`summary:${url}`, result, 120_000)
     res.json(result)
   } catch (err) {
     console.error("Summary error:", err)
-    res.status(500).json({ error: "Failed to fetch article" })
+    res.status(500).json({ error: "Failed to fetch article summary" })
   }
 })
 

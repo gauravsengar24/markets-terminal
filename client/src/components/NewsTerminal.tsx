@@ -28,15 +28,15 @@ export function NewsTerminal({ articles, selectedUrl, onSelect }: Props) {
           className={`w-full text-left px-5 py-3.5 text-base cursor-pointer transition-colors hover:bg-term-bg/80 ${
             selectedUrl === a.url ? "bg-term-accent/5 border-l-2 border-term-accent" : ""
           }`}>
-          <div className="flex items-start gap-3">
-            <span className="w-16 shrink-0 text-term-muted mono text-sm">{fmtTime(a.publishedAt)}</span>
-            <span className={`w-16 shrink-0 text-sm font-bold uppercase ${regionColors[a.region] ?? "text-term-muted"}`}>{a.region}</span>
-            <span className="w-20 shrink-0 text-term-muted text-sm uppercase">{a.assetClass.replace("_", " ")}</span>
-            <span className="text-term-text flex-1 leading-relaxed text-base">{a.title}</span>
-            <span className="shrink-0 text-term-muted text-sm">{a.source}</span>
+          <div className="flex items-start gap-2">
+            <span className="w-14 shrink-0 text-term-muted mono text-sm">{fmtTime(a.publishedAt)}</span>
+            <span className={`w-20 shrink-0 text-sm font-bold uppercase truncate ${regionColors[a.region] ?? "text-term-muted"}`}>{a.region}</span>
+            <span className="w-24 shrink-0 text-term-muted text-sm uppercase truncate">{a.assetClass.replace("_", " ")}</span>
+            <span className="text-term-text flex-1 leading-relaxed text-base min-w-0">{a.title}</span>
+            <span className="shrink-0 text-term-muted text-sm ml-1">{a.source}</span>
           </div>
           {a.snippet && (
-            <div className="mt-1.5 ml-12 text-sm text-term-muted leading-relaxed line-clamp-2">{a.snippet}</div>
+            <div className="mt-1.5 ml-[7.5rem] text-sm text-term-muted leading-relaxed line-clamp-2">{a.snippet}</div>
           )}
         </button>
       ))}
