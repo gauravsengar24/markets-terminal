@@ -24,13 +24,31 @@ function detectSubCategory(title: string, snippet: string): string {
 }
 
 const IMPACT_RULES: { regex: RegExp; category: string; volatility: string }[] = [
-  { regex: /fed|federal reserve|ecb|central bank|interest rate|rate hike|rate cut|monetary policy|inflation|cpi|ppi|quantitative easing|tightening/i, category: "central-bank", volatility: "high" },
-  { regex: /war|conflict|sanctions|military|invasion|nuclear|missile|geopolitical|tension|defense|espionage/i, category: "geopolitical", volatility: "high" },
-  { regex: /crisis|crash|collapse|bankruptcy|default|bailout|recession|depression|liquidity|contagion|systemic/i, category: "crisis", volatility: "high" },
-  { regex: /pandemic|epidemic|outbreak|virus|covid|quarantine|lockdown|health emergency|vaccine mandate/i, category: "pandemic", volatility: "high" },
-  { regex: /tariff|trade war|trade deal|import|export|wto|trade dispute|dumping|protectionism|reciprocal/i, category: "trade", volatility: "medium" },
-  { regex: /election|vote|electoral|polling|presidency|parliament|campaign|runoff|swing state|midterm/i, category: "election", volatility: "medium" },
-  { regex: /currency|forex|exchange rate|dollar index|devaluation|appreciation|stablecoin|peg|reserve currency/i, category: "currency", volatility: "medium" },
+  { regex: /fed|federal reserve|ecb|central bank|interest rate|rate hike|rate cut|monetary policy|inflation|cpi|ppi|quantitative easing|tightening|macroeconomic|core inflation|inflation data|consumer price|producer price/i, category: "central-bank", volatility: "high" },
+  { regex: /war|conflict|sanctions|military|invasion|nuclear|missile|geopolitical|tension|defense|espionage|troop|mobilization|ceasefire|hostility|military aid|arms|navy/i, category: "geopolitical", volatility: "high" },
+  { regex: /crisis|crash|collapse|bankruptcy|default|bailout|recession|depression|liquidity|contagion|systemic|bank run|fdic|credit crunch|debt ceiling|downgrade/i, category: "crisis", volatility: "high" },
+  { regex: /pandemic|epidemic|outbreak|virus|covid|quarantine|lockdown|health emergency|vaccine mandate|health crisis|who declared|public health|hospitalization/i, category: "pandemic", volatility: "high" },
+  { regex: /crude.?oil|wti|brent|energy|gas|natural gas|petrol|oil price|oil production|opec|commodity|supply shock|energy crisis|fossil fuel|refining/i, category: "energy", volatility: "high" },
+  { regex: /tariff|trade war|trade deal|import|export|wto|trade dispute|dumping|protectionism|reciprocal|trade balance|trade deficit|export ban/i, category: "trade", volatility: "medium" },
+  { regex: /election|vote|electoral|polling|presidency|parliament|campaign|runoff|swing state|midterm|voter|ballot|governor|senate|congress|landslide|referendum|regime change/i, category: "election", volatility: "medium" },
+  { regex: /currency|forex|exchange rate|dollar index|devaluation|appreciation|stablecoin|peg|reserve currency|fx|currency crisis|central bank digital|crypto regulation|bitcoin etf/i, category: "currency", volatility: "medium" },
+  { regex: /earnings|quarterly result|revenue|profit|loss|scandal|fraud|whistleblower|class action|securities fraud|insider trading|corporate governance|ceo resign|board seat|activist investor|proxy fight|dividend|buyback/i, category: "corporate", volatility: "medium" },
+  { regex: /ai|artificial intelligence|machine learning|chatgpt|deep learning|neural|breakthrough|quantum|semiconductor|chip|nvidia|innovation|patent|startup|unicorn|disrupt|blockchain|metaverse/i, category: "tech", volatility: "medium" },
+  { regex: /climate|natural disaster|hurricane|earthquake|flood|wildfire|drought|tornado|tsunami|extreme weather|global warming|emission|renewable|solar|wind|net zero|carbon|cop\d+/i, category: "climate", volatility: "medium" },
+]
+
+export const IMPACT_CATEGORIES_CONFIG: { id: string; label: string; short: string; vol: string }[] = [
+  { id: "geopolitical", label: "Geopolitical Conflict & War", short: "Geopolitical", vol: "high" },
+  { id: "central-bank", label: "Central Bank & Monetary Policy", short: "Monetary", vol: "high" },
+  { id: "crisis", label: "Financial System & Banking Crises", short: "Financial", vol: "high" },
+  { id: "pandemic", label: "Pandemic & Health Crisis", short: "Health", vol: "high" },
+  { id: "energy", label: "Energy & Commodity Shocks", short: "Commodities", vol: "high" },
+  { id: "trade", label: "Trade Wars & Tariffs", short: "Trade", vol: "medium" },
+  { id: "election", label: "Political Elections & Policy Shifts", short: "Political", vol: "medium" },
+  { id: "currency", label: "Currency & FX Events", short: "FX", vol: "medium" },
+  { id: "corporate", label: "Corporate Earnings & Scandals", short: "Corporate", vol: "medium" },
+  { id: "tech", label: "Technology & AI Breakthroughs", short: "Tech", vol: "medium" },
+  { id: "climate", label: "Climate & Natural Disasters", short: "Climate", vol: "medium" },
 ]
 
 function detectImpactCategory(title: string, snippet: string): { impactCategory: string; volatility: string } | null {
@@ -684,6 +702,60 @@ app.get("/api/learning/stats", async (_req, res) => {
     })
   } catch {
     res.json({ totalFeedback: 0, sources: [], categories: [] })
+  }
+})
+
+// ════════════════════════════════════════════════════════════════
+//  IMPACT ANALYSIS — dynamic category scores from live news data
+// ════════════════════════════════════════════════════════════════
+
+app.get("/api/impact-analysis", async (_req, res) => {
+  try {
+    const cached = await get<any>("analysis:impact")
+    if (cached) return res.json(cached)
+
+    const articles = await get<NewsArticle[]>("news:merged")
+    if (!articles || !articles.length) {
+      return res.json({ categories: [], totalArticles: 0 })
+    }
+
+    const now = Date.now()
+    const counts = new Map<string, { count: number; recencySum: number }>()
+    const volMap = new Map<string, string>()
+
+    for (const a of articles) {
+      const cat = a.impactCategory
+      if (!cat) continue
+      if (!counts.has(cat)) { counts.set(cat, { count: 0, recencySum: 0 }); volMap.set(cat, a.volatility || "medium") }
+      const entry = counts.get(cat)!
+      entry.count++
+      const ageHours = (now - new Date(a.publishedAt).getTime()) / 3600000
+      if (ageHours < 48) entry.recencySum += Math.max(0, 1 - ageHours / 48)
+    }
+
+    const totalTagged = [...counts.values()].reduce((s, c) => s + c.count, 0) || 1
+    const maxCount = Math.max(...[...counts.values()].map(c => c.count), 1)
+
+    const categories = IMPACT_CATEGORIES_CONFIG.map((cfg) => {
+      const data = counts.get(cfg.id)
+      if (!data || data.count < 1) {
+        return { id: cfg.id, label: cfg.label, short: cfg.short, vol: cfg.vol, articleCount: 0, score: 0 }
+      }
+      const volMult = cfg.vol === "high" ? 1.4 : 1.0
+      const freq = data.count / totalTagged
+      const recencyBoost = data.recencySum / data.count
+      const dominance = data.count / maxCount
+      const raw = (freq * 60 + dominance * 30 + recencyBoost * 10) * volMult * 100
+      const score = Math.min(99, Math.max(5, Math.round(raw)))
+      return { id: cfg.id, label: cfg.label, short: cfg.short, vol: cfg.vol, articleCount: data.count, score }
+    }).sort((a, b) => b.score - a.score)
+
+    const result = { categories, totalArticles: articles.length, generatedAt: new Date().toISOString() }
+    await set("analysis:impact", result, FIVE_MIN)
+    res.json(result)
+  } catch (err: any) {
+    console.error("Impact analysis error:", err)
+    res.status(500).json({ error: "Failed to compute impact analysis" })
   }
 })
 

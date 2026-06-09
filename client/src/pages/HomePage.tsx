@@ -6,6 +6,7 @@ import { StockSection } from "../components/StockSection"
 import { CommoditySection } from "../components/CommoditySection"
 import { IPOSection } from "../components/IPOSection"
 import { SectionHeading } from "../components/SectionHeading"
+import { ImpactAnalysis } from "../components/ImpactAnalysis"
 
 const SIDEBAR_SECTIONS = [
   { label: "Crypto", link: "/crypto", color: "rgba(6, 182, 212, 0.6)" },
@@ -108,6 +109,7 @@ export function HomePage() {
         </div>
 
         <div className="home-sidebar">
+          <ImpactAnalysis />
           <div className="mac-panel">
             <h3 className="mac-side-title">Sections</h3>
             <div className="flex flex-col gap-1">
