@@ -209,70 +209,37 @@ app.post("/api/summary", async (req, res) => {
     let summary = ""
     const spiderKey = process.env.SPIDER_CLOUD_API_KEY
 
-    // Try Spider Cloud scrape
+    // Try Spider Cloud scrape (fast, no JS)
     if (spiderKey) {
       try {
         const resp = await fetchWithTimeout("https://api.spider.cloud/v1/scrape", {
-          method: "POST", timeout: 20000,
+          method: "POST", timeout: 12000,
           headers: { Authorization: `Bearer ${spiderKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ url, limit: 1, return_format: "markdown", js_render: true }),
+          body: JSON.stringify({ url, limit: 1, return_format: "markdown" }),
         })
         if (resp.ok) {
           const json = await resp.json() as any
-          const raw = json?.content?.[0]?.content || json?.content || ""
-          if (raw && typeof raw === "string") {
-            const cleaned = raw
+          const raw = typeof json?.content?.[0]?.content === "string" ? json.content[0].content
+            : typeof json?.content === "string" ? json.content : ""
+          if (raw && raw.length > 100) {
+            title = raw.match(/^#\s+(.+)/m)?.[1]?.trim().slice(0, 200) ?? "Article"
+            summary = raw
+              .replace(/^#\s+.*\n/m, "")
               .replace(/!\[.*?\]\(.*?\)/g, "")
               .replace(/\[.*?\]\(.*?\)/g, "")
-              .replace(/\|.*\|/g, "")
-              .replace(/^[#*\-=\s>]+/gm, "")
-              .replace(/https?:\/\/\S+/g, "")
-              .replace(/[àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ]/gi, "")
               .replace(/\s+/g, " ")
               .trim()
-            if (cleaned.length > 50) {
-              const firstLine = raw.split("\n").find(l => l.trim() && !l.startsWith("![") && !l.startsWith("```"))
-              title = raw.match(/^#\s+(.+)/m)?.[1]?.replace(/[\[\]\(\)]/g, "").trim().slice(0, 200)
-                ?? firstLine?.replace(/^#+\s*/, "").trim().slice(0, 200) ?? "Article"
-              summary = cleaned.slice(0, 1500).trim()
-            }
+              .slice(0, 1500)
           }
         }
       } catch (_) {}
     }
 
-    // Fallback: Jina Reader
-    if (!summary) {
-      const jinaKey = process.env.JINA_API_KEY
-      if (jinaKey) {
-        try {
-          const resp = await fetchWithTimeout(`https://r.jina.ai/${url}`, {
-            timeout: 15000,
-            headers: {
-              Authorization: `Bearer ${jinaKey}`,
-              "X-Return-Format": "markdown",
-              "X-With-Generated-Alt": "true",
-            },
-          })
-          if (resp.ok) {
-            const text = await resp.text()
-            title = text.split("\n")[0]?.replace(/^#+\s*/, "").slice(0, 200) ?? "Article"
-            summary = text
-              .replace(/^#\s+.*\n/, "")
-              .replace(/!\[.*?\]\(.*?\)/g, "")
-              .replace(/\[.*?\]\(.*?\)/g, "")
-              .replace(/\s+/g, " ")
-              .slice(0, 1500).trim()
-          }
-        } catch (_) {}
-      }
-    }
-
-    // Fallback: direct HTTP fetch
+    // Fallback: meta description + title from direct fetch
     if (!summary) {
       try {
         const resp = await fetchWithTimeout(url, {
-          timeout: 10000,
+          timeout: 8000,
           headers: {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
             "Accept": "text/html,application/xhtml+xml",
@@ -280,22 +247,9 @@ app.post("/api/summary", async (req, res) => {
         })
         if (resp.ok) {
           const html = await resp.text()
-          const m = html.match(/<meta[^>]+(?:name|property)=["'](?:og:)?description["'][^>]+content=["']([^"']+)["']/i)
-          summary = m?.[1]?.trim() ?? ""
           title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim()?.slice(0, 200) ?? "Article"
-          if (!summary) {
-            const clean = html
-              .replace(/<style[^>]*>[^<]*<\/style>/gis, "")
-              .replace(/<script[^>]*>[^<]*<\/script>/gis, "")
-              .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gis, "")
-              .replace(/<header[^>]*>[\s\S]*?<\/header>/gis, "")
-              .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gis, "")
-              .replace(/<[^>]+>/g, " ")
-              .replace(/&[a-z]+;/g, " ")
-              .replace(/\s+/g, " ")
-              .trim()
-            summary = clean.slice(200, 1700).trim()
-          }
+          const desc = html.match(/<meta[^>]+(?:name|property)=["'](?:og:)?description["'][^>]+content=["']([^"']+)["']/i)
+          summary = desc?.[1]?.trim()?.slice(0, 1500) ?? ""
         }
       } catch (_) {}
     }
