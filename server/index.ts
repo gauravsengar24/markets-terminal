@@ -178,16 +178,18 @@ app.get("/api/news", async (req, res) => {
       ...(c4.status === "fulfilled" ? c4.value : []),
     ]
 
-    if (!all.length) {
+    const valid = all.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
+
+    if (!valid.length) {
       return res.status(502).json({
         error: "No articles returned from any provider",
         detail: "All news providers failed to return results. Check API keys.",
       })
     }
 
-    all.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    set("news:merged", all, ONE_HOUR)
-    res.json(all)
+    valid.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    set("news:merged", valid, ONE_HOUR)
+    res.json(valid)
   } catch (err: any) {
     console.error("News fetch error:", err)
     res.status(500).json({ error: "Failed to fetch news" })
@@ -236,9 +238,10 @@ app.post("/api/summary", async (req, res) => {
 
 // ── Static files ──────────────────────────────────────────────────
 const distClient = path.join(__dirname, "../client")
-app.use(express.static(distClient))
+app.use(express.static(distClient, { maxAge: 0, etag: false }))
 app.use((req, res, next) => {
   if (req.method === "GET" && !req.path.startsWith("/api")) {
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate")
     res.sendFile(path.join(distClient, "index.html"))
   } else {
     next()
