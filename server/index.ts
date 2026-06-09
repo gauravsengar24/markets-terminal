@@ -485,7 +485,8 @@ function buildBriefing(title: string, content: string, url: string, snippet?: st
   }
 
   const makeFallback = (text: string) => {
-    const parts = text.split(/[.!?]+/).filter(s => s.trim().length > 15)
+    const mt = text.replace(/\$(\d+)\.(\d+)/g, "__DLR__$1__PT__$2")
+    const parts = mt.split(/[.!?]+/).filter(s => s.trim().length > 15)
     return addUnique(parts, 3)
   }
 
