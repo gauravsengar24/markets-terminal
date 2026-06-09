@@ -196,7 +196,7 @@ app.get("/api/news", async (req, res) => {
   }
 })
 
-// ── Article Summary via Jina Reader ───────────────────────────────
+// ── Article Summary (Spider Cloud scrape with direct fallback) ─────
 app.post("/api/summary", async (req, res) => {
   try {
     const { url } = req.body
@@ -205,27 +205,62 @@ app.post("/api/summary", async (req, res) => {
     const cached = get<ArticleSummary>(`summary:${url}`, 120_000)
     if (cached) return res.json(cached)
 
-    const resp = await fetchWithTimeout(url, {
-      timeout: 10000,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; NewsBot)",
-        "Accept": "text/html, text/plain",
-      },
-    })
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    let title = "Article"
+    let summary = ""
+    const spiderKey = process.env.SPIDER_CLOUD_API_KEY
 
-    const html = await resp.text()
-    const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim()?.slice(0, 200)
-      ?? html.split("\n").find(l => l.trim().startsWith("#"))?.replace(/^#+\s*/, "").slice(0, 200)
-      ?? "Article"
-    const clean = html
-      .replace(/<style[^>]*>[^<]*<\/style>/gis, "")
-      .replace(/<script[^>]*>[^<]*<\/script>/gis, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&[a-z]+;/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-    const summary = clean.slice(0, 1500).trim()
+    // Try Spider Cloud scrape first
+    if (spiderKey) {
+      try {
+        const resp = await fetchWithTimeout("https://api.spider.cloud/v1/scrape", {
+          method: "POST", timeout: 15000,
+          headers: { Authorization: `Bearer ${spiderKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ url, limit: 1, return_format: "markdown" }),
+        })
+        if (resp.ok) {
+          const json = await resp.json() as any
+          const content = typeof json?.content?.[0]?.content === "string" ? json.content[0].content
+            : typeof json?.content === "string" ? json.content
+            : null
+          if (content) {
+            const lines = content.split("\n").filter(Boolean)
+            title = (lines.find((l: string) => l.startsWith("# ")) ?? "").replace(/^#+\s*/, "").slice(0, 200)
+              ?? lines[0]?.slice(0, 200) ?? "Article"
+            summary = content.replace(/^#\s+.*\n/, "").slice(0, 1500).trim()
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Fallback: direct HTTP fetch
+    if (!summary) {
+      try {
+        const resp = await fetchWithTimeout(url, {
+          timeout: 10000,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "Accept": "text/html,application/xhtml+xml",
+          },
+        })
+        if (resp.ok) {
+          const html = await resp.text()
+          title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim()?.slice(0, 200) ?? "Article"
+          const clean = html
+            .replace(/<style[^>]*>[^<]*<\/style>/gis, "")
+            .replace(/<script[^>]*>[^<]*<\/script>/gis, "")
+            .replace(/<nav[^>]*>.*?<\/nav>/gis, "")
+            .replace(/<header[^>]*>.*?<\/header>/gis, "")
+            .replace(/<footer[^>]*>.*?<\/footer>/gis, "")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/&[a-z]+;/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+          summary = clean.slice(0, 1500).trim()
+        }
+      } catch (_) {}
+    }
+
+    if (!summary) throw new Error("Could not fetch article content")
 
     const result: ArticleSummary = { url, title, summary }
     set(`summary:${url}`, result, 120_000)
