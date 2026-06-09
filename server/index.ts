@@ -358,26 +358,97 @@ app.get("/api/news", async (_req, res) => {
 //  BRIEFING
 // ════════════════════════════════════════════════════════════════
 
-function buildBriefing(title: string, content: string, url: string) {
-  const clean = content
-    .replace(/!\[.*?\]\(.*?\)/g, "")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim()
+function cleanArticleContent(raw: string): string {
+  let text = raw
+  text = text.replace(/<script[^>]*type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>/gi, "")
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+  text = text.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+  text = text.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+  text = text.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+  text = text.replace(/!\[.*?\]\(.*?\)/g, "")
+  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+  text = text.replace(/<[^>]+>/g, "")
+  text = text.replace(/\{[^{}]*"@context"[^{}]*\}/g, "")
+  text = text.replace(/\{[^}]*\}/g, "")
+  text = text.replace(/https?:\/\/\S+/g, "")
+  text = text.replace(/&#x27;|&#39;|&apos;/g, "'")
+  text = text.replace(/&amp;/g, "&")
+  text = text.replace(/&quot;|&#34;/g, '"')
+  text = text.replace(/&lt;|&#60;/g, "<")
+  text = text.replace(/&gt;|&#62;/g, ">")
+  text = text.split("\n").filter(l => {
+    const alpha = (l.match(/[a-zA-Z]/g) || []).length
+    return alpha > 10 && alpha > l.length * 0.3
+  }).join(" ")
+  text = text.replace(/\s+/g, " ").trim()
+  return text.slice(0, 6000)
+}
 
-  const sentences = clean.split(/[.!?]+/).filter(s => s.trim().length > 20)
-  const whatHappened = sentences.slice(0, 3).map(s => s.trim() + ".").join(" ") || "No summary available."
+function buildBriefing(title: string, content: string, url: string) {
+  const sentences = content.split(/[.!?]+/).filter(s => {
+    const t = s.trim()
+    return t.length > 30 && t.length < 500 && !/^[{\["]/.test(t) && (t.match(/[a-zA-Z]/g) || []).length > t.length * 0.4
+  })
+
+  const whatHappened = sentences.slice(0, 3).map(s => s.trim() + ".").join(" ") || content.slice(0, 300) || "No summary available."
   const contextSentences = sentences.filter(s =>
-    /market|price|percent|dollar|billion|million|index|share|economy|trade|growth|inflation|rate|fed|central bank|impact/i.test(s)
+    /market|price|percent|dollar|billion|million|index|share|economy|trade|growth|inflation|rate|fed|central bank|impact|revenue|profit|loss/i.test(s)
   )
   const marketContext = contextSentences.slice(0, 4).map(s => s.trim() + ".").join(" ") || ""
   const takeawaySentences = sentences.filter(s =>
-    /will|could|expected|forecast|outlook|next|future|ahead|plan|aim|goal|target|strategy|opportunity|risk/i.test(s)
+    /will|could|expected|forecast|outlook|next|future|ahead|plan|aim|goal|target|strategy|opportunity|risk|according|said|added|noted/i.test(s)
   )
   const keyTakeaways = takeawaySentences.slice(0, 5).map(s => s.trim() + ".")
-  if (!keyTakeaways.length) keyTakeaways.push("More details available in the full article.")
+  if (!keyTakeaways.length) {
+    const fallback = sentences.slice(0, 5).map(s => s.trim() + ".")
+    keyTakeaways.push(...(fallback.length ? fallback : ["More details available in the full article."]))
+  }
 
   return { url, title, whatHappened, marketContext, keyTakeaways }
+}
+
+async function generateAIBriefing(title: string, content: string, url: string): Promise<any | null> {
+  const jinaKey = process.env.JINA_API_KEY
+  if (!jinaKey) return null
+  try {
+    const resp = await fetchWithTimeout("https://api.jina.ai/v1/chat/completions", {
+      method: "POST",
+      timeout: 30000,
+      headers: {
+        Authorization: `Bearer ${jinaKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "jina-deepsearch-v1",
+        messages: [
+          {
+            role: "system",
+            content: "You are a financial analyst. Analyze the article and respond in JSON with keys: whatHappened (2-3 sentence summary), marketContext (1-2 sentences or empty string), keyTakeaways (array of 3-5 bullet points). Only include marketContext if the article has clear market or financial implications.",
+          },
+          {
+            role: "user",
+            content: `Title: ${title}\n\nArticle:\n${content.slice(0, 8000)}`,
+          },
+        ],
+        temperature: 0.1,
+      }),
+    })
+    if (!resp.ok) return null
+    const json = await resp.json() as any
+    const text = json?.choices?.[0]?.message?.content
+    if (!text) return null
+    const parsed = JSON.parse(text.replace(/```json\s*/gi, "").replace(/```\s*$/g, "").trim())
+    return {
+      url,
+      title,
+      whatHappened: parsed.whatHappened || "No summary available.",
+      marketContext: parsed.marketContext || "",
+      keyTakeaways: parsed.keyTakeaways?.length ? parsed.keyTakeaways.slice(0, 5) : ["More details in the full article."],
+    }
+  } catch {
+    return null
+  }
 }
 
 app.post("/api/briefing", async (req, res) => {
@@ -388,36 +459,38 @@ app.post("/api/briefing", async (req, res) => {
     const cached = await get<any>(`briefing:${url}`)
     if (cached) return res.json(cached)
 
-    let title = "Article"
-    let content = ""
+    let title = ""
+    let rawContent = ""
     const jinaKey = process.env.JINA_API_KEY
 
     if (jinaKey) {
       try {
         const resp = await fetchWithTimeout(`https://r.jina.ai/${encodeURIComponent(url)}`, {
-          timeout: 15000,
-          headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain", "X-Return-Format": "markdown" },
+          timeout: 20000,
+          headers: {
+            Authorization: `Bearer ${jinaKey}`,
+            Accept: "text/plain",
+            "X-Return-Format": "markdown",
+            "X-Exclude": "script, style, nav, footer, header, .sidebar, #sidebar, .ad, .advertisement, .related, .comments, .social",
+          },
         })
         if (resp.ok) {
           const text = await resp.text()
           const titleMatch = text.match(/^Title:\s*(.+)/m)
           if (titleMatch) title = titleMatch[1].trim().slice(0, 200)
-          content = text
+          rawContent = text
             .replace(/^Title:.*\n/m, "")
             .replace(/^URL Source:.*\n/m, "")
             .replace(/^Description:.*\n/m, "")
             .replace(/^Markdown Content:.*\n/m, "")
-            .replace(/!\[.*?\]\(.*?\)/g, "")
-            .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-            .trim()
         }
       } catch (_) {}
     }
 
-    if (!content) {
+    if (!rawContent) {
       try {
         const resp = await fetchWithTimeout(url, {
-          timeout: 10000,
+          timeout: 12000,
           headers: {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
             Accept: "text/html,application/xhtml+xml",
@@ -426,23 +499,31 @@ app.post("/api/briefing", async (req, res) => {
         if (resp.ok) {
           const html = await resp.text()
           const tMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-          if (tMatch) title = tMatch[1].trim().slice(0, 200)
-          const bodyMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i)
-          const bodyText = bodyMatch?.[1]?.replace(/<[^>]+>/g, "").trim() ?? ""
-          content = bodyText.slice(0, 3000)
-          if (!content) {
+          if (tMatch && !title) title = tMatch[1].trim().slice(0, 200)
+          const selectors = [/<article[^>]*>([\s\S]*?)<\/article>/i, /<div[^>]*class=["'][^"']*article-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*post-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*entry-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*story-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i]
+          for (const sel of selectors) {
+            const m = html.match(sel)
+            if (m) { rawContent = m[1]; break }
+          }
+          if (!rawContent) {
             const desc = html.match(/<meta[^>]+(?:name|property)=["'](?:og:)?description["'][^>]+content=["']([^"']+)["']/i)
-            content = desc?.[1]?.trim()?.slice(0, 1500) ?? ""
+            rawContent = desc?.[1] ?? ""
           }
         }
       } catch (_) {}
     }
 
-    if (!content) {
+    if (!rawContent) {
       return res.status(404).json({ error: "Could not fetch article content" })
     }
 
-    const briefing = buildBriefing(title, content, url)
+    const content = cleanArticleContent(rawContent)
+    if (!title) title = url.split("/").pop()?.replace(/-/g, " ") || "Article"
+
+    let briefing = null
+    if (jinaKey) briefing = await generateAIBriefing(title, content || title, url)
+    if (!briefing) briefing = buildBriefing(title, content || title, url)
+
     await set(`briefing:${url}`, briefing, TEN_MIN)
     res.json(briefing)
   } catch (err) {
