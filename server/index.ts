@@ -455,8 +455,9 @@ function cleanArticleContent(raw: string): string {
 }
 
 function buildBriefing(title: string, content: string, url: string, snippet?: string) {
-  const sentences = content.split(/[.!?]+/).filter(s => {
-    const t = s.trim()
+  const textWithMarkers = content.replace(/\$(\d+)\.(\d+)/g, "__DLR__$1__PT__$2")
+  const sentences = textWithMarkers.split(/[.!?]+(?:\s|$)/).filter(s => {
+    const t = s.trim().replace(/__DLR__/g, "$").replace(/__PT__/g, ".")
     if (t.length < 25 || t.length > 600) return false
     if (/^[{\["]/.test(t)) return false
     if ((t.match(/[a-zA-Z]/g) || []).length < t.length * 0.35) return false
@@ -466,15 +467,17 @@ function buildBriefing(title: string, content: string, url: string, snippet?: st
     return true
   })
 
+  const restore = (s: string) => s.replace(/__DLR__/g, "$").replace(/__PT__/g, ".")
+
   const used = new Set<string>()
   function addUnique(arr: string[], max: number, filter?: (s: string) => boolean): string[] {
     const result: string[] = []
     for (const s of arr) {
       if (result.length >= max) break
-      const trimmed = s.trim() + "."
-      const deduped = trimmed.replace(/\s+/g, " ").trim()
+      const restored = restore(s.trim())
+      const deduped = restored + "."
       if (used.has(deduped)) continue
-      if (filter && !filter(s)) continue
+      if (filter && !filter(restored)) continue
       used.add(deduped)
       result.push(deduped)
     }
