@@ -330,7 +330,7 @@ html {
 
 .home-sidebar {
   display: none;
-  width: 260px;
+  width: 240px;
   flex-shrink: 0;
 }
 
@@ -346,6 +346,12 @@ html {
     gap: 1rem;
     position: sticky;
     top: 0.5rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  .home-sidebar {
+    width: 210px;
   }
 }
 
@@ -406,6 +412,276 @@ html {
   border: 1px solid var(--glass-border);
   border-radius: 6px;
   padding: 0.05rem 0.35rem;
+}
+
+/* ═══════════════════════════════════════════
+   Impact Analysis Left Panel (iMac Widget)
+   ═══════════════════════════════════════════ */
+
+.home-left {
+  display: none;
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0.5rem;
+  align-self: flex-start;
+}
+
+@media (min-width: 1100px) {
+  .home-left {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.impact-left-panel {
+  position: relative;
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 0.3s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+
+.impact-left-panel:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.impact-left-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  pointer-events: none;
+}
+
+.impact-left-header {
+  padding: 1rem 1rem 0.6rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.impact-left-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.impact-left-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+  flex: 1;
+}
+
+.impact-left-badge {
+  font-size: 0.5rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 0.08rem 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.impact-left-subtitle {
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  display: block;
+}
+
+.impact-left-list {
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.impact-left-row {
+  position: relative;
+  cursor: default;
+  border-radius: 12px;
+  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1),
+              background 0.25s cubic-bezier(0.16,1,0.3,1);
+  animation: impactRowIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+  animation-delay: calc(var(--idx, 0) * 0.05s);
+}
+
+@keyframes impactRowIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.impact-left-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateX(3px);
+}
+
+.impact-left-row:active {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(3px) scale(0.99);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .impact-left-row:active {
+    background: rgba(255, 255, 255, 0.06);
+    transform: scale(0.98);
+    transition-duration: 0.1s;
+  }
+}
+
+.impact-left-row-inner {
+  padding: 0.5rem 0.55rem;
+}
+
+.impact-left-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
+.impact-left-row-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.impact-left-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.16,1,0.3,1);
+}
+
+.impact-left-row:hover .impact-left-dot {
+  transform: scale(1.6);
+}
+
+.impact-left-cat-name {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.impact-left-tag {
+  font-size: 0.45rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.06rem 0.3rem;
+  border-radius: 4px;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+.impact-left-bar-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.impact-left-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  animation: impactBarGrow 0.8s cubic-bezier(0.16,1,0.3,1) both;
+  animation-delay: var(--delay, 0s);
+  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes impactBarGrow {
+  from { width: 0% !important; }
+}
+
+.impact-left-row:hover .impact-left-bar-fill {
+  filter: brightness(1.3);
+}
+
+.impact-left-row-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.impact-left-articles {
+  font-size: 0.5rem;
+  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.impact-left-score {
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.2s cubic-bezier(0.16,1,0.3,1);
+}
+
+.impact-left-row:hover .impact-left-score {
+  transform: scale(1.15);
+}
+
+.impact-left-footer {
+  padding: 0.5rem 1rem 0.75rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.48rem;
+  color: var(--text-tertiary);
+}
+
+.impact-left-loading {
+  padding: 2rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.impact-left-shimmer {
+  width: 60%;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.03) 0%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* ─── Legacy Cards (kept for ArticlePage etc.) ─── */

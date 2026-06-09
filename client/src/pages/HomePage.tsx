@@ -52,8 +52,11 @@ export function HomePage() {
   const topArticles = filtered.slice(0, 3)
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem 0' }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 0' }}>
       <div className="home-layout">
+        <div className="home-left">
+          <ImpactAnalysis />
+        </div>
         <div className="home-main">
           <div className="mb-5">
             <div className="flex items-center gap-2 px-3 md:px-5 mb-3">
@@ -109,7 +112,6 @@ export function HomePage() {
         </div>
 
         <div className="home-sidebar">
-          <ImpactAnalysis />
           <div className="mac-panel">
             <h3 className="mac-side-title">Sections</h3>
             <div className="flex flex-col gap-1">
@@ -135,22 +137,6 @@ export function HomePage() {
                   <span className="mac-side-stat-count">{filtered.filter(a => a.source === src).length}</span>
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="mac-panel">
-            <h3 className="mac-side-title">Impact</h3>
-            <div className="flex flex-col gap-1">
-              {["central-bank", "geopolitical", "crisis", "pandemic", "trade", "election", "currency"].map(cat => {
-                const count = filtered.filter(a => a.impactCategory === cat).length
-                if (!count) return null
-                return (
-                  <div key={cat} className="mac-side-stat">
-                    <span className="mac-side-stat-label">{IMPACT_LABELS[cat] ?? cat}</span>
-                    <span className="mac-side-stat-count">{count}</span>
-                  </div>
-                )
-              })}
             </div>
           </div>
 
