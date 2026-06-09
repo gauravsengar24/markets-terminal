@@ -426,10 +426,18 @@ function cleanArticleContent(raw: string): string {
   text = text.replace(/Getty Images/i, "")
   text = text.replace(/Reuters\s*/gi, "")
   text = text.replace(/\b[A-Z][a-z]+ [A-Z][a-z]+[A-Z][a-z]+\b/g, "") // remove CamelCaseNames
-  text = text.split("\n").filter(l => {
-    const alpha = (l.match(/[a-zA-Z]/g) || []).length
-    return alpha > 8 && alpha > l.length * 0.25
-  }).join(" ")
+  text = text.split("\n")
+    .map(l => l.trim())
+    .filter(l => {
+      if (!l) return false
+      const alpha = (l.match(/[a-zA-Z]/g) || []).length
+      if (alpha < 7) return false
+      if (alpha < l.length * 0.25) return false
+      if (/^(just now|earlier|minutes? ago|hours? ago|today|yesterday|reuters|ap news|bbc news|cnn|the guardian|the .+post)$/i.test(l)) return false
+      if (/^[A-Z][a-z]+ [A-Z][a-z]+$/i.test(l) && alpha === l.replace(/\s/g, "").length) return false
+      if (/^(by|from|in|at|on|updated|published|posted|share|save|add)/i.test(l)) return false
+      return true
+    }).join(" ")
   text = text.replace(/\s+/g, " ").trim()
   return text.slice(0, 6000)
 }
