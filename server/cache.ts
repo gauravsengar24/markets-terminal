@@ -69,3 +69,20 @@ export async function set(key: string, data: unknown, ttl = 30_000): Promise<voi
     )
   } catch {}
 }
+
+export async function del(keyPrefix: string): Promise<number> {
+  let count = 0
+  for (const k of memStore.keys()) {
+    if (k.startsWith(keyPrefix)) {
+      memStore.delete(k)
+      count++
+    }
+  }
+  if (dbReady) {
+    try {
+      const res = await pool.query(`DELETE FROM cache_store WHERE key LIKE $1`, [`${keyPrefix}%`])
+      count += res.rowCount ?? 0
+    } catch {}
+  }
+  return count
+}

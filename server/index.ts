@@ -1,7 +1,7 @@
 import express from "express"
 import path from "path"
 import { fileURLToPath } from "url"
-import { initCache, get, set } from "./cache.js"
+import { initCache, get, set, del } from "./cache.js"
 import { RSS_FEEDS, BREAKING_RSS_FEEDS } from "../shared/constants.js"
 import type { RssFeed } from "../shared/constants.js"
 import type { NewsArticle, BreakingNews, MarketPrice, LearningPreferences } from "../shared/types.js"
@@ -421,17 +421,23 @@ function cleanArticleContent(raw: string): string {
     const entities: Record<string, string> = { "&#x27;": "'", "&#39;": "'", "&apos;": "'", "&amp;": "&", "&quot;": '"', "&#34;": '"', "&lt;": "<", "&#60;": "<", "&gt;": ">", "&#62;": ">", "&nbsp;": " ", "&#8217;": "'", "&#8216;": "'", "&#8220;": '"', "&#8221;": '"', "&#8211;": "-", "&#8212;": "-", "&ndash;": "-", "&mdash;": "-", "&hellip;": "...", "&rsquo;": "'", "&lsquo;": "'", "&ldquo;": '"', "&rdquo;": '"', "&bull;": " * ", "&middot;": " * " }
     return entities[m.toLowerCase()] || m
   })
-  text = text.replace(/ShareSaveAdd.*?(?=[A-Z])/g, "")
+  text = text.replace(/ShareSaveAdd.*?(?=[A-Z]|$)/g, "")
+  text = text.replace(/ShareSavePlay.*?(?=[A-Z]|$)/gi, "")
   text = text.replace(/FollowFollow\d*/g, "")
-  text = text.replace(/ShareSavePlay.*?(?=[A-Z])/gi, "")
-  text = text.replace(/(\d+\s*)?(min|hr|hrs|sec)\s*(read|play|ago)/gi, "")
   text = text.replace(/Followers?\d*/gi, "")
+  text = text.replace(/(\d+\s*)?(min|hr|hrs|sec)\s*(read|play|ago)/gi, "")
   text = text.replace(/Summary/i, "")
   text = text.replace(/Comments?\d*/gi, "")
   text = text.replace(/\b\d+\s*(m|h|min)\s*ago\b/gi, "")
   text = text.replace(/Getty Images/i, "")
   text = text.replace(/Reuters\s*/gi, "")
-  text = text.replace(/\b[A-Z][a-z]+ [A-Z][a-z]+[A-Z][a-z]+\b/g, "") // remove CamelCaseNames
+  text = text.replace(/\b[A-Z][a-z]+ [A-Z][a-z]+[A-Z][a-z]+\b/g, "")
+  text = text.replace(/([a-zA-Z])\d{2,}(?=[A-Za-z])/g, "$1 ") // "Management53Follow" → "Management Follow"
+  text = text.replace(/([a-zA-Z])\d{2,}(?=\s|$)/g, "$1") // "Management53" → "Management"
+  text = text.replace(/\(?(\d+min)\)/gi, "") // "(5min)" or "5min)"
+  text = text.replace(/\)(?=[A-Z][a-z])/g, ") ") // ")T" → ") T"
+  text = text.replace(/\s{2,}/g, " ")
+  text = text.replace(/^.*?(?=[A-Z][a-z]{4,}\s)/, "") // strip leading junk before a real word
   text = text.split("\n")
     .map(l => l.trim())
     .filter(l => {
@@ -454,24 +460,42 @@ function buildBriefing(title: string, content: string, url: string) {
     if (t.length < 35 || t.length > 600) return false
     if (/^[{\["]/.test(t)) return false
     if ((t.match(/[a-zA-Z]/g) || []).length < t.length * 0.35) return false
-    if (/(seeking alpha|disclaimer|this account|not managed|not monitored|follow us|subscribe|sign up|all rights reserved|terms of service|privacy policy|past performance|investment advice|for informational)/i.test(t)) return false
-    if (t.split(/\s+/).length < 5) return false
+    if (/(seeking alpha|disclaimer|this account|not managed|not monitored|follow us|subscribe|sign up|all rights reserved|terms of service|privacy policy|past performance|investment advice|for informational|nomura asset)/i.test(t)) return false
+    if (t.split(/\s+/).length < 6) return false
+    if (/^\d/.test(t.trim())) return false
     return true
   })
 
-  const whatHappened = sentences.slice(0, 4).map(s => s.trim() + ".")
+  const used = new Set<string>()
+  function addUnique(arr: string[], max: number, filter?: (s: string) => boolean): string[] {
+    const result: string[] = []
+    for (const s of arr) {
+      if (result.length >= max) break
+      const trimmed = s.trim() + "."
+      const deduped = trimmed.replace(/\s+/g, " ").trim()
+      if (used.has(deduped)) continue
+      if (filter && !filter(s)) continue
+      used.add(deduped)
+      result.push(deduped)
+    }
+    return result
+  }
+
+  const whatHappened = addUnique(sentences, 4)
   if (!whatHappened.length) { whatHappened.push("No summary available.") }
 
-  const marketContext = sentences.filter(s =>
+  const marketContext = addUnique(sentences, 3, s =>
     /market|price|percent|dollar|billion|million|index|share|economy|trade|growth|inflation|rate|fed|central bank|impact|revenue|profit|loss/i.test(s)
-  ).slice(0, 3).map(s => s.trim() + ".")
+  )
 
-  let keyTakeaways = sentences.filter(s =>
+  const takeawayFilter = (s: string) =>
     /will|could|expected|forecast|outlook|next|future|ahead|plan|aim|goal|target|strategy|opportunity|risk|according|said|added|noted/i.test(s)
-  ).slice(0, 5).map(s => s.trim() + ".")
+  let keyTakeaways = addUnique(sentences, 5, takeawayFilter)
   if (!keyTakeaways.length) {
-    const fallback = sentences.slice(0, 5).map(s => s.trim() + ".")
-    keyTakeaways.push(...(fallback.length ? fallback : ["More details available in the full article."]))
+    keyTakeaways = addUnique(sentences, 5)
+  }
+  if (!keyTakeaways.length) {
+    keyTakeaways = ["More details available in the full article."]
   }
 
   return { url, title, whatHappened, marketContext, keyTakeaways }
@@ -527,7 +551,8 @@ Rules:
 - EVERY field must be an array of strings (bullet points). Never use paragraphs.
 - Each bullet point should be a complete, concise sentence.
 - marketContext must be empty array [] if the article has no clear market impact.
-- Do not fabricate data. Use only what is in the article.${learningHint}`,
+- Do not fabricate data. Use only what is in the article.
+- CRITICAL: Never repeat the same information across sections. whatHappened, marketContext, and keyTakeaways must all contain distinct content.${learningHint}`,
           },
           {
             role: "user",
@@ -839,7 +864,28 @@ app.use((req, res, next) => {
   }
 })
 
-initCache().then(() => {
+// ─── Flush cached briefings from blocked / removed domains ───
+
+const BLOCKED_DOMAINS = ["seekingalpha", "seeking.?alpha", "barrons\\.com", "fool\\.com"]
+
+async function flushDomainCache(): Promise<number> {
+  let total = 0
+  const news = await get<any[]>("news:merged")
+  if (news) {
+    for (const a of news) {
+      if (BLOCKED_DOMAINS.some(d => new RegExp(d, "i").test(a.url))) {
+        total += await del(`briefing:${a.url}`)
+      }
+    }
+  }
+  return total
+}
+
+initCache().then(async () => {
+  try {
+    const flushed = await flushDomainCache()
+    if (flushed > 0) console.log(`Flushed ${flushed} cached briefings from blocked domains`)
+  } catch {}
   app.listen(PORT, () => {
     console.log(`Markets Terminal running on http://localhost:${PORT}`)
   })
