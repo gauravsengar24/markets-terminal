@@ -45,3 +45,13 @@ export interface ArticleSummary {
   title: string
   summary: string
 }
+
+export interface FeedbackPayload {
+  url: string
+  articleTitle?: string
+  source?: string
+  region?: string
+  category?: string
+  volatility?: string
+  rating: 1 | -1
+}

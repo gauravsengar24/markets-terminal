@@ -381,26 +381,32 @@ app.get("/api/news", async (_req, res) => {
 
 function cleanArticleContent(raw: string): string {
   let text = raw
-  text = text.replace(/<script[^>]*type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>/gi, "")
   text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
   text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
   text = text.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
   text = text.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
   text = text.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+  text = text.replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "")
   text = text.replace(/!\[.*?\]\(.*?\)/g, "")
   text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
   text = text.replace(/<[^>]+>/g, "")
-  text = text.replace(/\{[^{}]*"@context"[^{}]*\}/g, "")
+  text = text.replace(/\{[^{}]*"@context"[^{}]*\}[^{}]*\}/g, "")
   text = text.replace(/\{[^}]*\}/g, "")
   text = text.replace(/https?:\/\/\S+/g, "")
-  text = text.replace(/&#x27;|&#39;|&apos;/g, "'")
-  text = text.replace(/&amp;/g, "&")
-  text = text.replace(/&quot;|&#34;/g, '"')
-  text = text.replace(/&lt;|&#60;/g, "<")
-  text = text.replace(/&gt;|&#62;/g, ">")
+  text = text.replace(/&#?\w+;/g, (m) => {
+    const entities: Record<string, string> = { "&#x27;": "'", "&#39;": "'", "&apos;": "'", "&amp;": "&", "&quot;": '"', "&#34;": '"', "&lt;": "<", "&#60;": "<", "&gt;": ">", "&#62;": ">", "&nbsp;": " ", "&#8217;": "'", "&#8216;": "'", "&#8220;": '"', "&#8221;": '"', "&#8211;": "-", "&#8212;": "-", "&ndash;": "-", "&mdash;": "-", "&hellip;": "...", "&rsquo;": "'", "&lsquo;": "'", "&ldquo;": '"', "&rdquo;": '"', "&bull;": " * ", "&middot;": " * " }
+    return entities[m.toLowerCase()] || m
+  })
+  text = text.replace(/ShareSaveAdd.*?(?=[A-Z])/g, "")
+  text = text.replace(/FollowFollow\d+/g, "")
+  text = text.replace(/Comments?\d*/gi, "")
+  text = text.replace(/\b\d+\s*(m|h|min)\s*ago\b/gi, "")
+  text = text.replace(/Getty Images/i, "")
+  text = text.replace(/Reuters\s*/gi, "")
+  text = text.replace(/\b[A-Z][a-z]+ [A-Z][a-z]+[A-Z][a-z]+\b/g, "") // remove CamelCaseNames
   text = text.split("\n").filter(l => {
     const alpha = (l.match(/[a-zA-Z]/g) || []).length
-    return alpha > 10 && alpha > l.length * 0.3
+    return alpha > 8 && alpha > l.length * 0.25
   }).join(" ")
   text = text.replace(/\s+/g, " ").trim()
   return text.slice(0, 6000)
@@ -591,6 +597,93 @@ app.post("/api/summary", async (req, res) => {
   } catch (err) {
     console.error("Summary error:", err)
     res.status(500).json({ error: "Failed to fetch article summary" })
+  }
+})
+
+// ════════════════════════════════════════════════════════════════
+//  FEEDBACK & SELF-LEARNING
+// ════════════════════════════════════════════════════════════════
+
+interface FeedbackEntry {
+  url: string
+  articleTitle: string
+  source: string
+  region: string
+  category: string
+  volatility: string
+  rating: 1 | -1
+  timestamp: string
+}
+
+interface FeedbackStore {
+  sourceScores: Record<string, { up: number; down: number }>
+  categoryScores: Record<string, { up: number; down: number }>
+  volatilityScores: Record<string, { up: number; down: number }>
+  totalFeedback: number
+  recent: FeedbackEntry[]
+}
+
+function emptyFeedbackStore(): FeedbackStore {
+  return { sourceScores: {}, categoryScores: {}, volatilityScores: {}, totalFeedback: 0, recent: [] }
+}
+
+app.post("/api/feedback", async (req, res) => {
+  try {
+    const { url, articleTitle, source, region, category, volatility, rating } = req.body
+    if (!url || !rating || ![1, -1].includes(rating)) {
+      return res.status(400).json({ error: "url and rating (1 or -1) required" })
+    }
+
+    const store = (await get<FeedbackStore>("feedback:data")) ?? emptyFeedbackStore()
+
+    const entry: FeedbackEntry = {
+      url, articleTitle: articleTitle ?? "Untitled", source: source ?? "unknown",
+      region: region ?? "", category: category ?? "", volatility: volatility ?? "",
+      rating, timestamp: new Date().toISOString(),
+    }
+
+    store.totalFeedback++
+    store.recent.unshift(entry)
+    if (store.recent.length > 500) store.recent.pop()
+
+    if (source) {
+      if (!store.sourceScores[source]) store.sourceScores[source] = { up: 0, down: 0 }
+      if (rating === 1) store.sourceScores[source].up++
+      else store.sourceScores[source].down++
+    }
+    if (category) {
+      if (!store.categoryScores[category]) store.categoryScores[category] = { up: 0, down: 0 }
+      if (rating === 1) store.categoryScores[category].up++
+      else store.categoryScores[category].down++
+    }
+    if (volatility) {
+      if (!store.volatilityScores[volatility]) store.volatilityScores[volatility] = { up: 0, down: 0 }
+      if (rating === 1) store.volatilityScores[volatility].up++
+      else store.volatilityScores[volatility].down++
+    }
+
+    await set("feedback:data", store, ONE_HOUR * 24)
+    res.json({ ok: true, totalFeedback: store.totalFeedback })
+  } catch (err: any) {
+    console.error("Feedback error:", err)
+    res.status(500).json({ error: "Failed to store feedback" })
+  }
+})
+
+app.get("/api/learning/stats", async (_req, res) => {
+  try {
+    const store = (await get<FeedbackStore>("feedback:data")) ?? emptyFeedbackStore()
+    res.json({
+      totalFeedback: store.totalFeedback,
+      sources: Object.entries(store.sourceScores)
+        .map(([k, v]) => ({ source: k, up: v.up, down: v.down, score: v.up / (v.up + v.down || 1) }))
+        .sort((a, b) => b.score - a.score),
+      categories: Object.entries(store.categoryScores)
+        .map(([k, v]) => ({ category: k, up: v.up, down: v.down, score: v.up / (v.up + v.down || 1) }))
+        .sort((a, b) => b.score - a.score),
+    })
+  } catch {
+    res.json({ totalFeedback: 0, sources: [], categories: [] })
   }
 })
 
