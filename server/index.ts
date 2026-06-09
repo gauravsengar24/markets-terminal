@@ -741,12 +741,12 @@ app.get("/api/impact-analysis", async (_req, res) => {
       if (!data || data.count < 1) {
         return { id: cfg.id, label: cfg.label, short: cfg.short, vol: cfg.vol, articleCount: 0, score: 0 }
       }
-      const volMult = cfg.vol === "high" ? 1.4 : 1.0
+      const volMult = cfg.vol === "high" ? 1.3 : 1.0
       const freq = data.count / totalTagged
       const recencyBoost = data.recencySum / data.count
       const dominance = data.count / maxCount
-      const raw = (freq * 60 + dominance * 30 + recencyBoost * 10) * volMult * 100
-      const score = Math.min(99, Math.max(5, Math.round(raw)))
+      const raw = (freq * 50 + dominance * 30 + recencyBoost * 20) * volMult
+      const score = Math.min(98, Math.max(3, Math.round(raw)))
       return { id: cfg.id, label: cfg.label, short: cfg.short, vol: cfg.vol, articleCount: data.count, score }
     }).sort((a, b) => b.score - a.score)
 
