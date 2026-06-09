@@ -209,7 +209,7 @@ app.post("/api/summary", async (req, res) => {
     let summary = ""
     const spiderKey = process.env.SPIDER_CLOUD_API_KEY
 
-    // Try Spider Cloud scrape (fast, no JS)
+    // Try Spider Cloud scrape (no JS)
     if (spiderKey) {
       try {
         const resp = await fetchWithTimeout("https://api.spider.cloud/v1/scrape", {

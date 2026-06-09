@@ -12,6 +12,10 @@ export async function fetchSummary(url: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
   })
-  if (!res.ok) throw new Error(`Summary fetch failed: ${res.status}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => "")
+    const detail = body ? JSON.parse(body).error || body : res.statusText
+    throw new Error(detail)
+  }
   return res.json()
 }

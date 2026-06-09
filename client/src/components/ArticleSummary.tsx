@@ -35,7 +35,7 @@ export function ArticleSummary({ url }: { url: string | null }) {
             className="inline-block mt-4 text-base text-term-accent hover:underline">Read full article →</a>
         </>
       ) : (
-        <p className="text-base text-term-red">Failed to load summary.</p>
+        <p className="text-base text-term-red">Failed to load summary. Try opening the article directly.</p>
       )}
     </div>
   )
