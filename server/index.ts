@@ -454,14 +454,14 @@ function cleanArticleContent(raw: string): string {
   return text.slice(0, 6000)
 }
 
-function buildBriefing(title: string, content: string, url: string) {
+function buildBriefing(title: string, content: string, url: string, snippet?: string) {
   const sentences = content.split(/[.!?]+/).filter(s => {
     const t = s.trim()
-    if (t.length < 35 || t.length > 600) return false
+    if (t.length < 25 || t.length > 600) return false
     if (/^[{\["]/.test(t)) return false
     if ((t.match(/[a-zA-Z]/g) || []).length < t.length * 0.35) return false
-    if (/(seeking alpha|disclaimer|this account|not managed|not monitored|follow us|subscribe|sign up|all rights reserved|terms of service|privacy policy|past performance|investment advice|for informational|nomura asset)/i.test(t)) return false
-    if (t.split(/\s+/).length < 6) return false
+    if (/(seeking alpha|disclaimer|this account|not managed|not monitored|follow us|subscribe|sign up|all rights reserved|terms of service|privacy policy|past performance|investment advice|for informational|nomura asset|form 144|form def)/i.test(t)) return false
+    if (t.split(/\s+/).length < 5) return false
     if (/^\d/.test(t.trim())) return false
     return true
   })
@@ -481,22 +481,26 @@ function buildBriefing(title: string, content: string, url: string) {
     return result
   }
 
-  const whatHappened = addUnique(sentences, 4)
-  if (!whatHappened.length) { whatHappened.push("No summary available.") }
+  const makeFallback = (text: string) => {
+    const parts = text.split(/[.!?]+/).filter(s => s.trim().length > 15)
+    return addUnique(parts, 3)
+  }
 
-  const marketContext = addUnique(sentences, 3, s =>
-    /market|price|percent|dollar|billion|million|index|share|economy|trade|growth|inflation|rate|fed|central bank|impact|revenue|profit|loss/i.test(s)
+  let whatHappened = addUnique(sentences, 3)
+  if (!whatHappened.length && snippet) whatHappened = makeFallback(snippet)
+  if (!whatHappened.length) whatHappened = [`${title}.`]
+  if (!whatHappened.length) whatHappened.push("No summary available.")
+
+  const marketContext = addUnique(sentences, 2, s =>
+    /market|price|percent|dollar|billion|million|index|share|economy|trade|growth|inflation|rate|fed|central bank|impact|revenue|profit|loss|volatile|surge|decline|fell|rose/i.test(s)
   )
 
   const takeawayFilter = (s: string) =>
     /will|could|expected|forecast|outlook|next|future|ahead|plan|aim|goal|target|strategy|opportunity|risk|according|said|added|noted/i.test(s)
-  let keyTakeaways = addUnique(sentences, 5, takeawayFilter)
-  if (!keyTakeaways.length) {
-    keyTakeaways = addUnique(sentences, 5)
-  }
-  if (!keyTakeaways.length) {
-    keyTakeaways = ["More details available in the full article."]
-  }
+  let keyTakeaways = addUnique(sentences, 4, takeawayFilter)
+  if (!keyTakeaways.length) keyTakeaways = addUnique(sentences, 3)
+  if (!keyTakeaways.length && snippet) keyTakeaways = makeFallback(snippet)
+  if (!keyTakeaways.length) keyTakeaways = ["More details available in the full article."]
 
   return { url, title, whatHappened, marketContext, keyTakeaways }
 }
@@ -578,7 +582,7 @@ Rules:
 
 app.post("/api/briefing", async (req, res) => {
   try {
-    const { url } = req.body
+    const { url, snippet } = req.body
     if (!url) return res.status(400).json({ error: "url required" })
 
     const cached = await get<any>(`briefing:${url}`)
@@ -586,17 +590,31 @@ app.post("/api/briefing", async (req, res) => {
 
     let title = ""
     let rawContent = ""
+    let fallbackSnippet = snippet || ""
     const jinaKey = process.env.JINA_API_KEY
+
+    if (!fallbackSnippet) {
+      try {
+        const news = await get<NewsArticle[]>("news:merged")
+        if (news) {
+          const article = news.find(a => a.url === url)
+          if (article) {
+            fallbackSnippet = article.snippet || ""
+            if (!title) title = article.title
+          }
+        }
+      } catch {}
+    }
 
     if (jinaKey) {
       try {
         const resp = await fetchWithTimeout(`https://r.jina.ai/${encodeURIComponent(url)}`, {
-          timeout: 20000,
+          timeout: 15000,
           headers: {
             Authorization: `Bearer ${jinaKey}`,
             Accept: "text/plain",
             "X-Return-Format": "markdown",
-            "X-Exclude": "script, style, nav, footer, header, .sidebar, #sidebar, .ad, .advertisement, .related, .comments, .social",
+            "X-Exclude": "script, style, nav, footer, header, .sidebar, .ad, .advertisement, .related, .comments, .social",
           },
         })
         if (resp.ok) {
@@ -609,24 +627,24 @@ app.post("/api/briefing", async (req, res) => {
             .replace(/^Description:.*\n/m, "")
             .replace(/^Markdown Content:.*\n/m, "")
         }
-      } catch (_) {}
+      } catch {}
     }
 
     if (!rawContent) {
       try {
         const resp = await fetchWithTimeout(url, {
-          timeout: 12000,
+          timeout: 10000,
           headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-            Accept: "text/html,application/xhtml+xml",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
           },
         })
         if (resp.ok) {
           const html = await resp.text()
           const tMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
           if (tMatch && !title) title = tMatch[1].trim().slice(0, 200)
-          const selectors = [/<article[^>]*>([\s\S]*?)<\/article>/i, /<div[^>]*class=["'][^"']*article-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*post-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*entry-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*story-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i]
-          for (const sel of selectors) {
+          for (const sel of [/<article[^>]*>([\s\S]*?)<\/article>/i, /<div[^>]*class=["'][^"']*article-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*story-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*post-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i]) {
             const m = html.match(sel)
             if (m) { rawContent = m[1]; break }
           }
@@ -635,19 +653,15 @@ app.post("/api/briefing", async (req, res) => {
             rawContent = desc?.[1] ?? ""
           }
         }
-      } catch (_) {}
+      } catch {}
     }
 
-    if (!rawContent) {
-      return res.status(404).json({ error: "Could not fetch article content" })
-    }
-
-    const content = cleanArticleContent(rawContent)
+    const content = cleanArticleContent(rawContent || fallbackSnippet || title)
     if (!title) title = url.split("/").pop()?.replace(/-/g, " ") || "Article"
 
     let briefing = null
-    if (jinaKey) briefing = await generateAIBriefing(title, content || title, url)
-    if (!briefing) briefing = buildBriefing(title, content || title, url)
+    if (jinaKey && rawContent) briefing = await generateAIBriefing(title, content, url)
+    if (!briefing) briefing = buildBriefing(title, content || title, url, fallbackSnippet)
 
     await set(`briefing:${url}`, briefing, TEN_MIN)
     res.json(briefing)

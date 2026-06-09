@@ -10,15 +10,16 @@ interface Props {
   region?: string
   impactCategory?: string
   volatility?: string
+  snippet?: string
 }
 
-export function NewsBriefing({ url, fullPage, articleTitle, source, region, impactCategory, volatility }: Props) {
+export function NewsBriefing({ url, fullPage, articleTitle, source, region, impactCategory, volatility, snippet }: Props) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   const query = useQuery({
     queryKey: ["briefing", url],
-    queryFn: () => fetchBriefing(url!),
+    queryFn: () => fetchBriefing(url!, snippet),
     enabled: !!url,
     staleTime: 600_000,
   })
@@ -167,7 +168,10 @@ export function NewsBriefing({ url, fullPage, articleTitle, source, region, impa
   return (
     <div className={`p-4 md:p-5 ${wrapper}`}>
       <div className="mac-panel">
-        <p style={{ fontSize: "0.85rem", color: "var(--color-negative)" }}>Failed to load briefing.</p>
+        <div style={{ textAlign: "center" }}>
+          <p style={{ fontSize: "1rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>No briefing available for this article.</p>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="action-link text-xs">Read full article ↗</a>
+        </div>
       </div>
     </div>
   )

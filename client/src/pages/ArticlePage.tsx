@@ -69,6 +69,7 @@ export function ArticlePage() {
         region={article.region}
         impactCategory={article.impactCategory}
         volatility={article.volatility}
+        snippet={article.snippet}
       />
 
       <div className="flex justify-center mt-4 pb-6">

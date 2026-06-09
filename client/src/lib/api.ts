@@ -18,11 +18,11 @@ export async function fetchMarketSnapshot() {
   return res.json()
 }
 
-export async function fetchBriefing(url: string) {
+export async function fetchBriefing(url: string, snippet?: string) {
   const res = await fetch(`${BASE}/briefing`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, snippet }),
   })
   if (!res.ok) {
     const body = await res.text().catch(() => "")
