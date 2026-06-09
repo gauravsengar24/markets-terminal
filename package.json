@@ -5,22 +5,24 @@
   "scripts": {
     "dev": "concurrently \"NODE_TLS_REJECT_UNAUTHORIZED=0 tsx watch --env-file=.env server/index.ts\" \"vite\"",
     "build": "NODE_TLS_REJECT_UNAUTHORIZED=0 vite build && NODE_TLS_REJECT_UNAUTHORIZED=0 tsc -p tsconfig.node.json",
-    "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --env-file=.env dist/server/index.js"
+    "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --env-file=.env dist/server/index.js",
+    "deploy": "npm run build && npx gh-pages -d dist/client"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.75.0",
     "express": "^5.1.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "@tanstack/react-query": "^5.75.0"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
     "@types/express": "^5.0.3",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.1.2",
+    "gh-pages": "^6.3.0",
     "tailwindcss": "^4.1.4",
-    "@tailwindcss/vite": "^4.1.4",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "vite": "^6.3.4"
