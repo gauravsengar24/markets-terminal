@@ -514,12 +514,38 @@ html {
 
 .impact-left-row {
   position: relative;
-  cursor: default;
   border-radius: 12px;
-  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1),
-              background 0.25s cubic-bezier(0.16,1,0.3,1);
   animation: impactRowIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
   animation-delay: calc(var(--idx, 0) * 0.05s);
+  overflow: hidden;
+}
+
+.impact-left-row-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  transition: background 0.25s cubic-bezier(0.16,1,0.3,1);
+}
+
+.impact-left-row-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.impact-left-row-btn:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .impact-left-row-btn:active {
+    background: rgba(255, 255, 255, 0.06);
+    transition-duration: 0.1s;
+  }
 }
 
 @keyframes impactRowIn {
@@ -530,24 +556,6 @@ html {
   to {
     opacity: 1;
     transform: translateX(0);
-  }
-}
-
-.impact-left-row:hover {
-  background: rgba(255, 255, 255, 0.04);
-  transform: translateX(3px);
-}
-
-.impact-left-row:active {
-  background: rgba(255, 255, 255, 0.06);
-  transform: translateX(3px) scale(0.99);
-}
-
-@media (hover: none) and (pointer: coarse) {
-  .impact-left-row:active {
-    background: rgba(255, 255, 255, 0.06);
-    transform: scale(0.98);
-    transition-duration: 0.1s;
   }
 }
 
@@ -577,7 +585,7 @@ html {
   transition: transform 0.2s cubic-bezier(0.16,1,0.3,1);
 }
 
-.impact-left-row:hover .impact-left-dot {
+.impact-left-row-btn:hover .impact-left-dot {
   transform: scale(1.6);
 }
 
@@ -621,7 +629,7 @@ html {
   from { width: 0% !important; }
 }
 
-.impact-left-row:hover .impact-left-bar-fill {
+.impact-left-row-btn:hover .impact-left-bar-fill {
   filter: brightness(1.3);
 }
 
@@ -645,8 +653,89 @@ html {
   transition: transform 0.2s cubic-bezier(0.16,1,0.3,1);
 }
 
-.impact-left-row:hover .impact-left-score {
+.impact-left-row-btn:hover .impact-left-score {
   transform: scale(1.15);
+}
+
+/* ─── Chevron & Right Section ─── */
+
+.impact-left-right {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.impact-left-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--text-tertiary);
+  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+
+.impact-left-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* ─── Dropdown Reasonining ─── */
+
+.impact-left-dropdown {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+
+.impact-left-dropdown.open {
+  grid-template-rows: 1fr;
+}
+
+.impact-left-reasoning-list {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0 0.55rem 0.55rem 0.55rem;
+  margin: 0;
+  list-style: none;
+}
+
+.impact-left-reasoning-item {
+  position: relative;
+  font-size: 0.55rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  padding-left: 0.85rem;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition-delay: calc(var(--ri, 0) * 0.05s);
+}
+
+.impact-left-dropdown.open .impact-left-reasoning-item {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.impact-left-reasoning-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.impact-left-reasoning-empty {
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  padding: 0.25rem 0.55rem 0.55rem;
+  margin: 0;
 }
 
 .impact-left-footer {
