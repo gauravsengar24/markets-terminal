@@ -81,14 +81,22 @@ export function NewsBriefing({ url, fullPage, articleTitle, source, region, impa
             </div>
 
             <div>
-              <h5 style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--color-accent)", marginBottom: "0.35rem" }}>What Happened</h5>
-              <p style={{ fontSize: "0.82rem", lineHeight: 1.6, color: "var(--text-secondary)" }}>{d.whatHappened}</p>
-            </div>
+                <h5 style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--color-accent)", marginBottom: "0.35rem" }}>What Happened</h5>
+                <ul style={{ paddingLeft: "1rem" }}>
+                  {d.whatHappened.map((t: string, i: number) => (
+                    <li key={i} style={{ fontSize: "0.82rem", lineHeight: 1.6, color: "var(--text-secondary)", marginBottom: "0.25rem", listStyle: "disc" }}>{t}</li>
+                  ))}
+                </ul>
+              </div>
 
-            {d.marketContext && (
+            {d.marketContext && d.marketContext.length > 0 && (
               <div>
                 <h5 style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--color-accent)", marginBottom: "0.35rem" }}>Market Context</h5>
-                <p style={{ fontSize: "0.82rem", lineHeight: 1.6, color: "var(--text-secondary)" }}>{d.marketContext}</p>
+                <ul style={{ paddingLeft: "1rem" }}>
+                  {d.marketContext.map((t: string, i: number) => (
+                    <li key={i} style={{ fontSize: "0.82rem", lineHeight: 1.6, color: "var(--text-secondary)", marginBottom: "0.25rem", listStyle: "disc" }}>{t}</li>
+                  ))}
+                </ul>
               </div>
             )}
 

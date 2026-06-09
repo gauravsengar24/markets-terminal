@@ -35,9 +35,18 @@ export interface MarketPrice {
 export interface NewsBriefing {
   url: string
   title: string
-  whatHappened: string
-  marketContext: string
+  whatHappened: string[]
+  marketContext: string[]
   keyTakeaways: string[]
+}
+
+export interface LearningPreferences {
+  totalFeedback: number
+  totalUp: number
+  totalDown: number
+  preferredStyle: "bullet"
+  topSources: string[]
+  topCategories: string[]
 }
 
 export interface ArticleSummary {

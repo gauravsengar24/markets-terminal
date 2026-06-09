@@ -4,7 +4,7 @@ import { fileURLToPath } from "url"
 import { initCache, get, set } from "./cache.js"
 import { RSS_FEEDS, BREAKING_RSS_FEEDS } from "../shared/constants.js"
 import type { RssFeed } from "../shared/constants.js"
-import type { NewsArticle, BreakingNews, MarketPrice } from "../shared/types.js"
+import type { NewsArticle, BreakingNews, MarketPrice, LearningPreferences } from "../shared/types.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -148,11 +148,15 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
         if (!url || seen.has(url)) continue
         seen.add(url)
         const snippet = item.description.replace(/<[^>]+>/g, "").slice(0, 280)
-        const sub = feed.subCategory === "stocks" ? detectSubCategory(item.title, snippet) : feed.subCategory
-        const impact = detectImpactCategory(item.title, snippet)
+        const cleanTitle = (item.title || "").replace(/<[^>]+>/g, "").trim()
+        if (!cleanTitle || cleanTitle.length < 10) continue
+        const alphaRatio = (snippet.match(/[a-zA-Z]/g) || []).length / (snippet.length || 1)
+        if (snippet.length > 0 && (alphaRatio < 0.3 || snippet.length < 20)) continue
+        const sub = feed.subCategory === "stocks" ? detectSubCategory(cleanTitle, snippet) : feed.subCategory
+        const impact = detectImpactCategory(cleanTitle, snippet)
         articles.push({
           id: id(),
-          title: item.title.slice(0, 200),
+          title: cleanTitle.slice(0, 200),
           url,
           source: new URL(url).hostname.replace("www.", ""),
           snippet,
@@ -436,15 +440,16 @@ function buildBriefing(title: string, content: string, url: string) {
     return t.length > 30 && t.length < 500 && !/^[{\["]/.test(t) && (t.match(/[a-zA-Z]/g) || []).length > t.length * 0.4
   })
 
-  const whatHappened = sentences.slice(0, 3).map(s => s.trim() + ".").join(" ") || content.slice(0, 300) || "No summary available."
-  const contextSentences = sentences.filter(s =>
+  const whatHappened = sentences.slice(0, 4).map(s => s.trim() + ".")
+  if (!whatHappened.length) { whatHappened.push("No summary available.") }
+
+  const marketContext = sentences.filter(s =>
     /market|price|percent|dollar|billion|million|index|share|economy|trade|growth|inflation|rate|fed|central bank|impact|revenue|profit|loss/i.test(s)
-  )
-  const marketContext = contextSentences.slice(0, 4).map(s => s.trim() + ".").join(" ") || ""
-  const takeawaySentences = sentences.filter(s =>
+  ).slice(0, 3).map(s => s.trim() + ".")
+
+  let keyTakeaways = sentences.filter(s =>
     /will|could|expected|forecast|outlook|next|future|ahead|plan|aim|goal|target|strategy|opportunity|risk|according|said|added|noted/i.test(s)
-  )
-  const keyTakeaways = takeawaySentences.slice(0, 5).map(s => s.trim() + ".")
+  ).slice(0, 5).map(s => s.trim() + ".")
   if (!keyTakeaways.length) {
     const fallback = sentences.slice(0, 5).map(s => s.trim() + ".")
     keyTakeaways.push(...(fallback.length ? fallback : ["More details available in the full article."]))
@@ -453,10 +458,34 @@ function buildBriefing(title: string, content: string, url: string) {
   return { url, title, whatHappened, marketContext, keyTakeaways }
 }
 
+async function getLearningPreferences(): Promise<LearningPreferences> {
+  const empty = { totalFeedback: 0, totalUp: 0, totalDown: 0, preferredStyle: "bullet" as const, topSources: [], topCategories: [] }
+  try {
+    const store = await get<FeedbackStore>("feedback:data")
+    if (!store || store.totalFeedback < 1) return empty
+    const totalUp = store.recent.filter(e => e.rating === 1).length
+    const totalDown = store.recent.filter(e => e.rating === -1).length
+    const sources = Object.entries(store.sourceScores)
+      .map(([k, v]) => ({ k, score: v.up / (v.up + v.down || 1) }))
+      .sort((a, b) => b.score - a.score).slice(0, 5).map(s => s.k)
+    const categories = Object.entries(store.categoryScores)
+      .map(([k, v]) => ({ k, score: v.up / (v.up + v.down || 1) }))
+      .sort((a, b) => b.score - a.score).slice(0, 5).map(s => s.k)
+    return { totalFeedback: store.totalFeedback, totalUp, totalDown, preferredStyle: "bullet", topSources: sources, topCategories: categories }
+  } catch {
+    return empty
+  }
+}
+
 async function generateAIBriefing(title: string, content: string, url: string): Promise<any | null> {
   const jinaKey = process.env.JINA_API_KEY
   if (!jinaKey) return null
   try {
+    const learning = await getLearningPreferences()
+    const learningHint = learning.totalFeedback > 10
+      ? `\nUser feedback so far: ${learning.totalUp} up, ${learning.totalDown} down. Top categories: ${learning.topCategories.slice(0, 3).join(", ")}. Focus on clear, concise bullet points that match what users found helpful.`
+      : ""
+
     const resp = await fetchWithTimeout("https://api.jina.ai/v1/chat/completions", {
       method: "POST",
       timeout: 30000,
@@ -469,7 +498,17 @@ async function generateAIBriefing(title: string, content: string, url: string): 
         messages: [
           {
             role: "system",
-            content: "You are a financial analyst. Analyze the article and respond in JSON with keys: whatHappened (2-3 sentence summary), marketContext (1-2 sentences or empty string), keyTakeaways (array of 3-5 bullet points). Only include marketContext if the article has clear market or financial implications.",
+            content: `You are NeuraBrain, a self-learning financial AI that generates precise article briefings. Always respond in JSON with three keys:
+
+- whatHappened: array of 3-4 bullet point strings summarizing what happened
+- marketContext: array of 1-2 bullet point strings with market/financial context (empty array if none)
+- keyTakeaways: array of 3-5 bullet point strings with forward-looking implications
+
+Rules:
+- EVERY field must be an array of strings (bullet points). Never use paragraphs.
+- Each bullet point should be a complete, concise sentence.
+- marketContext must be empty array [] if the article has no clear market impact.
+- Do not fabricate data. Use only what is in the article.${learningHint}`,
           },
           {
             role: "user",
@@ -484,13 +523,10 @@ async function generateAIBriefing(title: string, content: string, url: string): 
     const text = json?.choices?.[0]?.message?.content
     if (!text) return null
     const parsed = JSON.parse(text.replace(/```json\s*/gi, "").replace(/```\s*$/g, "").trim())
-    return {
-      url,
-      title,
-      whatHappened: parsed.whatHappened || "No summary available.",
-      marketContext: parsed.marketContext || "",
-      keyTakeaways: parsed.keyTakeaways?.length ? parsed.keyTakeaways.slice(0, 5) : ["More details in the full article."],
-    }
+    const wh = Array.isArray(parsed.whatHappened) ? parsed.whatHappened.slice(0, 5) : ["No summary available."]
+    const mc = Array.isArray(parsed.marketContext) ? parsed.marketContext.slice(0, 3) : []
+    const kt = Array.isArray(parsed.keyTakeaways) ? parsed.keyTakeaways.slice(0, 5) : ["More details in the full article."]
+    return { url, title, whatHappened: wh, marketContext: mc, keyTakeaways: kt }
   } catch {
     return null
   }
@@ -691,8 +727,13 @@ app.post("/api/feedback", async (req, res) => {
 app.get("/api/learning/stats", async (_req, res) => {
   try {
     const store = (await get<FeedbackStore>("feedback:data")) ?? emptyFeedbackStore()
+    const totalUp = store.recent.filter(e => e.rating === 1).length
+    const totalDown = store.recent.filter(e => e.rating === -1).length
     res.json({
+      name: "NeuraBrain",
       totalFeedback: store.totalFeedback,
+      totalUp,
+      totalDown,
       sources: Object.entries(store.sourceScores)
         .map(([k, v]) => ({ source: k, up: v.up, down: v.down, score: v.up / (v.up + v.down || 1) }))
         .sort((a, b) => b.score - a.score),
@@ -701,8 +742,13 @@ app.get("/api/learning/stats", async (_req, res) => {
         .sort((a, b) => b.score - a.score),
     })
   } catch {
-    res.json({ totalFeedback: 0, sources: [], categories: [] })
+    res.json({ name: "NeuraBrain", totalFeedback: 0, totalUp: 0, totalDown: 0, sources: [], categories: [] })
   }
+})
+
+app.get("/api/learning/preferences", async (_req, res) => {
+  const prefs = await getLearningPreferences()
+  res.json(prefs)
 })
 
 // ════════════════════════════════════════════════════════════════
