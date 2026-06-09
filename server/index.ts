@@ -14,29 +14,45 @@ app.use(express.json())
 function id() { return Math.random().toString(36).slice(2, 10) }
 
 function buildQueries(regions: string[], assets: string[]): { q: string; region: string; assetClass: string }[] {
+  const r = regions.length ? regions : [...REGIONS]
+  const a = assets.length ? assets : [...ASSET_CLASSES]
+  const result: { q: string; region: string; assetClass: string }[] = []
   if (regions.length && assets.length) {
-    const result: { q: string; region: string; assetClass: string }[] = []
-    for (const r of regions) {
-      for (const a of assets) {
-        const term = ASSET_QUERIES[a]?.[0]
-        if (term) result.push({ q: `${REGION_SEARCH[r]} ${term}`, region: r, assetClass: a })
+    for (const rv of regions) {
+      for (const av of assets) {
+        const term = ASSET_QUERIES[av]?.[0]
+        if (term) result.push({ q: `${REGION_SEARCH[rv]} ${term}`, region: rv, assetClass: av })
       }
     }
-    return result
-  }
-  if (regions.length) {
-    return regions.map(r => ({ q: REGION_SEARCH[r], region: r, assetClass: "stocks" }))
-  }
-  if (assets.length) {
-    const result: { q: string; region: string; assetClass: string }[] = []
-    for (const a of assets) {
-      for (const q of ASSET_QUERIES[a] ?? []) {
-        result.push({ q, region: "USA", assetClass: a })
+  } else if (regions.length) {
+    for (const rv of regions) {
+      result.push({ q: REGION_SEARCH[rv], region: rv, assetClass: "stocks" })
+    }
+  } else if (assets.length) {
+    for (const av of assets) {
+      for (const q of ASSET_QUERIES[av] ?? []) {
+        result.push({ q: `${q} global market`, region: "USA", assetClass: av })
       }
     }
-    return result
+  } else {
+    for (const rv of REGIONS) {
+      for (const dq of DEFAULT_ASSET_QUERIES) {
+        result.push({ q: `${dq} ${rv}`, region: rv, assetClass: "stocks" })
+      }
+    }
   }
-  return DEFAULT_ASSET_QUERIES.map(q => ({ q, region: "USA", assetClass: "stocks" }))
+  return result.slice(0, 12)
+}
+
+function runConcurrent<T>(items: T[], fn: (item: T) => Promise<void>, limit = 4): Promise<void> {
+  let i = 0
+  const next = async (): Promise<void> => {
+    while (i < items.length) {
+      const idx = i++
+      await fn(items[idx])
+    }
+  }
+  return Promise.allSettled(Array.from({ length: limit }, () => next())).then(() => {})
 }
 
 // ── News ──────────────────────────────────────────────────────────
@@ -63,7 +79,7 @@ app.get("/api/news", async (req, res) => {
       const apiKey = process.env.NEWSDATA_API_KEY
       if (!apiKey) return res.status(500).json({ error: "NEWSDATA_API_KEY not set" })
 
-      for (const { q, region, assetClass } of queries) {
+      await runConcurrent(queries, async ({ q, region, assetClass }) => {
         try {
           const resp = await fetch(
             `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(q)}&language=en&size=3`
@@ -71,12 +87,12 @@ app.get("/api/news", async (req, res) => {
           if (!resp.ok) {
             const body = await resp.text().catch(() => "")
             lastError = `NewsData returned ${resp.status} for "${q}": ${body.slice(0, 200)}`
-            continue
+            return
           }
           const json = await resp.json() as any
           if (json.status !== "success") {
             lastError = `NewsData error: ${json.status} - ${json.results?.message ?? json.message ?? ""}`
-            continue
+            return
           }
           for (const item of json.results ?? []) {
             const url = item.link
@@ -94,7 +110,7 @@ app.get("/api/news", async (req, res) => {
             })
           }
         } catch (e: any) { lastError = `Fetch error for "${q}": ${e.message}` }
-      }
+      })
     }
 
     // ── Spider Cloud ───────────────────────────────────────────────
@@ -102,7 +118,7 @@ app.get("/api/news", async (req, res) => {
       const apiKey = process.env.SPIDER_CLOUD_API_KEY
       if (!apiKey) return res.status(500).json({ error: "SPIDER_CLOUD_API_KEY not set" })
 
-      for (const { q, region, assetClass } of queries) {
+      await runConcurrent(queries, async ({ q, region, assetClass }) => {
         try {
           const resp = await fetch("https://api.spider.cloud/v1/search", {
             method: "POST",
@@ -117,7 +133,7 @@ app.get("/api/news", async (req, res) => {
               return_format: "markdown",
             }),
           })
-          if (!resp.ok) { lastError = `Spider Cloud returned ${resp.status} for "${q}"`; continue }
+          if (!resp.ok) { lastError = `Spider Cloud returned ${resp.status} for "${q}"`; return }
           const json = await resp.json() as any
           const results = json?.content ?? []
           for (const item of results) {
@@ -136,7 +152,7 @@ app.get("/api/news", async (req, res) => {
             })
           }
         } catch (e: any) { lastError = `Spider error for "${q}": ${e.message}` }
-      }
+      })
     }
 
     // ── Crawl4AI ────────────────────────────────────────────────────
@@ -144,7 +160,7 @@ app.get("/api/news", async (req, res) => {
       const jinaKey = process.env.JINA_API_KEY
       if (!jinaKey) return res.status(500).json({ error: "JINA_API_KEY not set" })
 
-      for (const { q, region, assetClass } of queries) {
+      await runConcurrent(queries, async ({ q, region, assetClass }) => {
         try {
           const resp = await fetch(
             `https://s.jina.ai/${encodeURIComponent(q)}`,
@@ -155,7 +171,7 @@ app.get("/api/news", async (req, res) => {
               },
             }
           )
-          if (!resp.ok) { lastError = `Crawl4AI returned ${resp.status} for "${q}"`; continue }
+          if (!resp.ok) { lastError = `Crawl4AI returned ${resp.status} for "${q}"`; return }
           const text = await resp.text()
           const allResults = text.match(/\[\d+\]\s*Title:\s*(.+)\n\[\d+\]\s*URL Source:\s*(\S+)(?:\n\[\d+\]\s*Description:\s*(.+?))?(?=\n\[\d+\]|\n\n|$)/g)
           if (!allResults) {
@@ -176,7 +192,7 @@ app.get("/api/news", async (req, res) => {
                 })
               }
             }
-            continue
+            return
           }
           for (const result of allResults) {
             const m = result.match(/\[\d+\]\s*Title:\s*(.+)\n\[\d+\]\s*URL Source:\s*(\S+)(?:\n\[\d+\]\s*Description:\s*(.+?))?/)
@@ -196,7 +212,7 @@ app.get("/api/news", async (req, res) => {
             })
           }
         } catch (e: any) { lastError = `Crawl4AI error for "${q}": ${e.message}` }
-      }
+      })
     }
 
     if (articles.length === 0) {

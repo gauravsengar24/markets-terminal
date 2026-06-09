@@ -23,17 +23,17 @@ export const NEWS_PROVIDERS = [
 ] as const
 
 export const ASSET_QUERIES: Record<string, string[]> = {
-  oil: ["crude oil", "oil market"],
-  stocks: ["stock market", "equities"],
-  crypto: ["bitcoin cryptocurrency"],
-  commodities: ["commodities market", "gold silver copper"],
-  ETFs: ["ETF funds market"],
-  mutual_funds: ["mutual funds flows"],
+  oil: ["crude oil price", "oil market supply"],
+  stocks: ["stock market", "equities index"],
+  crypto: ["bitcoin ethereum crypto", "cryptocurrency blockchain defi", "ICO initial coin offering", "IPO public offering"],
+  commodities: ["gold silver copper", "commodities market"],
+  ETFs: ["ETF fund flow"],
+  mutual_funds: ["mutual fund performance"],
 }
 
 export const DEFAULT_ASSET_QUERIES = [
-  "stock market today",
-  "global markets",
-  "economy",
-  "finance news",
+  "stock market today global",
+  "world economy finance",
+  "international business news",
+  "global markets trading",
 ]

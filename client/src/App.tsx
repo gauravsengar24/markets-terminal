@@ -64,15 +64,15 @@ export default function App() {
         />
 
         <div className="flex flex-col flex-1 overflow-hidden border-l border-term-border">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-term-border bg-term-surface shrink-0">
+          <div className="flex items-center justify-between px-5 py-2.5 border-b border-term-border bg-term-surface shrink-0">
             <div className="flex items-center gap-4">
-              <span className="text-term-accent font-bold text-sm uppercase tracking-widest">News Terminal</span>
-              <div className="flex gap-1">
+              <span className="text-term-accent font-bold text-base uppercase tracking-widest">News Terminal</span>
+              <div className="flex gap-1.5">
                 {NEWS_PROVIDERS.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => setProvider(p.id)}
-                    className={`text-xs uppercase px-2.5 py-1 border cursor-pointer transition-colors ${
+                    className={`text-sm uppercase px-3 py-1.5 border cursor-pointer transition-colors ${
                       provider === p.id
                         ? "bg-term-accent/20 text-term-accent border-term-accent"
                         : "text-term-muted border-term-border hover:text-term-text hover:border-term-muted"
@@ -83,12 +83,12 @@ export default function App() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <LastUpdated at={news.dataUpdatedAt} />
               <button
                 onClick={refresh}
                 disabled={news.isRefetching}
-                className="text-sm text-term-muted hover:text-term-accent disabled:opacity-40 px-3 py-1 border border-term-border hover:border-term-accent cursor-pointer transition-colors"
+                className="text-base text-term-muted hover:text-term-accent disabled:opacity-40 px-4 py-1.5 border border-term-border hover:border-term-accent cursor-pointer transition-colors"
               >
                 {news.isRefetching ? "⟳" : "↻"} Refresh
               </button>
@@ -96,7 +96,7 @@ export default function App() {
           </div>
 
           {news.error && (
-            <div className="bg-term-red/10 border-b border-term-red/30 px-4 py-2 text-sm text-term-red shrink-0">
+            <div className="bg-term-red/10 border-b border-term-red/30 px-5 py-2.5 text-base text-term-red shrink-0">
               {(news.error as any)?.detail
                 ? `${NEWS_PROVIDERS.find(p => p.id === provider)?.label ?? provider}: ${(news.error as any).detail}`
                 : `Failed to load news from ${NEWS_PROVIDERS.find(p => p.id === provider)?.label ?? provider}.`}
