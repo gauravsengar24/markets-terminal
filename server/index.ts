@@ -5,6 +5,7 @@ import { initCache, get, set, del } from "./cache.js"
 import { RSS_FEEDS, BREAKING_RSS_FEEDS } from "../shared/constants.js"
 import type { RssFeed } from "../shared/constants.js"
 import type { NewsArticle, BreakingNews, MarketPrice, LearningPreferences } from "../shared/types.js"
+import { generateBriefing as geminiBriefing } from "./gemini-briefing.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -606,6 +607,7 @@ app.post("/api/briefing", async (req, res) => {
     let rawContent = ""
     let fallbackSnippet = snippet || ""
     const jinaKey = process.env.JINA_API_KEY
+    const geminiAvailable = !!(process.env.GEMINI_API_KEY)
 
     if (!fallbackSnippet) {
       try {
@@ -675,6 +677,13 @@ app.post("/api/briefing", async (req, res) => {
 
     let briefing = null
     if (jinaKey && rawContent) briefing = await generateAIBriefing(title, content, url)
+    if (!briefing && geminiAvailable) {
+      const gem = await geminiBriefing(title, fallbackSnippet || content, url)
+      if (gem) {
+        const flat = [...(gem.whatHappened || []), ...(gem.marketContext || []), ...(gem.keyTakeaways || [])].slice(0, 3)
+        briefing = { url, title, bullets: flat }
+      }
+    }
     if (!briefing) briefing = buildBriefing(title, content || title, url, fallbackSnippet)
 
     await set(`briefing:${url}`, briefing, TEN_MIN)
