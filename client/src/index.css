@@ -576,8 +576,8 @@ html {
 }
 
 .impact-left-title {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
   margin: 0;
@@ -585,18 +585,18 @@ html {
 }
 
 .impact-left-badge {
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--text-tertiary);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
-  padding: 0.08rem 0.4rem;
+  padding: 0.12rem 0.5rem;
   font-family: 'JetBrains Mono', monospace;
 }
 
 .impact-left-subtitle {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: var(--text-tertiary);
   display: block;
 }
