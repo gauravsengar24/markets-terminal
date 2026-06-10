@@ -29,31 +29,35 @@ export function BreakingNewsBar({ onSelect }: Props) {
   if (!items.length) return null
 
   return (
-    <div className="glass-ticker">
-      <div className="flex items-center gap-3 md:gap-4 px-3 md:px-5 py-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        <span className="flex items-center gap-1.5 shrink-0" style={{ fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.1em', color: 'var(--color-negative)' }}>
-          <span className="pulse-dot" />
-          BREAKING
-        </span>
-        <div className="flex gap-2 md:gap-3">
-          {items.map((b) => (
-            b.articles.length > 0 && (
-              <button
-                key={b.region}
-                onClick={() => onSelect(b.articles[0].url)}
-                className="mac-card"
-                style={{ padding: '0.4rem 0.75rem', minWidth: '200px', textAlign: 'left', cursor: 'pointer', borderLeft: '2px solid rgba(6, 182, 212, 0.3)' }}
-              >
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(6, 182, 212, 0.8)' }}>{REGION_FLAGS[b.region] ?? b.region}</span>
-                  <span className="mono" style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{fmtTime(b.articles[0].publishedAt)}</span>
-                </div>
-                <div style={{ fontSize: '0.95rem', lineHeight: 1.35, fontWeight: 450, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {b.articles[0].title}
-                </div>
-              </button>
-            )
-          ))}
+    <div className="breaking-bar">
+      <div className="breaking-bar-inner">
+        <div className="breaking-label">
+          <span className="breaking-dot" />
+          <span className="breaking-text">BREAKING</span>
+        </div>
+        <div className="breaking-scroll">
+          <div className="breaking-track">
+            {[...items, ...items].map((b, i) => (
+              b.articles.length > 0 && (
+                <button
+                  key={`${b.region}-${i}`}
+                  onClick={() => onSelect(b.articles[0].url)}
+                  className="breaking-card"
+                >
+                  {b.articles[0].imageUrl && (
+                    <img src={b.articles[0].imageUrl} alt="" className="breaking-img" loading="lazy" />
+                  )}
+                  <div className="breaking-card-body">
+                    <div className="breaking-card-top">
+                      <span className="breaking-region">{REGION_FLAGS[b.region] ?? b.region}</span>
+                      <span className="breaking-time">{fmtTime(b.articles[0].publishedAt)}</span>
+                    </div>
+                    <div className="breaking-card-title">{b.articles[0].title}</div>
+                  </div>
+                </button>
+              )
+            ))}
+          </div>
         </div>
       </div>
     </div>

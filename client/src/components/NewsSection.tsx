@@ -25,16 +25,21 @@ export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props
           <button
             key={a.id}
             onClick={() => navigate(`/article/${a.id}`)}
-            className="mac-card w-full text-left cursor-pointer"
+            className="news-card w-full text-left cursor-pointer"
           >
-            <div className="mac-card-body">
-              <div className="flex items-center gap-2 mb-1.5">
+            {a.imageUrl && (
+              <div className="news-card-img-wrap">
+                <img src={a.imageUrl} alt="" className="news-card-img" loading="lazy" />
+              </div>
+            )}
+            <div className="news-card-body">
+              <div className="flex items-center gap-2 mb-1">
                 <span className="mac-source">{a.source}</span>
                 <span className="mac-meta">{fmtRelative(a.publishedAt)}</span>
               </div>
-              <div className="mac-title">{a.title}</div>
+              <div className="news-card-title">{a.title}</div>
               {a.snippet && (
-                <div className="mac-snippet">{a.snippet}</div>
+                <div className="news-card-snippet">{a.snippet}</div>
               )}
             </div>
           </button>

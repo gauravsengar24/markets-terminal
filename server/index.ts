@@ -86,8 +86,8 @@ const ONE_HOUR = 3_600_000
 const TEN_MIN = 600_000
 const FIVE_MIN = 300_000
 
-function parseRSSXml(xml: string): Array<{ title: string; link: string; description: string; pubDate: string }> {
-  const items: Array<{ title: string; link: string; description: string; pubDate: string }> = []
+function parseRSSXml(xml: string): Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> {
+  const items: Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> = []
   const itemRegex = /<item>([\s\S]*?)<\/item>/gi
   let match
   while ((match = itemRegex.exec(xml)) !== null) {
@@ -100,18 +100,22 @@ function parseRSSXml(xml: string): Array<{ title: string; link: string; descript
       const m = block.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, 'i'))
       return m ? m[1].trim() : getTag(tag)
     }
+    const enclosureMatch = block.match(/<enclosure[^>]+url=["']([^"']+)["']/i)
+    const mediaMatch = block.match(/<media:content[^>]+url=["']([^"']+)["']/i)
+    const imageUrl = enclosureMatch?.[1] || mediaMatch?.[1] || undefined
     items.push({
       title: getCDATA('title'),
       link: getTag('link'),
       description: getCDATA('description'),
       pubDate: getTag('pubDate'),
+      imageUrl,
     })
   }
   return items
 }
 
-function parseAtomXml(xml: string): Array<{ title: string; link: string; description: string; pubDate: string }> {
-  const items: Array<{ title: string; link: string; description: string; pubDate: string }> = []
+function parseAtomXml(xml: string): Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> {
+  const items: Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> = []
   const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi
   let match
   while ((match = entryRegex.exec(xml)) !== null) {
@@ -121,11 +125,14 @@ function parseAtomXml(xml: string): Array<{ title: string; link: string; descrip
       return m ? m[1].trim() : ''
     }
     const linkMatch = block.match(/<link[^>]*href=["']([^"']+)["']/)
+    const mediaMatch = block.match(/<media:content[^>]+url=["']([^"']+)["']/i)
+    const imageUrl = mediaMatch?.[1] || undefined
     items.push({
       title: getTag('title'),
       link: linkMatch?.[1] ?? '',
       description: getTag('summary') || getTag('content') || '',
       pubDate: getTag('published') || getTag('updated'),
+      imageUrl,
     })
   }
   return items
@@ -168,6 +175,7 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
           publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
           impactCategory: impact?.impactCategory,
           volatility: impact?.volatility,
+          imageUrl: item.imageUrl?.startsWith("http") ? item.imageUrl : undefined,
         })
       }
     } catch (_) {}

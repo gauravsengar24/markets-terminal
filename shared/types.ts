@@ -10,6 +10,7 @@ export interface NewsArticle {
   publishedAt: string
   impactCategory?: string
   volatility?: string
+  imageUrl?: string
 }
 
 export interface LayoutContext {
