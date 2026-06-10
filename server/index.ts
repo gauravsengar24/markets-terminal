@@ -83,9 +83,11 @@ async function fetchWithTimeout(url: string, init: RequestInit & { timeout?: num
 }
 
 const ONE_HOUR = 3_600_000
-const TEN_MIN = 600_000
-const FIVE_MIN = 300_000
+const TWO_MIN = 120_000
 
+const TEN_MIN = 600_000
+
+const FIVE_MIN = 300_000
 function parseRSSXml(xml: string): Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> {
   const items: Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> = []
   const itemRegex = /<item>([\s\S]*?)<\/item>/gi
@@ -370,7 +372,7 @@ app.get("/api/breaking-news", async (_req, res) => {
       result.push({ region, articles: arts.slice(0, 1) })
     }
 
-    await set("news:breaking", result, TEN_MIN)
+    await set("news:breaking", result, TWO_MIN)
     res.json(result)
   } catch (err: any) {
     console.error("Breaking news error:", err)

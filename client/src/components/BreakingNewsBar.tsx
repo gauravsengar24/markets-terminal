@@ -12,16 +12,21 @@ const REGION_FLAGS: Record<string, string> = {
   India: "IN", Korea: "KR", Australia: "AU",
 }
 
+const REGION_COLORS: Record<string, string> = {
+  USA: "#60a5fa", Europe: "#22d3ee", China: "#f59e0b",
+  Japan: "#f59e0b", India: "#22c55e", Korea: "#86868b", Australia: "#86868b",
+}
+
 export function BreakingNewsBar({ onSelect }: Props) {
   const query = useQuery({
     queryKey: ["breaking-news"],
     queryFn: async () => {
       const data = await fetchBreakingNews() as BreakingNews[]
-      setPersisted(STORAGE_KEYS.BREAKING, data, 600_000)
+      setPersisted(STORAGE_KEYS.BREAKING, data, 120_000)
       return data
     },
-    refetchInterval: 600_000,
-    staleTime: 600_000,
+    refetchInterval: 120_000,
+    staleTime: 60_000,
     initialData: () => getPersisted<BreakingNews[]>(STORAGE_KEYS.BREAKING) ?? undefined,
   })
 
@@ -30,9 +35,12 @@ export function BreakingNewsBar({ onSelect }: Props) {
 
   return (
     <div className="breaking-bar">
+      <div className="breaking-glow" />
       <div className="breaking-bar-inner">
         <div className="breaking-label">
           <span className="breaking-dot" />
+          <span className="breaking-dot-pulse" />
+          <span className="breaking-live">LIVE</span>
           <span className="breaking-text">BREAKING</span>
         </div>
         <div className="breaking-scroll">
@@ -43,13 +51,13 @@ export function BreakingNewsBar({ onSelect }: Props) {
                   key={`${b.region}-${i}`}
                   onClick={() => onSelect(b.articles[0].url)}
                   className="breaking-card"
+                  style={{ borderLeftColor: REGION_COLORS[b.region] ?? "var(--glass-border)" }}
                 >
-                  {b.articles[0].imageUrl && (
-                    <img src={b.articles[0].imageUrl} alt="" className="breaking-img" loading="lazy" />
-                  )}
                   <div className="breaking-card-body">
                     <div className="breaking-card-top">
-                      <span className="breaking-region">{REGION_FLAGS[b.region] ?? b.region}</span>
+                      <span className="breaking-region" style={{ color: REGION_COLORS[b.region] ?? "var(--text-tertiary)" }}>
+                        {REGION_FLAGS[b.region] ?? b.region}
+                      </span>
                       <span className="breaking-time">{fmtTime(b.articles[0].publishedAt)}</span>
                     </div>
                     <div className="breaking-card-title">{b.articles[0].title}</div>
