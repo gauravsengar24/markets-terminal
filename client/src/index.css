@@ -498,7 +498,7 @@ html {
 .home-left {
   display: none;
   flex-shrink: 0;
-  width: 240px;
+  width: 270px;
   position: sticky;
   top: 0.5rem;
   align-self: flex-start;
@@ -511,9 +511,9 @@ html {
   }
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1200px) {
   .home-left {
-    width: 210px;
+    width: 240px;
   }
 }
 
@@ -673,8 +673,8 @@ html {
 }
 
 .impact-left-cat-name {
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 550;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -779,18 +779,18 @@ html {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0 0.55rem 0.55rem 0.55rem;
+  gap: 0.4rem;
+  padding: 0.5rem 0.65rem 0.65rem 0.65rem;
   margin: 0;
   list-style: none;
 }
 
 .impact-left-reasoning-item {
   position: relative;
-  font-size: 0.85rem;
-  line-height: 1.55;
+  font-size: 0.95rem;
+  line-height: 1.6;
   color: var(--text-secondary);
-  padding-left: 1rem;
+  padding-left: 1.2rem;
   opacity: 0;
   transform: translateY(-4px);
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -806,11 +806,11 @@ html {
   content: "";
   position: absolute;
   left: 0;
-  top: 0.45em;
-  width: 4px;
-  height: 4px;
+  top: 0.5em;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--electric-blue);
   flex-shrink: 0;
 }
 
