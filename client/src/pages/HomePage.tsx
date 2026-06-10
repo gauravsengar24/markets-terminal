@@ -58,8 +58,8 @@ export function HomePage() {
           <ImpactAnalysis />
         </div>
         <div className="home-main">
-          <div className="mb-5">
-            <div className="flex items-center gap-2 px-2 md:px-5 mb-2">
+            <div className="mb-4 md:mb-5">
+            <div className="flex items-center gap-2 px-2 md:px-5 mb-1.5 md:mb-2">
               <div className="mac-dot" style={{ background: 'rgba(6, 182, 212, 0.8)' }} />
               <h2 className="mac-section-title">
                 {selectedImpact === "all" ? "Top Stories" : `${IMPACT_LABELS[selectedImpact] ?? "Top"} Stories`}

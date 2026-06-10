@@ -18,9 +18,9 @@ export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props
   if (!display.length) return null
 
   return (
-    <div className="mb-5 mac-section">
+    <div className="mb-4 md:mb-5 mac-section">
       <SectionHeading count={articles.length}>{title}</SectionHeading>
-      <div className="px-3 md:px-5 grid gap-2.5">
+      <div className="px-2 md:px-5 grid gap-1.5 md:gap-2.5">
         {display.map((a, i) => (
           <button
             key={a.id}
