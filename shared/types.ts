@@ -35,9 +35,7 @@ export interface MarketPrice {
 export interface NewsBriefing {
   url: string
   title: string
-  whatHappened: string[]
-  marketContext: string[]
-  keyTakeaways: string[]
+  bullets: string[]
 }
 
 export interface LearningPreferences {

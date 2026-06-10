@@ -490,23 +490,23 @@ function buildBriefing(title: string, content: string, url: string, snippet?: st
     return addUnique(parts, 3)
   }
 
-  let whatHappened = addUnique(sentences, 3)
-  if (!whatHappened.length && snippet) whatHappened = makeFallback(snippet)
-  if (!whatHappened.length) whatHappened = [`${title}.`]
-  if (!whatHappened.length) whatHappened.push("No summary available.")
-
-  const marketContext = addUnique(sentences, 2, s =>
+  const whatHappened = addUnique(sentences, 2)
+  const marketCtx = addUnique(sentences, 2, s =>
     /market|price|percent|dollar|billion|million|index|share|economy|trade|growth|inflation|rate|fed|central bank|impact|revenue|profit|loss|volatile|surge|decline|fell|rose/i.test(s)
   )
-
   const takeawayFilter = (s: string) =>
     /will|could|expected|forecast|outlook|next|future|ahead|plan|aim|goal|target|strategy|opportunity|risk|according|said|added|noted/i.test(s)
-  let keyTakeaways = addUnique(sentences, 4, takeawayFilter)
-  if (!keyTakeaways.length) keyTakeaways = addUnique(sentences, 3)
-  if (!keyTakeaways.length && snippet) keyTakeaways = makeFallback(snippet)
-  if (!keyTakeaways.length) keyTakeaways = ["More details available in the full article."]
+  const takeaways = addUnique(sentences, 3, takeawayFilter)
 
-  return { url, title, whatHappened, marketContext, keyTakeaways }
+  let bullets = [...whatHappened, ...marketCtx, ...takeaways]
+  if (!bullets.length && snippet) {
+    const mt = snippet.replace(/\$(\d+)\.(\d+)/g, "__DLR__$1__PT__$2")
+    bullets = mt.split(/[.!?]+/).filter(s => restore(s).trim().length > 20).map(s => restore(s.trim()) + ".").slice(0, 3)
+  }
+  if (!bullets.length) bullets = [`${title}.`]
+  bullets = bullets.slice(0, 3)
+
+  return { url, title, bullets }
 }
 
 async function getLearningPreferences(): Promise<LearningPreferences> {

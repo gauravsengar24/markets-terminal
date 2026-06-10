@@ -52,21 +52,21 @@ export function HomePage() {
   const topArticles = filtered.slice(0, 3)
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 0' }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0.5rem 0' }}>
       <div className="home-layout">
         <div className="home-left">
           <ImpactAnalysis />
         </div>
         <div className="home-main">
           <div className="mb-5">
-            <div className="flex items-center gap-2 px-3 md:px-5 mb-3">
+            <div className="flex items-center gap-2 px-2 md:px-5 mb-2">
               <div className="mac-dot" style={{ background: 'rgba(6, 182, 212, 0.8)' }} />
               <h2 className="mac-section-title">
                 {selectedImpact === "all" ? "Top Stories" : `${IMPACT_LABELS[selectedImpact] ?? "Top"} Stories`}
               </h2>
               <span className="mac-count-badge">{filtered.length}</span>
             </div>
-            <div className="px-3 md:px-5 grid gap-2.5">
+            <div className="px-2 md:px-5 grid gap-2">
               {topArticles.map((a) => (
                 <button
                   key={a.id}
