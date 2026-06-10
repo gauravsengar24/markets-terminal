@@ -820,9 +820,12 @@ app.get("/api/learning/preferences", async (_req, res) => {
 app.get("/api/impact-analysis", async (_req, res) => {
   try {
     const cached = await get<any>("analysis:impact")
-    if (cached) return res.json(cached)
-
     const articles = await get<NewsArticle[]>("news:merged")
+    
+    if (cached && articles && articles.length > 0 && cached.totalArticles === articles.length) {
+      return res.json(cached)
+    }
+
     if (!articles || !articles.length) {
       return res.json({ categories: [], totalArticles: 0 })
     }
