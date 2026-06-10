@@ -497,17 +497,23 @@ html {
 
 .home-left {
   display: none;
-  width: 210px;
   flex-shrink: 0;
+  width: 240px;
   position: sticky;
   top: 0.5rem;
   align-self: flex-start;
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 900px) {
   .home-left {
     display: flex;
     flex-direction: column;
+  }
+}
+
+@media (min-width: 1100px) {
+  .home-left {
+    width: 210px;
   }
 }
 
@@ -781,10 +787,10 @@ html {
 
 .impact-left-reasoning-item {
   position: relative;
-  font-size: 0.78rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.55;
   color: var(--text-secondary);
-  padding-left: 0.85rem;
+  padding-left: 1rem;
   opacity: 0;
   transform: translateY(-4px);
   transition: opacity 0.3s ease, transform 0.3s ease;

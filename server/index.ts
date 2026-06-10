@@ -820,10 +820,21 @@ app.get("/api/learning/preferences", async (_req, res) => {
 app.get("/api/impact-analysis", async (_req, res) => {
   try {
     const cached = await get<any>("analysis:impact")
-    const articles = await get<NewsArticle[]>("news:merged")
+    let articles = await get<NewsArticle[]>("news:merged")
     
     if (cached && articles && articles.length > 0 && cached.totalArticles === articles.length) {
       return res.json(cached)
+    }
+
+    if (!articles || !articles.length) {
+      const seen = new Set<string>()
+      articles = await fetchRSS(RSS_FEEDS, seen)
+      const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
+      if (valid.length) {
+        valid.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+        await set("news:merged", valid, 1800_000)
+        articles = valid
+      }
     }
 
     if (!articles || !articles.length) {
