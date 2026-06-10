@@ -154,6 +154,22 @@ function parseAtomXml(xml: string): Array<{ title: string; link: string; descrip
   return items
 }
 
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/")
+    .replace(/&#x60;/g, "`")
+    .replace(/&#x3D;/g, "=")
+    .replace(/&#\d{2,4};/g, " ")
+}
+
 async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticle[]> {
   const articles: NewsArticle[] = []
   await runConcurrent(feeds, async (feed) => {
@@ -170,8 +186,9 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
         const url = item.link
         if (!url || seen.has(url)) continue
         seen.add(url)
-        const snippet = item.description.replace(/<[^>]+>/g, "").slice(0, 280)
-        const cleanTitle = (item.title || "").replace(/<[^>]+>/g, "").trim()
+        const rawSnippet = decodeEntities(item.description)
+        const snippet = rawSnippet.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim().slice(0, 280)
+        const cleanTitle = decodeEntities(item.title).replace(/<[^>]+>/g, "").replace(/^(\d+[hd] ago\s*)/i, "").trim()
         if (!cleanTitle || cleanTitle.length < 10) continue
         const lowerUrl = url.toLowerCase()
         if (/seekingalpha|seeking.?alpha|etfreplay|barrons\.com|investopedia\.com|fool\.com|zacks|kiplinger/i.test(lowerUrl)) continue
