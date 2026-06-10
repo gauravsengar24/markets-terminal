@@ -22,11 +22,11 @@ export function BreakingNewsBar({ onSelect }: Props) {
     queryKey: ["breaking-news"],
     queryFn: async () => {
       const data = await fetchBreakingNews() as BreakingNews[]
-      setPersisted(STORAGE_KEYS.BREAKING, data, 120_000)
+      setPersisted(STORAGE_KEYS.BREAKING, data, 60_000)
       return data
     },
-    refetchInterval: 120_000,
-    staleTime: 60_000,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
     initialData: () => getPersisted<BreakingNews[]>(STORAGE_KEYS.BREAKING) ?? undefined,
   })
 

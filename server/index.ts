@@ -85,6 +85,7 @@ async function fetchWithTimeout(url: string, init: RequestInit & { timeout?: num
 
 const ONE_HOUR = 3_600_000
 const TWO_MIN = 120_000
+const ONE_MIN = 60_000
 
 const TEN_MIN = 600_000
 
@@ -103,13 +104,19 @@ function parseRSSXml(xml: string): Array<{ title: string; link: string; descript
       const m = block.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, 'i'))
       return m ? m[1].trim() : getTag(tag)
     }
+    const description = getCDATA('description')
     const enclosureMatch = block.match(/<enclosure[^>]+url=["']([^"']+)["']/i)
-    const mediaMatch = block.match(/<media:content[^>]+url=["']([^"']+)["']/i)
-    const imageUrl = enclosureMatch?.[1] || mediaMatch?.[1] || undefined
+    const mediaContentMatch = block.match(/<media:content[^>]+url=["']([^"']+)["']/i)
+    const mediaThumbMatch = block.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i)
+    let imageUrl = enclosureMatch?.[1] || mediaContentMatch?.[1] || mediaThumbMatch?.[1] || undefined
+    if (!imageUrl) {
+      const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["']/i)
+      if (imgMatch) imageUrl = imgMatch[1]
+    }
     items.push({
       title: getCDATA('title'),
       link: getTag('link'),
-      description: getCDATA('description'),
+      description,
       pubDate: getTag('pubDate'),
       imageUrl,
     })
@@ -128,12 +135,18 @@ function parseAtomXml(xml: string): Array<{ title: string; link: string; descrip
       return m ? m[1].trim() : ''
     }
     const linkMatch = block.match(/<link[^>]*href=["']([^"']+)["']/)
-    const mediaMatch = block.match(/<media:content[^>]+url=["']([^"']+)["']/i)
-    const imageUrl = mediaMatch?.[1] || undefined
+    const mediaContentMatch = block.match(/<media:content[^>]+url=["']([^"']+)["']/i)
+    const mediaThumbMatch = block.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i)
+    const description = getTag('summary') || getTag('content') || ''
+    let imageUrl = mediaContentMatch?.[1] || mediaThumbMatch?.[1] || undefined
+    if (!imageUrl) {
+      const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["']/i)
+      if (imgMatch) imageUrl = imgMatch[1]
+    }
     items.push({
       title: getTag('title'),
       link: linkMatch?.[1] ?? '',
-      description: getTag('summary') || getTag('content') || '',
+      description,
       pubDate: getTag('published') || getTag('updated'),
       imageUrl,
     })
@@ -178,7 +191,7 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
           publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
           impactCategory: impact?.impactCategory,
           volatility: impact?.volatility,
-          imageUrl: item.imageUrl?.startsWith("http") ? item.imageUrl : undefined,
+          imageUrl: item.imageUrl?.startsWith("http") || item.imageUrl?.startsWith("//") ? item.imageUrl : undefined,
         })
       }
     } catch (_) {}
@@ -373,7 +386,7 @@ app.get("/api/breaking-news", async (_req, res) => {
       result.push({ region, articles: arts.slice(0, 1) })
     }
 
-    await set("news:breaking", result, TWO_MIN)
+    await set("news:breaking", result, ONE_MIN)
     res.json(result)
   } catch (err: any) {
     console.error("Breaking news error:", err)
