@@ -661,8 +661,9 @@ html {
 
 .impact-left-row-top {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.15rem 0.4rem;
   margin-bottom: 0.3rem;
 }
 
@@ -670,7 +671,7 @@ html {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  min-width: 0;
+  flex: 1 1 100%;
 }
 
 .impact-left-dot {
@@ -689,9 +690,6 @@ html {
   font-size: 0.9rem;
   font-weight: 550;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .impact-left-tag {
