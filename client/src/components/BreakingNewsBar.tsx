@@ -43,10 +43,10 @@ export function BreakingNewsBar({ onSelect }: Props) {
           <span className="breaking-live">LIVE</span>
           <span className="breaking-text">BREAKING</span>
         </div>
-        <div className="breaking-scroll">
-          <div className="breaking-track">
-            {[...items, ...items].map((b, i) => (
-              b.articles.length > 0 && (
+          <div className="breaking-scroll">
+            <div className="breaking-track">
+              {items.map((b, i) => (
+                b.articles.length > 0 && (
                 <button
                   key={`${b.region}-${i}`}
                   onClick={() => onSelect(b.articles[0].url)}

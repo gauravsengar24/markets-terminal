@@ -1102,7 +1102,7 @@ html {
   display: flex;
   gap: 0.75rem;
   width: max-content;
-  animation: breakingScroll 50s linear infinite;
+  animation: breakingScroll 60s linear infinite;
   will-change: transform;
 }
 
@@ -1110,7 +1110,7 @@ html {
 
 @keyframes breakingScroll {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  100% { transform: translateX(-100%); }
 }
 
 .breaking-card {
