@@ -2,6 +2,12 @@ import { useQuery } from "@tanstack/react-query"
 import { fetchMarketSnapshot } from "../lib/api"
 import type { MarketPrice } from "@shared/types"
 
+const ASSET_ICONS: Record<string, string> = {
+  crypto: "⟠",
+  commodity: "◇",
+  stock: "▤",
+}
+
 export function MarketTicker() {
   const query = useQuery({
     queryKey: ["market-snapshot"],
@@ -13,10 +19,10 @@ export function MarketTicker() {
   const prices = query.data ?? []
   if (!prices.length) return null
 
-  const items = [...prices, ...prices]
+  const items = [...prices, ...prices, ...prices]
 
   return (
-    <div className="glass-ticker ticker-wrap">
+    <div className="ticker-wrap">
       <div className="ticker-strip">
         {items.map((p, i) => (
           <div key={`${p.symbol}-${i}`} className="ticker-item">

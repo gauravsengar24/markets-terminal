@@ -918,7 +918,78 @@ html {
   border: 1px solid var(--glass-border);
 }
 
-/* ─── Breaking News Bar (red/green blinking, scrolling cards with images) ─── */
+/* ─── Market Price Ticker (stock/crypto/commodity price feed) ─── */
+
+.ticker-wrap {
+  background: rgba(11, 11, 22, 0.4);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border-bottom: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.ticker-strip {
+  display: flex;
+  gap: 0;
+  width: max-content;
+  animation: tickerScroll 40s linear infinite;
+  padding: 0.35rem 0;
+  will-change: transform;
+}
+
+.ticker-strip:hover { animation-play-state: paused; }
+
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 0.2rem 0.7rem 0.2rem 0.55rem;
+  white-space: nowrap;
+  margin: 0 0.3rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.ticker-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.ticker-sym {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.ticker-price {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-change {
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+@media (max-width: 767px) {
+  .ticker-item { padding: 0.15rem 0.5rem; gap: 0.3rem; }
+  .ticker-sym { font-size: 0.68rem; }
+  .ticker-price { font-size: 0.75rem; }
+  .ticker-change { font-size: 0.65rem; }
+}
 
 .breaking-bar {
   background: rgba(11, 11, 22, 0.6);
@@ -1267,6 +1338,7 @@ html {
   .vibrant-glass-card:hover { transform: none; }
   .breaking-track { animation: none; }
   .breaking-dot { animation: none; }
+  .ticker-strip { animation: none; }
   .news-card:hover { transform: none; }
   .news-card:hover .news-card-img { transform: none; }
 }
