@@ -28,6 +28,24 @@ export const BREAKING_RSS_FEEDS: RssFeed[] = [
   { url: 'https://www.abc.net.au/news/feed/51260/rss.xml', region: 'Australia', subCategory: 'stocks' },
   { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', region: 'USA', subCategory: 'crypto' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://cointelegraph.com/rss', region: 'USA', subCategory: 'crypto' },
+  { url: 'https://cryptonews.com/news/feed/', region: 'USA', subCategory: 'crypto' },
+  { url: 'https://news.bitcoin.com/feed/', region: 'USA', subCategory: 'crypto' },
+  { url: 'https://u.today/rss', region: 'USA', subCategory: 'crypto' },
+  { url: 'https://cryptoslate.com/feed/', region: 'USA', subCategory: 'crypto' },
+  { url: 'https://www.newsbtc.com/feed/', region: 'USA', subCategory: 'crypto' },
+  { url: 'https://www.investing.com/rss/news.rss', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://feeds.content.dowjones.io/public/rss/markets', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best&best-sectors=markets-news', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://www.moneycontrol.com/rss/marketstocks.xml', region: 'India', subCategory: 'stocks' },
+  { url: 'https://www.business-standard.com/rss/markets-101.rss', region: 'India', subCategory: 'stocks' },
+  { url: 'https://www.thehindubusinessline.com/feed/', region: 'India', subCategory: 'stocks' },
+  { url: 'https://asia.nikkei.com/rss/feed', region: 'Japan', subCategory: 'stocks' },
+  { url: 'https://techcrunch.com/feed/', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://www.theverge.com/rss/index.xml', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://www.zerohedge.com/rss.xml', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://seekingalpha.com/feed.xml', region: 'USA', subCategory: 'stocks' },
 ]
 
 export const RSS_FEEDS: RssFeed[] = [
@@ -50,7 +68,4 @@ export const RSS_FEEDS: RssFeed[] = [
   { url: 'https://www3.nhk.or.jp/rss/news/cat3.xml', region: 'Japan', subCategory: 'stocks' },
   { url: 'https://www.abc.net.au/news/feed/51240/rss.xml', region: 'Australia', subCategory: 'stocks' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://www.investing.com/rss/news.rss', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://feeds.content.dowjones.io/public/rss/markets', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://cointelegraph.com/rss', region: 'USA', subCategory: 'crypto' },
 ]

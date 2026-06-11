@@ -1,37 +1,29 @@
 import { useState, useEffect, useCallback } from "react"
 import type { MarketPrice, MarketSnapshotResponse } from "@shared/types"
 
-interface SectionProps {
-  title: string
-  items: MarketPrice[]
-  icon?: string
-}
-
-function PriceRow({ symbol, name, price, change, changePercent, assetType }: MarketPrice) {
-  const positive = change >= 0
-  const symbolDisplay = assetType === "forex" ? symbol.replace("/USD", "").replace("=X", "") : symbol
+function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
+  const positive = changePercent >= 0
   return (
-    <div className="flex items-center px-3 h-7 gap-1.5 hover:bg-muted/10 transition-colors duration-100">
-      <span className="w-16 shrink-0 text-[11px] font-bold text-muted-foreground/60 font-mono uppercase tracking-wider">
-        {symbolDisplay}
+    <div className="flex items-center px-3 h-7 gap-2 hover:bg-muted/10 transition-colors duration-100">
+      <span className="text-[11px] font-bold text-muted-foreground/70 font-mono uppercase tracking-wider w-12 shrink-0">
+        {symbol}
       </span>
-      <span className="flex-1 min-w-0 text-[11px] text-foreground/60 truncate">{name}</span>
-      <span className="w-20 shrink-0 text-right text-[11px] font-medium text-foreground font-mono tabular-nums">
+      <span className="flex-1 min-w-0 text-[11px] text-foreground/70 truncate">{name}</span>
+      <span className="text-right text-[11px] font-medium text-foreground font-mono tabular-nums w-22 shrink-0">
         {price < 10 ? price.toFixed(2) : price < 1000 ? price.toFixed(2) : price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 })}
       </span>
-      <span className={`w-24 shrink-0 text-right text-[11px] font-medium font-mono tabular-nums ${positive ? "text-up" : "text-down"}`}>
+      <span className={`text-right text-[12px] font-semibold font-mono tabular-nums w-24 shrink-0 ${positive ? "text-up" : "text-down"}`}>
         {positive ? "+" : ""}{changePercent.toFixed(2)}%
       </span>
     </div>
   )
 }
 
-function SectionCard({ title, items, icon }: SectionProps) {
+function SectionCard({ title, items }: { title: string; items: MarketPrice[] }) {
   if (!items.length) return null
   return (
     <div className="border-b border-border/50 last:border-b-0">
       <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/5">
-        {icon && <span className="text-[10px] opacity-60">{icon}</span>}
         <span className="text-[10px] font-bold tracking-widest text-muted-foreground/50 uppercase">{title}</span>
         <span className="text-[10px] text-muted-foreground/30">({items.length})</span>
       </div>
@@ -52,7 +44,7 @@ export function MarketSnapshot() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const res = await fetch("/api/market-snapshot", { signal: AbortSignal.timeout(15000) })
+      const res = await fetch("/api/market-snapshot", { signal: AbortSignal.timeout(30000) })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json() as MarketSnapshotResponse
       setData(json)
@@ -107,34 +99,34 @@ export function MarketSnapshot() {
 
       <div className="overflow-y-auto scrollbar-thin max-h-[calc(100vh-200px)]">
         {data?.commodities && data.commodities.length > 0 && (
-          <SectionCard title="Commodities" items={data.commodities} icon="◇" />
+          <SectionCard title="Commodities" items={data.commodities} />
         )}
         {data?.crypto && data.crypto.length > 0 && (
-          <SectionCard title="Crypto" items={data.crypto} icon="⟠" />
+          <SectionCard title="Crypto" items={data.crypto} />
         )}
         {data?.forex && data.forex.length > 0 && (
-          <SectionCard title="Forex" items={data.forex} icon="⇄" />
+          <SectionCard title="Forex" items={data.forex} />
         )}
         {data?.usIndices && data.usIndices.length > 0 && (
-          <SectionCard title="US Indices" items={data.usIndices} icon="▤" />
+          <SectionCard title="US Indices" items={data.usIndices} />
         )}
         {data?.europeIndices && data.europeIndices.length > 0 && (
-          <SectionCard title="Europe Indices" items={data.europeIndices} icon="▤" />
+          <SectionCard title="Europe Indices" items={data.europeIndices} />
         )}
         {data?.indiaIndices && data.indiaIndices.length > 0 && (
-          <SectionCard title="India Indices" items={data.indiaIndices} icon="▤" />
+          <SectionCard title="India Indices" items={data.indiaIndices} />
         )}
         {data?.usGainers && data.usGainers.length > 0 && (
-          <SectionCard title="US Top Gainers" items={data.usGainers} icon="↑" />
+          <SectionCard title="US Top Gainers" items={data.usGainers} />
         )}
         {data?.usLosers && data.usLosers.length > 0 && (
-          <SectionCard title="US Top Losers" items={data.usLosers} icon="↓" />
+          <SectionCard title="US Top Losers" items={data.usLosers} />
         )}
         {data?.niftyGainers && data.niftyGainers.length > 0 && (
-          <SectionCard title="Nifty Gainers" items={data.niftyGainers} icon="↑" />
+          <SectionCard title="Nifty Gainers" items={data.niftyGainers} />
         )}
         {data?.niftyLosers && data.niftyLosers.length > 0 && (
-          <SectionCard title="Nifty Losers" items={data.niftyLosers} icon="↓" />
+          <SectionCard title="Nifty Losers" items={data.niftyLosers} />
         )}
       </div>
     </div>

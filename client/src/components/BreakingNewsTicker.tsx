@@ -6,12 +6,12 @@ export function BreakingNewsTicker() {
   const query = useQuery({
     queryKey: ["breaking-news"],
     queryFn: () => fetchBreakingNews() as Promise<BreakingNews[]>,
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    refetchInterval: 900_000,
+    staleTime: 450_000,
   })
 
   const items = query.data ?? []
-  const tiles = items.flatMap(b => b.articles).slice(0, 12)
+  const tiles = items.flatMap(b => b.articles).slice(0, 30)
   if (!tiles.length) return null
 
   const duplicated = [...tiles, ...tiles]

@@ -90,6 +90,7 @@ const ONE_MIN = 60_000
 const TEN_MIN = 600_000
 
 const FIVE_MIN = 300_000
+const FIFTEEN_MIN = 900_000
 function parseRSSXml(xml: string): Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> {
   const items: Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> = []
   const itemRegex = /<item>([\s\S]*?)<\/item>/gi
@@ -448,10 +449,10 @@ app.get("/api/breaking-news", async (_req, res) => {
     const result: BreakingNews[] = []
     for (const [region, arts] of byRegion) {
       arts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-      result.push({ region, articles: arts.slice(0, 1) })
+      result.push({ region, articles: arts.slice(0, 4) })
     }
 
-    await set("news:breaking", result, ONE_MIN)
+    await set("news:breaking", result, FIFTEEN_MIN)
     res.json(result)
   } catch (err: any) {
     console.error("Breaking news error:", err)
