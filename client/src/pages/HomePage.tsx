@@ -74,11 +74,13 @@ export function HomePage() {
                   onClick={() => navigate(`/article/${a.id}`)}
                   className="news-card w-full text-left cursor-pointer"
                 >
-                  {a.imageUrl && (
-                    <div className="news-card-img-wrap">
+                  <div className="news-card-img-wrap">
+                    {a.imageUrl ? (
                       <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
-                    </div>
-                  )}
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20" />
+                    )}
+                  </div>
                   <div className="news-card-body">
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="mac-source">{a.source}</span>
