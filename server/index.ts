@@ -268,7 +268,7 @@ function yahooToMarketPrice(q: any, assetType: MarketPrice["assetType"]): Market
   const pct = typeof rawPct === "number" ? rawPct : (prev !== null && prev > 0 ? ((price - prev) / prev) * 100 : 0)
   return {
     symbol: q.symbol ? q.symbol.replace("=X", "").replace(/^\^/, "") : "",
-    name: q.shortName || q.longName || SYMBOL_NAMES[q.symbol] || q.symbol?.replace("=X", "").replace(/^\^/, "") || "",
+    name: SYMBOL_NAMES[q.symbol] || q.shortName || q.longName || q.symbol?.replace("=X", "").replace(/^\^/, "") || "",
     price,
     change: +change.toFixed(4),
     changePercent: +pct.toFixed(2),
@@ -587,8 +587,8 @@ app.get("/api/breaking-news", async (_req, res) => {
 
 app.get("/api/breaking-news/curated", async (_req, res) => {
   try {
-    const cached = await get<CuratedArticle[]>("news:curated")
-    if (cached) return res.json(cached)
+    const cached = await get<any>("news:curated")
+    if (cached && cached.articles) return res.json(cached)
 
     const seen = new Set<string>()
     const articles = await fetchRSS(BREAKING_RSS_FEEDS, seen)
@@ -602,12 +602,13 @@ app.get("/api/breaking-news/curated", async (_req, res) => {
     }
 
     const curated = await curateArticles(valid)
-    await set("news:curated", curated, FIVE_MIN)
-    res.json({
+    const result = {
       articles: curated,
       generatedAt: new Date().toISOString(),
       totalAnalyzed: valid.length,
-    })
+    }
+    await set("news:curated", result, FIVE_MIN)
+    res.json(result)
   } catch (err: any) {
     console.error("Curated news error:", err)
     res.status(500).json({ error: "Failed to curate breaking news" })

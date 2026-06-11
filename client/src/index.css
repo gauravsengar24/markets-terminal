@@ -1041,7 +1041,7 @@ html {
   display: flex;
   gap: 0;
   width: max-content;
-  animation: tickerScroll 40s linear infinite;
+  animation: tickerScroll 80s linear infinite;
   padding: 0.35rem 0;
   will-change: transform;
 }

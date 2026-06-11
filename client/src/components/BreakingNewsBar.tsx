@@ -50,9 +50,7 @@ export function BreakingNewsBar({ onSelect }: Props) {
   const duplicated = [...items, ...items, ...items]
 
   function handleClick(url: string) {
-    const idx = items.findIndex(a => a.url === url)
-    if (idx >= 0) onSelect(url)
-    else window.open(url, "_blank", "noopener")
+    onSelect(url)
   }
 
   return (

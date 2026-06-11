@@ -38,6 +38,7 @@ export function Layout() {
   function handleBreakingNewsSelect(url: string) {
     const article = news.data?.find(a => a.url === url)
     if (article) navigate(`/article/${article.id}`)
+    else window.open(url, "_blank", "noopener")
   }
 
   return (
