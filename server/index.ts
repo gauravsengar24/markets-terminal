@@ -312,6 +312,24 @@ const FALLBACK_MARKET_DATA: Record<string, { price: number; changePercent: numbe
   "INFY.NS": { price: 1650, changePercent: 0.40 },
   "HDFCBANK.NS": { price: 1680, changePercent: 0.25 },
   "WIPRO.NS": { price: 520, changePercent: 0.15 },
+  "BZ=F": { price: 81.20, changePercent: -0.25 },
+  "HG=F": { price: 4.55, changePercent: 0.65 },
+  "PL=F": { price: 985, changePercent: 0.30 },
+  "^GSPC": { price: 5340, changePercent: 0.18 },
+  "^IXIC": { price: 16750, changePercent: 0.25 },
+  "^DJI": { price: 38800, changePercent: 0.12 },
+  "^RUT": { price: 2050, changePercent: 0.20 },
+  "^VIX": { price: 14.5, changePercent: -2.10 },
+  "^FCHI": { price: 7950, changePercent: 0.15 },
+  "^STOXX50E": { price: 4980, changePercent: 0.10 },
+  "^IBEX": { price: 11000, changePercent: 0.20 },
+  "INDIAVIX.NSE": { price: 13.5, changePercent: -1.50 },
+  "^AXJO": { price: 7700, changePercent: 0.15 },
+  "000001.SS": { price: 3050, changePercent: 0.05 },
+  "^KS11": { price: 2700, changePercent: 0.30 },
+  "USDCHF=X": { price: 0.89, changePercent: -0.03 },
+  "AUDUSD=X": { price: 0.66, changePercent: 0.07 },
+  "USDCAD=X": { price: 1.37, changePercent: 0.04 },
 }
 
 async function fetchYahooBatchQuotes(symbols: string[]): Promise<any[]> {
@@ -445,14 +463,21 @@ async function fetchYahooMovers(region: string, scrId: string, count: number): P
 }
 
 const SYMBOL_NAMES: Record<string, string> = {
-  "CL=F": "Crude Oil WTI", "GC=F": "Gold", "SI=F": "Silver", "NG=F": "Natural Gas",
-  "SPY": "S&P 500 ETF", "QQQ": "Nasdaq ETF", "TSLA": "Tesla", "NVDA": "NVIDIA",
-  "AAPL": "Apple", "META": "Meta", "GOOGL": "Alphabet", "MSFT": "Microsoft",
-  "^GDAXI": "DAX 40", "^FTSE": "FTSE 100", "^N225": "Nikkei 225", "^HSI": "Hang Seng",
-  "^NSEI": "Nifty 50", "^BSESN": "Sensex", "^NSEBANK": "Bank Nifty",
+  "CL=F": "Crude Oil WTI", "BZ=F": "Brent Crude", "GC=F": "Gold", "SI=F": "Silver",
+  "HG=F": "Copper", "PL=F": "Platinum", "NG=F": "Natural Gas",
+  "^GSPC": "S&P 500", "^IXIC": "Nasdaq", "^DJI": "Dow Jones", "^RUT": "Russell 2000", "^VIX": "VIX",
+  "SPY": "S&P 500 ETF", "QQQ": "Nasdaq ETF",
+  "TSLA": "Tesla", "NVDA": "NVIDIA", "AAPL": "Apple", "META": "Meta",
+  "GOOGL": "Alphabet", "MSFT": "Microsoft",
+  "^FTSE": "FTSE 100", "^GDAXI": "DAX 40", "^FCHI": "CAC 40", "^STOXX50E": "Euro Stoxx 50", "^IBEX": "IBEX 35",
+  "^N225": "Nikkei 225", "^HSI": "Hang Seng", "^AXJO": "ASX 200",
+  "000001.SS": "Shanghai", "^KS11": "KOSPI",
+  "^NSEI": "Nifty 50", "^BSESN": "Sensex", "^NSEBANK": "Bank Nifty", "INDIAVIX.NSE": "India VIX",
   "RELIANCE.NS": "Reliance", "TCS.NS": "TCS", "INFY.NS": "Infosys",
   "HDFCBANK.NS": "HDFC Bank", "WIPRO.NS": "Wipro",
-  "USDINR=X": "USD/INR", "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY",
+  "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY",
+  "USDCHF=X": "USD/CHF", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD",
+  "USDINR=X": "USD/INR",
 }
 
 app.get("/api/market-snapshot", async (_req, res) => {
@@ -461,12 +486,12 @@ app.get("/api/market-snapshot", async (_req, res) => {
     if (cached) return res.json(cached)
 
     const ALL_SYMBOLS = [
-      "CL=F", "GC=F", "SI=F", "NG=F",
-      "SPY", "QQQ", "TSLA", "NVDA", "AAPL", "META", "GOOGL", "MSFT",
-      "^GDAXI", "^FTSE", "^N225", "^HSI",
-      "USDINR=X", "EURUSD=X", "GBPUSD=X", "USDJPY=X",
-      "^NSEI", "^BSESN", "^NSEBANK",
-      "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "WIPRO.NS",
+      "CL=F", "BZ=F", "GC=F", "SI=F", "HG=F", "PL=F",
+      "^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX",
+      "^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^IBEX",
+      "^NSEI", "^BSESN", "^NSEBANK", "INDIAVIX.NSE",
+      "^AXJO", "^N225", "000001.SS", "^KS11",
+      "EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X",
     ]
 
     const [batchRaw, cryptoPrices, usGainers, usLosers, niftyGainersRaw, niftyLosersRaw] = await Promise.all([
@@ -501,10 +526,14 @@ app.get("/api/market-snapshot", async (_req, res) => {
     }
 
     const response: MarketSnapshotResponse = {
-      cryptoTopMovers: cryptoPrices,
-      forexPairs: forSymbols(["USDINR=X", "EURUSD=X", "GBPUSD=X", "USDJPY=X"], "forex"),
-      indianMarkets: forSymbols(["^NSEI", "^BSESN", "^NSEBANK", "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "WIPRO.NS"], "index"),
-      globalMovers: forSymbols(["CL=F", "GC=F", "SI=F", "NG=F", "SPY", "QQQ", "TSLA", "NVDA", "AAPL", "META", "GOOGL", "MSFT", "^GDAXI", "^FTSE", "^N225", "^HSI"], "stock"),
+      commodities: forSymbols(["CL=F", "BZ=F", "GC=F", "SI=F", "HG=F", "PL=F"], "commodity"),
+      crypto: cryptoPrices,
+      usIndices: forSymbols(["^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX"], "index"),
+      europeIndices: forSymbols(["^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^IBEX"], "index"),
+      indiaIndices: forSymbols(["^NSEI", "^BSESN", "^NSEBANK", "INDIAVIX.NSE"], "index"),
+      ausIndices: forSymbols(["^AXJO"], "index"),
+      asiaIndices: forSymbols(["^N225", "000001.SS", "^KS11"], "index"),
+      forex: forSymbols(["EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X"], "forex"),
       usGainers,
       usLosers,
       niftyGainers: niftyGainersRaw,
@@ -1110,6 +1139,7 @@ initCache().then(async () => {
   await del("news:merged")
   await del("news:breaking")
   await del("analysis:impact")
+  await del("market:snapshot-v2")
   app.listen(PORT, () => {
     console.log(`Markets Terminal running on http://localhost:${PORT}`)
   })

@@ -1,92 +1,81 @@
 import { useState, useEffect, useCallback } from "react"
 import type { MarketPrice, MarketSnapshotResponse } from "@shared/types"
 
-function CollapsibleSection({ title, items, icon, defaultOpen }: { title: string; items: MarketPrice[]; icon: string; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(defaultOpen ?? true)
+function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
+  const positive = changePercent >= 0
+  return (
+    <div
+      className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default"
+      style={{
+        transition: "all 0.2s cubic-bezier(.16,1,.3,1)",
+      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
+    >
+      <span className="text-[11px] font-bold font-mono uppercase tracking-wider w-[46px] shrink-0" style={{ color: "rgba(255,255,255,0.5)" }}>
+        {symbol}
+      </span>
+      <span className="flex-1 min-w-0 text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{name}</span>
+      <span className="text-right text-[11px] font-medium font-mono tabular-nums w-[72px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
+        {price < 10 ? price.toFixed(4) : price < 1000 ? price.toFixed(2) : price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+      </span>
+      <span className={`text-right text-[12px] font-semibold font-mono tabular-nums w-[60px] shrink-0 ${positive ? "text-up" : "text-down"}`}>
+        {positive ? "+" : ""}{changePercent.toFixed(2)}%
+      </span>
+    </div>
+  )
+}
 
+function SectionCard({ title, items }: { title: string; items: MarketPrice[] }) {
+  if (!items.length) return null
   return (
     <div className="border-b border-[rgba(255,255,255,0.06)] last:border-b-0">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 w-full px-3 py-2 cursor-pointer transition-all duration-200"
-        style={{ background: open ? "rgba(255,255,255,0.03)" : "transparent" }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)" }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = open ? "rgba(255,255,255,0.03)" : "transparent" }}
-      >
-        <span style={{ fontSize: "10px", opacity: 0.5 }}>{icon}</span>
-        <span className="flex-1 text-[10px] font-bold tracking-widest uppercase text-left" style={{ color: "rgba(255,255,255,0.45)" }}>
-          {title}
-        </span>
-        <span className="text-[9px] font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>{items.length}</span>
-        <svg
-          width="10" height="10" viewBox="0 0 10 10" fill="none"
-          style={{
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.35s cubic-bezier(.16,1,.3,1)",
-            color: "rgba(255,255,255,0.3)",
-          }}
-        >
-          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateRows: open ? "1fr" : "0fr",
-          transition: "grid-template-rows 0.35s cubic-bezier(.16,1,.3,1)",
-        }}
-      >
-        <div style={{ overflow: "hidden" }}>
-          <div className="py-0.5">
-            {items.map(item => (
-              <MarketRow key={item.symbol} item={item} />
-            ))}
-          </div>
-        </div>
+      <div className="flex items-center gap-1.5 px-2 py-1.5" style={{ background: "rgba(255,255,255,0.02)" }}>
+        <span className="text-[9px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>{title}</span>
+        <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.18)" }}>({items.length})</span>
+      </div>
+      <div className="py-0.5">
+        {items.map(item => <PriceRow key={item.symbol} {...item} />)}
       </div>
     </div>
   )
 }
 
-function MarketRow({ item }: { item: MarketPrice }) {
-  const positive = item.changePercent >= 0
-  const priceStr = item.price < 10
-    ? item.price.toFixed(4)
-    : item.price < 1000
-      ? item.price.toFixed(2)
-      : item.price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-
-  function openChart() {
-    const sym = item.symbol
-    window.open(`https://www.tradingview.com/chart/?symbol=${sym}`, "_blank", "noopener")
-  }
-
+function MoversCard({ title, items, type }: { title: string; items: MarketPrice[]; type: "gainers" | "losers" }) {
+  if (!items.length) return null
+  const accent = type === "gainers" ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"
   return (
-    <div
-      onClick={openChart}
-      className="flex items-center gap-1 md:gap-1.5 px-3 py-1 rounded-md cursor-pointer"
-      style={{ transition: "all 0.2s cubic-bezier(.16,1,.3,1)" }}
-      onMouseEnter={e => {
-        const el = e.currentTarget as HTMLElement
-        el.style.background = "rgba(255,255,255,0.04)"
-        el.style.transform = "translateX(2px)"
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget as HTMLElement
-        el.style.background = "transparent"
-        el.style.transform = "translateX(0px)"
-      }}
-    >
-      <span className="text-[11px] font-bold font-mono uppercase tracking-wider w-[52px] shrink-0" style={{ color: "rgba(255,255,255,0.5)" }}>
-        {item.symbol}
-      </span>
-      <span className="flex-1 min-w-0 text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{item.name}</span>
-      <span className="text-right text-[11px] font-medium font-mono tabular-nums w-[80px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
-        {item.assetType === "forex" || (item.price < 50 && item.price > 0.01) ? priceStr : `$${priceStr}`}
-      </span>
-      <span className={`text-right text-[12px] font-semibold font-mono tabular-nums w-[64px] shrink-0 ${positive ? "text-up" : "text-down"}`}>
-        {positive ? "▲" : "▼"}{Math.abs(item.changePercent).toFixed(2)}%
-      </span>
+    <div className="border-b border-[rgba(255,255,255,0.06)] last:border-b-0">
+      <div className="flex items-center gap-1.5 px-2 py-1.5" style={{ background: "rgba(255,255,255,0.02)" }}>
+        <span className="text-[9px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>{title}</span>
+        <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.18)" }}>({items.length})</span>
+      </div>
+      <div className="py-0.5">
+        {items.map(item => {
+          const p = item.changePercent >= 0
+          return (
+            <div
+              key={item.symbol}
+              className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default"
+              style={{ transition: "all 0.2s cubic-bezier(.16,1,.3,1)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
+            >
+              <span className="w-1 h-1 rounded-full shrink-0" style={{ background: accent, boxShadow: `0 0 4px ${accent}` }} />
+              <span className="text-[11px] font-bold font-mono uppercase tracking-wider w-[46px] shrink-0" style={{ color: "rgba(255,255,255,0.5)" }}>
+                {item.symbol}
+              </span>
+              <span className="flex-1 min-w-0 text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{item.name}</span>
+              <span className="text-right text-[11px] font-medium font-mono tabular-nums w-[72px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
+                ${item.price < 1000 ? item.price.toFixed(2) : item.price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+              </span>
+              <span className={`text-right text-[12px] font-semibold font-mono tabular-nums w-[60px] shrink-0 ${p ? "text-up" : "text-down"}`}>
+                {p ? "+" : ""}{item.changePercent.toFixed(2)}%
+              </span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -95,7 +84,7 @@ function Shimmer({ count = 6 }: { count?: number }) {
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="h-6 rounded-md bg-gradient-to-r from-[rgba(255,255,255,0.03)] via-[rgba(255,255,255,0.06)] to-[rgba(255,255,255,0.03)] bg-[length:200%_100%] animate-shimmer" />
+        <div key={i} className="h-5 rounded-md bg-gradient-to-r from-[rgba(255,255,255,0.03)] via-[rgba(255,255,255,0.06)] to-[rgba(255,255,255,0.03)] bg-[length:200%_100%] animate-shimmer" />
       ))}
     </>
   )
@@ -193,31 +182,24 @@ export function MarketSnapshot() {
         </div>
       ) : (
         <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 220px)" }}>
-          {data?.cryptoTopMovers?.length ? (
-            <CollapsibleSection title="Crypto Top Movers" items={data.cryptoTopMovers} icon="⟠" defaultOpen />
-          ) : null}
-          {data?.forexPairs?.length ? (
-            <CollapsibleSection title="Forex Majors" items={data.forexPairs} icon="💱" defaultOpen />
-          ) : null}
-          {data?.indianMarkets?.length ? (
-            <CollapsibleSection title="Indian Markets" items={data.indianMarkets} icon="🇮🇳" defaultOpen />
-          ) : null}
-          {data?.globalMovers?.length ? (
-            <CollapsibleSection title="Global Market Movers" items={data.globalMovers} icon="🌐" defaultOpen />
-          ) : null}
-          {(data?.usGainers?.length || data?.usLosers?.length || data?.niftyGainers?.length || data?.niftyLosers?.length) ? (
-            <CollapsibleSection
-              title="Top Movers"
-              icon="⚡"
-              items={[
-                ...(data?.usGainers?.slice(0, 3) ?? []),
-                ...(data?.usLosers?.slice(0, 3) ?? []),
-                ...(data?.niftyGainers?.slice(0, 3) ?? []),
-                ...(data?.niftyLosers?.slice(0, 3) ?? []),
-              ]}
-              defaultOpen={false}
-            />
-          ) : null}
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-y md:divide-y-0 divide-[rgba(255,255,255,0.04)]">
+            <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
+              {data?.usIndices?.length ? <SectionCard title="US Indices" items={data.usIndices} /> : null}
+              {data?.europeIndices?.length ? <SectionCard title="Europe Indices" items={data.europeIndices} /> : null}
+              {data?.indiaIndices?.length ? <SectionCard title="India Indices" items={data.indiaIndices} /> : null}
+              {data?.ausIndices?.length ? <SectionCard title="Australia Indices" items={data.ausIndices} /> : null}
+              {data?.asiaIndices?.length ? <SectionCard title="Asia Indices" items={data.asiaIndices} /> : null}
+              {data?.commodities?.length ? <SectionCard title="Commodities" items={data.commodities} /> : null}
+              {data?.forex?.length ? <SectionCard title="Forex" items={data.forex} /> : null}
+            </div>
+            <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
+              {data?.crypto?.length ? <SectionCard title="Crypto" items={data.crypto} /> : null}
+              {data?.usGainers?.length ? <MoversCard title="US Top Gainers" items={data.usGainers} type="gainers" /> : null}
+              {data?.usLosers?.length ? <MoversCard title="US Top Losers" items={data.usLosers} type="losers" /> : null}
+              {data?.niftyGainers?.length ? <MoversCard title="Nifty Gainers" items={data.niftyGainers} type="gainers" /> : null}
+              {data?.niftyLosers?.length ? <MoversCard title="Nifty Losers" items={data.niftyLosers} type="losers" /> : null}
+            </div>
+          </div>
         </div>
       )}
     </div>

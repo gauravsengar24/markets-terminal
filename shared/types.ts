@@ -34,10 +34,14 @@ export interface MarketPrice {
 }
 
 export interface MarketSnapshotResponse {
-  cryptoTopMovers: MarketPrice[]
-  forexPairs: MarketPrice[]
-  indianMarkets: MarketPrice[]
-  globalMovers: MarketPrice[]
+  commodities: MarketPrice[]
+  crypto: MarketPrice[]
+  usIndices: MarketPrice[]
+  europeIndices: MarketPrice[]
+  indiaIndices: MarketPrice[]
+  ausIndices: MarketPrice[]
+  asiaIndices: MarketPrice[]
+  forex: MarketPrice[]
   usGainers: MarketPrice[]
   usLosers: MarketPrice[]
   niftyGainers: MarketPrice[]
