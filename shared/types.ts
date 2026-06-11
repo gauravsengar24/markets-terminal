@@ -39,6 +39,8 @@ export interface MarketSnapshotResponse {
   usIndices: MarketPrice[]
   europeIndices: MarketPrice[]
   indiaIndices: MarketPrice[]
+  ausIndices: MarketPrice[]
+  asiaIndices: MarketPrice[]
   forex: MarketPrice[]
   usGainers: MarketPrice[]
   usLosers: MarketPrice[]

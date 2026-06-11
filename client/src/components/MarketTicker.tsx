@@ -4,7 +4,7 @@ import type { MarketPrice, MarketSnapshotResponse } from "@shared/types"
 
 function flattenSnapshot(data: MarketSnapshotResponse): MarketPrice[] {
   const all: MarketPrice[] = []
-  const keys: (keyof MarketSnapshotResponse)[] = ["crypto", "commodities", "usIndices", "europeIndices", "indiaIndices", "forex", "usGainers", "usLosers", "niftyGainers", "niftyLosers"]
+  const keys: (keyof MarketSnapshotResponse)[] = ["crypto", "commodities", "usIndices", "europeIndices", "indiaIndices", "ausIndices", "asiaIndices", "forex", "usGainers", "usLosers", "niftyGainers", "niftyLosers"]
   for (const k of keys) {
     const items = data[k]
     if (items && items.length > 0) all.push(...items)

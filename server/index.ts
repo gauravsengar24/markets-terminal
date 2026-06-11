@@ -253,61 +253,37 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
 //  MARKET SNAPSHOT — Commodities, Crypto, Indices, Forex, Movers
 // ════════════════════════════════════════════════════════════════
 
-async function fetchYahooQuote(symbol: string): Promise<MarketPrice | null> {
+function yahooToMarketPrice(q: any, assetType: MarketPrice["assetType"]): MarketPrice | null {
+  const rawPrice = q.regularMarketPrice?.raw ?? q.regularMarketPrice
+  const rawPrev = q.regularMarketPreviousClose?.raw ?? q.regularMarketPreviousClose
+  const rawChange = q.regularMarketChange?.raw ?? q.regularMarketChange
+  const rawPct = q.regularMarketChangePercent?.raw ?? q.regularMarketChangePercent
+  const price = typeof rawPrice === "number" ? rawPrice : null
+  const prev = typeof rawPrev === "number" ? rawPrev : null
+  if (price === null || price <= 0) return null
+  const change = typeof rawChange === "number" ? rawChange : (prev !== null ? price - prev : 0)
+  const pct = typeof rawPct === "number" ? rawPct : (prev !== null && prev > 0 ? ((price - prev) / prev) * 100 : 0)
+  return {
+    symbol: q.symbol.replace("=X", "").replace(/^\^/, ""),
+    name: q.shortName || q.longName || SYMBOL_NAMES[q.symbol] || q.symbol.replace("=X", "").replace(/^\^/, ""),
+    price,
+    change: +change.toFixed(4),
+    changePercent: +pct.toFixed(2),
+    assetType,
+  }
+}
+
+async function fetchYahooBatchQuotes(symbols: string[]): Promise<any[]> {
+  if (!symbols.length) return []
   try {
     const resp = await fetchWithTimeout(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`,
-      { timeout: 12000, headers: { "User-Agent": "Mozilla/5.0" } }
+      `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols.map(encodeURIComponent).join(",")}`,
+      { timeout: 15000, headers: { "User-Agent": "Mozilla/5.0" } }
     )
-    if (!resp.ok) return null
+    if (!resp.ok) return []
     const json = await resp.json() as any
-    const meta = json?.chart?.result?.[0]?.meta
-    if (!meta) return null
-    const price = meta.regularMarketPrice ?? meta.previousClose ?? null
-    const prevClose = meta.previousClose ?? price ?? null
-    if (price === null || prevClose === null) return null
-    const rawDiff = price - prevClose
-    const isLowPrice = price < 50
-    const decimals = isLowPrice ? 4 : 2
-    const change = +rawDiff.toFixed(decimals)
-    const changePercent = +(((price - prevClose) / prevClose) * 100).toFixed(2)
-    const displaySym = symbol.replace("=X", "").replace(/^\^/, "")
-    return {
-      symbol: displaySym,
-      name: SYMBOL_NAMES[symbol] ?? displaySym,
-      price,
-      change,
-      changePercent,
-      assetType: "stock",
-    }
-  } catch { return null }
-}
-
-function yahooToMarketPrice(q: any, type: MarketPrice["assetType"], name?: string): MarketPrice | null {
-  const price = q.regularMarketPrice?.raw ?? q.regularMarketPrice ?? null
-  const prev = q.regularMarketPreviousClose?.raw ?? q.regularMarketPreviousClose ?? null
-  const change = q.regularMarketChange?.raw ?? q.regularMarketChange ?? null
-  const pct = q.regularMarketChangePercent?.raw ?? q.regularMarketChangePercent ?? null
-  if (price === null || price === 0) return null
-  return {
-    symbol: q.symbol,
-    name: name ?? q.shortName ?? q.longName ?? q.symbol,
-    price,
-    change: change ?? 0,
-    changePercent: pct ?? 0,
-    assetType: type,
-  }
-}
-
-async function fetchQuotesFromYahoo(symbols: string[]): Promise<(MarketPrice | null)[]> {
-  if (!symbols.length) return []
-  const results: (MarketPrice | null)[] = []
-  for (let i = 0; i < symbols.length; i++) {
-    const r = await fetchYahooQuote(symbols[i])
-    results.push(r)
-    if (i < symbols.length - 1) await new Promise(r => setTimeout(r, 600))
-  }
-  return results
+    return json?.quoteResponse?.result ?? []
+  } catch { return [] }
 }
 
 async function fetchCoinGeckoPrices(): Promise<MarketPrice[]> {
@@ -368,6 +344,8 @@ const SYMBOL_NAMES: Record<string, string> = {
   "^STOXX50E": "Euro Stoxx 50", "^IBEX": "IBEX 35",
   "^NSEI": "Nifty 50", "^BSESN": "Sensex", "^NSEBANK": "Bank Nifty",
   "INDIAVIX.NSE": "India VIX",
+  "^AXJO": "S&P/ASX 200",
+  "^N225": "Nikkei 225", "000001.SS": "Shanghai Composite", "^KS11": "KOSPI",
   "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY",
   "USDCHF=X": "USD/CHF", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD",
 }
@@ -377,29 +355,18 @@ app.get("/api/market-snapshot", async (_req, res) => {
     const cached = await get<MarketSnapshotResponse>("market:snapshot-v2")
     if (cached) return res.json(cached)
 
-    const COMMODITIES = ["CL=F", "BZ=F", "GC=F", "SI=F", "HG=F", "PL=F"]
-    const US_INDICES = ["^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX"]
-    const EUROPE_INDICES = ["^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^IBEX"]
-    const INDIA_INDICES = ["^NSEI", "^BSESN", "^NSEBANK", "INDIAVIX.NSE"]
-    const FOREX = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X"]
+    const ALL_SYMBOLS = [
+      "CL=F", "BZ=F", "GC=F", "SI=F", "HG=F", "PL=F",
+      "^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX",
+      "^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^IBEX",
+      "^NSEI", "^BSESN", "^NSEBANK", "INDIAVIX.NSE",
+      "^AXJO", "^N225", "000001.SS", "^KS11",
+      "EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X",
+    ]
+    const ALL_SYMBOL_NAMES: Record<string, string> = SYMBOL_NAMES
 
-    const [
-      commodityResults,
-      usIndexResults,
-      europeIndexResults,
-      indiaIndexResults,
-      forexResults,
-      cryptoPrices,
-      usGainers,
-      usLosers,
-      niftyGainersRaw,
-      niftyLosersRaw,
-    ] = await Promise.all([
-      fetchQuotesFromYahoo(COMMODITIES),
-      fetchQuotesFromYahoo(US_INDICES),
-      fetchQuotesFromYahoo(EUROPE_INDICES),
-      fetchQuotesFromYahoo(INDIA_INDICES),
-      fetchQuotesFromYahoo(FOREX),
+    const [batchResults, cryptoPrices, usGainers, usLosers, niftyGainersRaw, niftyLosersRaw] = await Promise.all([
+      fetchYahooBatchQuotes(ALL_SYMBOLS),
       fetchCoinGeckoPrices(),
       fetchYahooMovers("US", "day_gainers", 8),
       fetchYahooMovers("US", "day_losers", 8),
@@ -407,13 +374,29 @@ app.get("/api/market-snapshot", async (_req, res) => {
       fetchYahooMovers("IN", "day_losers", 8),
     ])
 
+    const results = batchResults.map(q => yahooToMarketPrice(q, "index")).filter(Boolean) as MarketPrice[]
+
+    function extract(rawSymbol: string): MarketPrice[] {
+      return results.filter(r => r.symbol === rawSymbol.replace("=X", "").replace(/^\^/, "") || ALL_SYMBOL_NAMES[rawSymbol] === r.name)
+    }
+
+    function forSymbols(syms: string[], assetType: MarketPrice["assetType"]): MarketPrice[] {
+      return results.filter(r => {
+        const clean = (s: string) => s.replace("=X", "").replace(/^\^/, "")
+        const rawSymbols = syms.map(clean)
+        return rawSymbols.includes(r.symbol) || syms.some(s => r.name === ALL_SYMBOL_NAMES[s])
+      }).map(r => ({ ...r, assetType }))
+    }
+
     const response: MarketSnapshotResponse = {
-      commodities: commodityResults.filter(Boolean).map(r => ({ ...r!, assetType: "commodity" as const })),
+      commodities: forSymbols(["CL=F", "BZ=F", "GC=F", "SI=F", "HG=F", "PL=F"], "commodity"),
       crypto: cryptoPrices,
-      usIndices: usIndexResults.filter(Boolean).map(r => ({ ...r!, assetType: "index" as const })),
-      europeIndices: europeIndexResults.filter(Boolean).map(r => ({ ...r!, assetType: "index" as const })),
-      indiaIndices: indiaIndexResults.filter(Boolean).map(r => ({ ...r!, assetType: "index" as const })),
-      forex: forexResults.filter(Boolean).map(r => ({ ...r!, assetType: "forex" as const })),
+      usIndices: forSymbols(["^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX"], "index"),
+      europeIndices: forSymbols(["^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^IBEX"], "index"),
+      indiaIndices: forSymbols(["^NSEI", "^BSESN", "^NSEBANK", "INDIAVIX.NSE"], "index"),
+      ausIndices: forSymbols(["^AXJO"], "index"),
+      asiaIndices: forSymbols(["^N225", "000001.SS", "^KS11"], "index"),
+      forex: forSymbols(["EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X"], "forex"),
       usGainers,
       usLosers,
       niftyGainers: niftyGainersRaw,

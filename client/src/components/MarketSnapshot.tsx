@@ -4,10 +4,13 @@ import type { MarketPrice, MarketSnapshotResponse } from "@shared/types"
 function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
   const positive = changePercent >= 0
   return (
-    <div className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md transition-all duration-200 hover:bg-[rgba(255,255,255,0.04)] cursor-default"
+    <div
+      className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default"
       style={{
         transition: "all 0.2s cubic-bezier(.16,1,.3,1)",
       }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
     >
       <span className="text-[11px] font-bold font-mono uppercase tracking-wider w-[46px] shrink-0" style={{ color: "rgba(255,255,255,0.5)" }}>
         {symbol}
@@ -51,8 +54,12 @@ function MoversCard({ title, items, type }: { title: string; items: MarketPrice[
         {items.map(item => {
           const p = item.changePercent >= 0
           return (
-            <div key={item.symbol} className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md transition-all duration-200 hover:bg-[rgba(255,255,255,0.04)] cursor-default"
+            <div
+              key={item.symbol}
+              className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default"
               style={{ transition: "all 0.2s cubic-bezier(.16,1,.3,1)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
             >
               <span className="w-1 h-1 rounded-full shrink-0" style={{ background: accent, boxShadow: `0 0 4px ${accent}` }} />
               <span className="text-[11px] font-bold font-mono uppercase tracking-wider w-[46px] shrink-0" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -177,38 +184,20 @@ export function MarketSnapshot() {
         <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 220px)" }}>
           <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-y md:divide-y-0 divide-[rgba(255,255,255,0.04)]">
             <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
-              {data?.usIndices && data.usIndices.length > 0 && (
-                <SectionCard title="US Indices" items={data.usIndices} />
-              )}
-              {data?.europeIndices && data.europeIndices.length > 0 && (
-                <SectionCard title="Europe Indices" items={data.europeIndices} />
-              )}
-              {data?.indiaIndices && data.indiaIndices.length > 0 && (
-                <SectionCard title="India Indices" items={data.indiaIndices} />
-              )}
-              {data?.commodities && data.commodities.length > 0 && (
-                <SectionCard title="Commodities" items={data.commodities} />
-              )}
-              {data?.forex && data.forex.length > 0 && (
-                <SectionCard title="Forex" items={data.forex} />
-              )}
+              {data?.usIndices?.length ? <SectionCard title="US Indices" items={data.usIndices} /> : null}
+              {data?.europeIndices?.length ? <SectionCard title="Europe Indices" items={data.europeIndices} /> : null}
+              {data?.indiaIndices?.length ? <SectionCard title="India Indices" items={data.indiaIndices} /> : null}
+              {data?.ausIndices?.length ? <SectionCard title="Australia Indices" items={data.ausIndices} /> : null}
+              {data?.asiaIndices?.length ? <SectionCard title="Asia Indices" items={data.asiaIndices} /> : null}
+              {data?.commodities?.length ? <SectionCard title="Commodities" items={data.commodities} /> : null}
+              {data?.forex?.length ? <SectionCard title="Forex" items={data.forex} /> : null}
             </div>
             <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
-              {data?.crypto && data.crypto.length > 0 && (
-                <SectionCard title="Crypto" items={data.crypto} />
-              )}
-              {data?.usGainers && data.usGainers.length > 0 && (
-                <MoversCard title="US Top Gainers" items={data.usGainers} type="gainers" />
-              )}
-              {data?.usLosers && data.usLosers.length > 0 && (
-                <MoversCard title="US Top Losers" items={data.usLosers} type="losers" />
-              )}
-              {data?.niftyGainers && data.niftyGainers.length > 0 && (
-                <MoversCard title="Nifty Gainers" items={data.niftyGainers} type="gainers" />
-              )}
-              {data?.niftyLosers && data.niftyLosers.length > 0 && (
-                <MoversCard title="Nifty Losers" items={data.niftyLosers} type="losers" />
-              )}
+              {data?.crypto?.length ? <SectionCard title="Crypto" items={data.crypto} /> : null}
+              {data?.usGainers?.length ? <MoversCard title="US Top Gainers" items={data.usGainers} type="gainers" /> : null}
+              {data?.usLosers?.length ? <MoversCard title="US Top Losers" items={data.usLosers} type="losers" /> : null}
+              {data?.niftyGainers?.length ? <MoversCard title="Nifty Gainers" items={data.niftyGainers} type="gainers" /> : null}
+              {data?.niftyLosers?.length ? <MoversCard title="Nifty Losers" items={data.niftyLosers} type="losers" /> : null}
             </div>
           </div>
         </div>
