@@ -256,7 +256,7 @@ async function fetchYahooQuote(symbol: string): Promise<MarketPrice | null> {
   try {
     const resp = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`,
-      { timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } }
+      { timeout: 12000, headers: { "User-Agent": "Mozilla/5.0" } }
     )
     if (!resp.ok) return null
     const json = await resp.json() as any
@@ -301,12 +301,10 @@ function yahooToMarketPrice(q: any, type: MarketPrice["assetType"], name?: strin
 async function fetchQuotesFromYahoo(symbols: string[]): Promise<(MarketPrice | null)[]> {
   if (!symbols.length) return []
   const results: (MarketPrice | null)[] = []
-  const chunkSize = 5
-  for (let i = 0; i < symbols.length; i += chunkSize) {
-    const chunk = symbols.slice(i, i + chunkSize)
-    const chunkResults = await Promise.all(chunk.map(s => fetchYahooQuote(s)))
-    results.push(...chunkResults)
-    if (i + chunkSize < symbols.length) await new Promise(r => setTimeout(r, 300))
+  for (let i = 0; i < symbols.length; i++) {
+    const r = await fetchYahooQuote(symbols[i])
+    results.push(r)
+    if (i < symbols.length - 1) await new Promise(r => setTimeout(r, 600))
   }
   return results
 }
