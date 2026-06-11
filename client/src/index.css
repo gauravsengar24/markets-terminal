@@ -654,6 +654,9 @@ html {
   overflow: hidden;
   box-shadow: var(--shadow-elevated);
   transition: border-color 0.3s var(--ease-out-expo), box-shadow 0.3s var(--ease-out-expo);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 100px);
 }
 
 .impact-left-panel:hover {
@@ -674,6 +677,7 @@ html {
 .impact-left-header {
   padding: 0.75rem 0.85rem 0.45rem 0.85rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
 }
 
 .impact-left-title-row {
@@ -714,6 +718,9 @@ html {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .impact-left-row {
@@ -948,6 +955,7 @@ html {
   align-items: center;
   font-size: 0.65rem;
   color: var(--text-tertiary);
+  flex-shrink: 0;
 }
 
 .impact-left-loading {
