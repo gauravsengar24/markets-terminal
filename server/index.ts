@@ -250,7 +250,7 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
 }
 
 // ════════════════════════════════════════════════════════════════
-//  MARKET SNAPSHOT — Commodities, Crypto, Indices, Forex, Movers
+//  MARKET SNAPSHOT — 4 Sections: Crypto, Forex, Indian, Global
 // ════════════════════════════════════════════════════════════════
 
 const YH = { headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.9", "Cache-Control": "no-cache" } }
@@ -276,36 +276,42 @@ function yahooToMarketPrice(q: any, assetType: MarketPrice["assetType"]): Market
 }
 
 const FALLBACK_MARKET_DATA: Record<string, { price: number; changePercent: number }> = {
+  "BTC": { price: 62578, changePercent: 0.54 },
+  "ETH": { price: 1639, changePercent: -0.56 },
+  "SOL": { price: 65.16, changePercent: 0.25 },
+  "BNB": { price: 585, changePercent: 0.30 },
+  "XRP": { price: 1.11, changePercent: -1.18 },
+  "DOGE": { price: 0.09, changePercent: 0.99 },
+  "PEPE": { price: 0.000012, changePercent: 2.50 },
+  "WIF": { price: 2.45, changePercent: 1.80 },
   "CL=F": { price: 77.40, changePercent: -0.35 },
-  "BZ=F": { price: 81.20, changePercent: -0.28 },
   "GC=F": { price: 2330.50, changePercent: 0.42 },
   "SI=F": { price: 29.60, changePercent: 0.55 },
-  "HG=F": { price: 4.52, changePercent: 0.38 },
-  "PL=F": { price: 985.00, changePercent: 0.22 },
-  "^GSPC": { price: 5340.25, changePercent: 0.18 },
-  "^IXIC": { price: 16800.50, changePercent: 0.25 },
-  "^DJI": { price: 38850.75, changePercent: 0.12 },
-  "^RUT": { price: 2035.00, changePercent: 0.30 },
-  "^VIX": { price: 14.50, changePercent: -2.50 },
-  "^FTSE": { price: 8200.00, changePercent: 0.15 },
-  "^GDAXI": { price: 18150.00, changePercent: 0.20 },
-  "^FCHI": { price: 7950.00, changePercent: 0.10 },
-  "^STOXX50E": { price: 4950.00, changePercent: 0.18 },
-  "^IBEX": { price: 11050.00, changePercent: 0.08 },
-  "^NSEI": { price: 22500.00, changePercent: 0.22 },
-  "^BSESN": { price: 74250.00, changePercent: 0.20 },
-  "^NSEBANK": { price: 48500.00, changePercent: 0.15 },
-  "INDIAVIX.NSE": { price: 14.20, changePercent: -1.80 },
-  "^AXJO": { price: 7780.00, changePercent: 0.10 },
-  "^N225": { price: 38500.00, changePercent: 0.35 },
-  "000001.SS": { price: 3050.00, changePercent: 0.08 },
-  "^KS11": { price: 2720.00, changePercent: 0.22 },
+  "NG=F": { price: 2.85, changePercent: -1.20 },
+  "SPY": { price: 534, changePercent: 0.18 },
+  "QQQ": { price: 450, changePercent: 0.25 },
+  "TSLA": { price: 245, changePercent: 1.50 },
+  "NVDA": { price: 880, changePercent: 2.10 },
+  "AAPL": { price: 210, changePercent: 0.12 },
+  "META": { price: 475, changePercent: 0.80 },
+  "GOOGL": { price: 165, changePercent: 0.22 },
+  "MSFT": { price: 420, changePercent: 0.15 },
+  "^GDAXI": { price: 18150, changePercent: 0.20 },
+  "^FTSE": { price: 8200, changePercent: 0.15 },
+  "^N225": { price: 38500, changePercent: 0.35 },
+  "^HSI": { price: 17200, changePercent: 0.10 },
+  "USDINR=X": { price: 83.50, changePercent: 0.02 },
   "EURUSD=X": { price: 1.0870, changePercent: -0.05 },
   "GBPUSD=X": { price: 1.2720, changePercent: 0.08 },
   "USDJPY=X": { price: 156.50, changePercent: 0.12 },
-  "USDCHF=X": { price: 0.8910, changePercent: -0.03 },
-  "AUDUSD=X": { price: 0.6650, changePercent: -0.10 },
-  "USDCAD=X": { price: 1.3680, changePercent: 0.06 },
+  "^NSEI": { price: 22500, changePercent: 0.22 },
+  "^BSESN": { price: 74250, changePercent: 0.20 },
+  "^NSEBANK": { price: 48500, changePercent: 0.15 },
+  "RELIANCE.NS": { price: 2850, changePercent: 0.30 },
+  "TCS.NS": { price: 3950, changePercent: -0.10 },
+  "INFY.NS": { price: 1650, changePercent: 0.40 },
+  "HDFCBANK.NS": { price: 1680, changePercent: 0.25 },
+  "WIPRO.NS": { price: 520, changePercent: 0.15 },
 }
 
 async function fetchYahooBatchQuotes(symbols: string[]): Promise<any[]> {
@@ -384,7 +390,7 @@ function fillWithFallbacks(symbols: string[], live: any[]): any[] {
 async function fetchCoinGeckoPrices(): Promise<MarketPrice[]> {
   try {
     const resp = await fetchWithTimeout(
-      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple,cardano,dogecoin,polkadot,avalanche-2&vs_currencies=usd&include_24hr_change=true",
+      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,pepe,dogwifcoin&vs_currencies=usd&include_24hr_change=true",
       { timeout: 8000 }
     )
     if (!resp.ok) return []
@@ -393,11 +399,11 @@ async function fetchCoinGeckoPrices(): Promise<MarketPrice[]> {
       bitcoin: { symbol: "BTC", name: "Bitcoin" },
       ethereum: { symbol: "ETH", name: "Ethereum" },
       solana: { symbol: "SOL", name: "Solana" },
+      binancecoin: { symbol: "BNB", name: "BNB" },
       ripple: { symbol: "XRP", name: "XRP" },
-      cardano: { symbol: "ADA", name: "Cardano" },
       dogecoin: { symbol: "DOGE", name: "Dogecoin" },
-      polkadot: { symbol: "DOT", name: "Polkadot" },
-      "avalanche-2": { symbol: "AVAX", name: "Avalanche" },
+      pepe: { symbol: "PEPE", name: "Pepe" },
+      dogwifcoin: { symbol: "WIF", name: "Dogwifhat" },
     }
     const prices: MarketPrice[] = []
     for (const [id, info] of Object.entries(map)) {
@@ -439,18 +445,14 @@ async function fetchYahooMovers(region: string, scrId: string, count: number): P
 }
 
 const SYMBOL_NAMES: Record<string, string> = {
-  "CL=F": "Crude Oil WTI", "BZ=F": "Brent Crude", "GC=F": "Gold", "SI=F": "Silver",
-  "HG=F": "Copper", "PL=F": "Platinum",
-  "^GSPC": "S&P 500", "^IXIC": "Nasdaq Composite", "^DJI": "Dow Jones",
-  "^RUT": "Russell 2000", "^VIX": "CBOE Volatility Index",
-  "^FTSE": "FTSE 100", "^GDAXI": "DAX 40", "^FCHI": "CAC 40",
-  "^STOXX50E": "Euro Stoxx 50", "^IBEX": "IBEX 35",
+  "CL=F": "Crude Oil WTI", "GC=F": "Gold", "SI=F": "Silver", "NG=F": "Natural Gas",
+  "SPY": "S&P 500 ETF", "QQQ": "Nasdaq ETF", "TSLA": "Tesla", "NVDA": "NVIDIA",
+  "AAPL": "Apple", "META": "Meta", "GOOGL": "Alphabet", "MSFT": "Microsoft",
+  "^GDAXI": "DAX 40", "^FTSE": "FTSE 100", "^N225": "Nikkei 225", "^HSI": "Hang Seng",
   "^NSEI": "Nifty 50", "^BSESN": "Sensex", "^NSEBANK": "Bank Nifty",
-  "INDIAVIX.NSE": "India VIX",
-  "^AXJO": "S&P/ASX 200",
-  "^N225": "Nikkei 225", "000001.SS": "Shanghai Composite", "^KS11": "KOSPI",
-  "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY",
-  "USDCHF=X": "USD/CHF", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD",
+  "RELIANCE.NS": "Reliance", "TCS.NS": "TCS", "INFY.NS": "Infosys",
+  "HDFCBANK.NS": "HDFC Bank", "WIPRO.NS": "Wipro",
+  "USDINR=X": "USD/INR", "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY",
 }
 
 app.get("/api/market-snapshot", async (_req, res) => {
@@ -459,12 +461,12 @@ app.get("/api/market-snapshot", async (_req, res) => {
     if (cached) return res.json(cached)
 
     const ALL_SYMBOLS = [
-      "CL=F", "BZ=F", "GC=F", "SI=F", "HG=F", "PL=F",
-      "^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX",
-      "^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^IBEX",
-      "^NSEI", "^BSESN", "^NSEBANK", "INDIAVIX.NSE",
-      "^AXJO", "^N225", "000001.SS", "^KS11",
-      "EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X",
+      "CL=F", "GC=F", "SI=F", "NG=F",
+      "SPY", "QQQ", "TSLA", "NVDA", "AAPL", "META", "GOOGL", "MSFT",
+      "^GDAXI", "^FTSE", "^N225", "^HSI",
+      "USDINR=X", "EURUSD=X", "GBPUSD=X", "USDJPY=X",
+      "^NSEI", "^BSESN", "^NSEBANK",
+      "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "WIPRO.NS",
     ]
 
     const [batchRaw, cryptoPrices, usGainers, usLosers, niftyGainersRaw, niftyLosersRaw] = await Promise.all([
@@ -499,14 +501,10 @@ app.get("/api/market-snapshot", async (_req, res) => {
     }
 
     const response: MarketSnapshotResponse = {
-      commodities: forSymbols(["CL=F", "BZ=F", "GC=F", "SI=F", "HG=F", "PL=F"], "commodity"),
-      crypto: cryptoPrices,
-      usIndices: forSymbols(["^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX"], "index"),
-      europeIndices: forSymbols(["^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^IBEX"], "index"),
-      indiaIndices: forSymbols(["^NSEI", "^BSESN", "^NSEBANK", "INDIAVIX.NSE"], "index"),
-      ausIndices: forSymbols(["^AXJO"], "index"),
-      asiaIndices: forSymbols(["^N225", "000001.SS", "^KS11"], "index"),
-      forex: forSymbols(["EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X"], "forex"),
+      cryptoTopMovers: cryptoPrices,
+      forexPairs: forSymbols(["USDINR=X", "EURUSD=X", "GBPUSD=X", "USDJPY=X"], "forex"),
+      indianMarkets: forSymbols(["^NSEI", "^BSESN", "^NSEBANK", "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "WIPRO.NS"], "index"),
+      globalMovers: forSymbols(["CL=F", "GC=F", "SI=F", "NG=F", "SPY", "QQQ", "TSLA", "NVDA", "AAPL", "META", "GOOGL", "MSFT", "^GDAXI", "^FTSE", "^N225", "^HSI"], "stock"),
       usGainers,
       usLosers,
       niftyGainers: niftyGainersRaw,
