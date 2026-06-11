@@ -39,42 +39,6 @@ function SectionCard({ title, items }: { title: string; items: MarketPrice[] }) 
   )
 }
 
-function MoversCard({ title, items, type }: { title: string; items: MarketPrice[]; type: "gainers" | "losers" }) {
-  if (!items.length) return null
-  const accent = type === "gainers" ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"
-  return (
-    <div className="border-b border-[rgba(255,255,255,0.06)] last:border-b-0">
-      <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ background: "rgba(255,255,255,0.02)" }}>
-        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>{title}</span>
-        <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.18)" }}>({items.length})</span>
-      </div>
-      <div className="py-0.5">
-        {items.map(item => {
-          const p = item.changePercent >= 0
-          return (
-            <div
-              key={item.symbol}
-      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap"
-              style={{ transition: "all 0.2s cubic-bezier(.16,1,.3,1)" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: accent, boxShadow: `0 0 4px ${accent}` }} />
-              <span className="flex-1 min-w-[90px] text-xs truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{(item.name || item.symbol)}</span>
-              <span className="text-right text-xs font-medium font-mono tabular-nums w-[80px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
-                {item.price < 10 ? item.price.toFixed(4) : item.price < 1000 ? item.price.toFixed(2) : item.price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-              </span>
-              <span className={`text-right text-[13px] font-semibold font-mono tabular-nums w-[68px] shrink-0 ${p ? "text-up" : "text-down"}`}>
-                {p ? "+" : ""}{item.changePercent.toFixed(2)}%
-              </span>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 function Shimmer({ count = 6 }: { count?: number }) {
   return (
     <>
@@ -178,18 +142,13 @@ export function MarketSnapshot() {
       ) : (
         <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 200px)" }}>
           <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
-            {data?.usIndices?.length ? <SectionCard title="US Indices" items={data.usIndices} /> : null}
-            {data?.europeIndices?.length ? <SectionCard title="Europe Indices" items={data.europeIndices} /> : null}
-            {data?.indiaIndices?.length ? <SectionCard title="India Indices" items={data.indiaIndices} /> : null}
-            {data?.ausIndices?.length ? <SectionCard title="Australia Indices" items={data.ausIndices} /> : null}
-            {data?.asiaIndices?.length ? <SectionCard title="Asia Indices" items={data.asiaIndices} /> : null}
+            {data?.crypto?.length ? <SectionCard title="Crypto" items={data.crypto} /> : null}
+            {data?.indiaIndices?.length ? <SectionCard title="Indian Stocks" items={data.indiaIndices} /> : null}
+            {data?.usIndices?.length ? <SectionCard title="US Stocks" items={data.usIndices} /> : null}
+            {data?.europeIndices?.length ? <SectionCard title="European Stocks" items={data.europeIndices} /> : null}
+            {data?.ausIndices?.length ? <SectionCard title="Australia Stocks" items={data.ausIndices} /> : null}
             {data?.commodities?.length ? <SectionCard title="Commodities" items={data.commodities} /> : null}
             {data?.forex?.length ? <SectionCard title="Forex" items={data.forex} /> : null}
-            {data?.crypto?.length ? <SectionCard title="Crypto" items={data.crypto} /> : null}
-            {data?.usGainers?.length ? <MoversCard title="US Top Gainers" items={data.usGainers} type="gainers" /> : null}
-            {data?.usLosers?.length ? <MoversCard title="US Top Losers" items={data.usLosers} type="losers" /> : null}
-            {data?.niftyGainers?.length ? <MoversCard title="Nifty Gainers" items={data.niftyGainers} type="gainers" /> : null}
-            {data?.niftyLosers?.length ? <MoversCard title="Nifty Losers" items={data.niftyLosers} type="losers" /> : null}
           </div>
         </div>
       )}
