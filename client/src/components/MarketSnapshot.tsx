@@ -6,14 +6,14 @@ function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
   const displayName = name || symbol
   return (
     <div
-      className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default"
+      className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default flex-nowrap"
       style={{
         transition: "all 0.2s cubic-bezier(.16,1,.3,1)",
       }}
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
     >
-      <span className="flex-1 min-w-0 text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{displayName}</span>
+      <span className="flex-1 min-w-[80px] text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{displayName}</span>
       <span className="text-right text-[11px] font-medium font-mono tabular-nums w-[72px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
         {price < 10 ? price.toFixed(4) : price < 1000 ? price.toFixed(2) : price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
       </span>
@@ -54,13 +54,13 @@ function MoversCard({ title, items, type }: { title: string; items: MarketPrice[
           return (
             <div
               key={item.symbol}
-              className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default"
+      className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default flex-nowrap"
               style={{ transition: "all 0.2s cubic-bezier(.16,1,.3,1)" }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
             >
               <span className="w-1 h-1 rounded-full shrink-0" style={{ background: accent, boxShadow: `0 0 4px ${accent}` }} />
-              <span className="flex-1 min-w-0 text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{(item.name || item.symbol)}</span>
+              <span className="flex-1 min-w-[80px] text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{(item.name || item.symbol)}</span>
               <span className="text-right text-[11px] font-medium font-mono tabular-nums w-[72px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
                 {item.price < 10 ? item.price.toFixed(4) : item.price < 1000 ? item.price.toFixed(2) : item.price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
               </span>
