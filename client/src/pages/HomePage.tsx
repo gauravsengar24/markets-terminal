@@ -76,7 +76,7 @@ export function HomePage() {
                 >
                   {a.imageUrl && (
                     <div className="news-card-img-wrap">
-                      <img src={a.imageUrl} alt="" className="news-card-img" loading="lazy" />
+                      <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
                     </div>
                   )}
                   <div className="news-card-body">

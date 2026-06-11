@@ -2,6 +2,11 @@ import type { NewsArticle } from "@shared/types"
 import { useNavigate } from "react-router-dom"
 import { SectionHeading } from "./SectionHeading"
 
+function cleanImgUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined
+  return url.replace(/&amp;/g, "&")
+}
+
 interface Props {
   title: string
   articles: NewsArticle[]
@@ -46,8 +51,8 @@ export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props
             className="news-card w-full text-left cursor-pointer"
           >
             <div className="news-card-img-wrap" style={{ width: 72, minWidth: 72, height: 72 }}>
-              {a.imageUrl ? (
-                <img src={a.imageUrl} alt="" className="news-card-img" loading="lazy" />
+              {cleanImgUrl(a.imageUrl) ? (
+                <img src={cleanImgUrl(a.imageUrl)} alt="" className="news-card-img" loading="lazy" />
               ) : (
                 <div className="news-card-fallback" style={{ background: FALLBACK_COLORS[a.assetClass] ?? "#64748b" }}>
                   <span className="news-card-fallback-icon">{fallbackIcon(a.assetClass)}</span>

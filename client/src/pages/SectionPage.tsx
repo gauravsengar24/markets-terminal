@@ -72,7 +72,7 @@ export function SectionPage() {
           >
             <div style={{ width: 72, minWidth: 72, height: 72, borderRadius: 8, overflow: "hidden", flexShrink: 0, position: "relative", margin: "0.65rem 0 0.65rem 0.75rem" }}>
               {a.imageUrl ? (
-                <img src={a.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} loading="lazy" />
+                <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} loading="lazy" />
               ) : (
                 <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: FALLBACK_COLORS[a.assetClass] ?? "#64748b" }}>
                   <span style={{ fontSize: 18, opacity: 0.6, color: "rgba(255,255,255,0.8)" }}>{fallbackIcon(a.assetClass)}</span>

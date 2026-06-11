@@ -35,7 +35,7 @@ export function BreakingNewsTicker() {
               >
                 <div className="w-12 h-12 min-w-12 rounded-md overflow-hidden bg-muted shrink-0">
                   {a.imageUrl ? (
-                    <img src={a.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20" />
                   )}
