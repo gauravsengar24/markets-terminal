@@ -1,17 +1,24 @@
 import { useQuery } from "@tanstack/react-query"
 import { fetchMarketSnapshot } from "../lib/api"
-import type { MarketPrice } from "@shared/types"
+import type { MarketPrice, MarketSnapshotResponse } from "@shared/types"
 
-const ASSET_ICONS: Record<string, string> = {
-  crypto: "⟠",
-  commodity: "◇",
-  stock: "▤",
+function flattenSnapshot(data: MarketSnapshotResponse): MarketPrice[] {
+  const all: MarketPrice[] = []
+  const keys: (keyof MarketSnapshotResponse)[] = ["crypto", "commodities", "usIndices", "europeIndices", "indiaIndices", "forex", "usGainers", "usLosers", "niftyGainers", "niftyLosers"]
+  for (const k of keys) {
+    const items = data[k]
+    if (items && items.length > 0) all.push(...items)
+  }
+  return all
 }
 
 export function MarketTicker() {
   const query = useQuery({
     queryKey: ["market-snapshot"],
-    queryFn: () => fetchMarketSnapshot() as Promise<MarketPrice[]>,
+    queryFn: async () => {
+      const data = await fetchMarketSnapshot() as MarketSnapshotResponse
+      return flattenSnapshot(data)
+    },
     refetchInterval: 300_000,
     staleTime: 300_000,
   })
