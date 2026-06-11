@@ -11,6 +11,24 @@ interface Props {
   viewAllLink?: string
 }
 
+const FALLBACK_COLORS: Record<string, string> = {
+  crypto: "#f7931a",
+  stocks: "#22c55e",
+  commodities: "#f59e0b",
+  ipo: "#a855f7",
+  oil: "#f59e0b",
+}
+
+function fallbackIcon(assetClass: string) {
+  switch (assetClass) {
+    case "crypto": return "⟠"
+    case "commodities":
+    case "oil": return "◇"
+    case "ipo": return "◆"
+    default: return "▤"
+  }
+}
+
 export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props) {
   const navigate = useNavigate()
   const display = maxArticles ? articles.slice(0, maxArticles) : articles
@@ -27,11 +45,15 @@ export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props
             onClick={() => navigate(`/article/${a.id}`)}
             className="news-card w-full text-left cursor-pointer"
           >
-            {a.imageUrl && (
-              <div className="news-card-img-wrap">
+            <div className="news-card-img-wrap" style={{ width: 72, minWidth: 72, height: 72 }}>
+              {a.imageUrl ? (
                 <img src={a.imageUrl} alt="" className="news-card-img" loading="lazy" />
-              </div>
-            )}
+              ) : (
+                <div className="news-card-fallback" style={{ background: FALLBACK_COLORS[a.assetClass] ?? "#64748b" }}>
+                  <span className="news-card-fallback-icon">{fallbackIcon(a.assetClass)}</span>
+                </div>
+              )}
+            </div>
             <div className="news-card-body">
               <div className="flex items-center gap-2 mb-1">
                 <span className="mac-source">{a.source}</span>

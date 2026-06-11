@@ -25,6 +25,19 @@ const VOLATILITY_COLORS: Record<string, string> = {
   medium: "#f59e0b",
 }
 
+const FALLBACK_COLORS: Record<string, string> = {
+  crypto: "#f7931a", stocks: "#22c55e", commodities: "#f59e0b", ipo: "#a855f7", oil: "#f59e0b",
+}
+
+function fallbackIcon(assetClass: string) {
+  switch (assetClass) {
+    case "crypto": return "⟠"
+    case "commodities": case "oil": return "◇"
+    case "ipo": return "◆"
+    default: return "▤"
+  }
+}
+
 export function SectionPage() {
   const { section } = useParams<{ section: string }>()
   const navigate = useNavigate()
@@ -55,8 +68,18 @@ export function SectionPage() {
             key={a.id}
             onClick={() => navigate(`/article/${a.id}`)}
             className="mac-card w-full text-left cursor-pointer"
+            style={{ display: "flex", alignItems: "stretch" }}
           >
-            <div className="mac-card-body">
+            <div style={{ width: 72, minWidth: 72, height: 72, borderRadius: 8, overflow: "hidden", flexShrink: 0, position: "relative", margin: "0.65rem 0 0.65rem 0.75rem" }}>
+              {a.imageUrl ? (
+                <img src={a.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} loading="lazy" />
+              ) : (
+                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: FALLBACK_COLORS[a.assetClass] ?? "#64748b" }}>
+                  <span style={{ fontSize: 18, opacity: 0.6, color: "rgba(255,255,255,0.8)" }}>{fallbackIcon(a.assetClass)}</span>
+                </div>
+              )}
+            </div>
+            <div className="mac-card-body" style={{ flex: 1, minWidth: 0, padding: "0.65rem 0.75rem" }}>
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="mac-source">{a.source}</span>
                 {a.volatility && (

@@ -7,6 +7,7 @@ import { CommoditySection } from "../components/CommoditySection"
 import { IPOSection } from "../components/IPOSection"
 import { SectionHeading } from "../components/SectionHeading"
 import { ImpactAnalysis } from "../components/ImpactAnalysis"
+import { MarketSnapshot } from "../components/MarketSnapshot"
 
 const SIDEBAR_SECTIONS = [
   { label: "Crypto", link: "/crypto", color: "rgba(6, 182, 212, 0.6)" },
@@ -117,45 +118,7 @@ export function HomePage() {
         </div>
 
         <div className="home-sidebar">
-          <div className="mac-panel">
-            <h3 className="mac-side-title">Sections</h3>
-            <div className="flex flex-col gap-1">
-              {SIDEBAR_SECTIONS.map((s) => (
-                <button
-                  key={s.link}
-                  onClick={() => navigate(s.link)}
-                  className="mac-side-link"
-                >
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.color, display: 'inline-block', flexShrink: 0 }} />
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mac-panel">
-            <h3 className="mac-side-title">Sources</h3>
-            <div className="flex flex-col gap-1">
-              {[...new Set(filtered.map(a => a.source))].slice(0, 6).map(src => (
-                <div key={src} className="mac-side-stat">
-                  <span className="mac-side-stat-label">{src}</span>
-                  <span className="mac-side-stat-count">{filtered.filter(a => a.source === src).length}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mac-panel">
-            <h3 className="mac-side-title">Regions</h3>
-            <div className="flex flex-col gap-1">
-              {[...new Set(filtered.map(a => a.region))].slice(0, 5).map(region => (
-                <div key={region} className="mac-side-stat">
-                  <span className="mac-side-stat-label">{region}</span>
-                  <span className="mac-side-stat-count">{filtered.filter(a => a.region === region).length}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <MarketSnapshot />
         </div>
       </div>
     </div>

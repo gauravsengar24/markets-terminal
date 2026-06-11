@@ -8,6 +8,7 @@ import { BreakingNewsBar } from "./BreakingNewsBar"
 import { MarketTicker } from "./MarketTicker"
 import { LastUpdated } from "./LastUpdated"
 import { ImpactFilterBar } from "./ImpactFilterBar"
+import { BreakingNewsTicker } from "./BreakingNewsTicker"
 
 export function Layout() {
   const navigate = useNavigate()
@@ -79,6 +80,8 @@ export function Layout() {
 
       <BreakingNewsBar onSelect={handleBreakingNewsSelect} />
       <MarketTicker />
+
+      <BreakingNewsTicker />
 
       <ImpactFilterBar
         selected={selectedImpact}

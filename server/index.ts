@@ -113,6 +113,7 @@ function parseRSSXml(xml: string): Array<{ title: string; link: string; descript
       const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["']/i)
       if (imgMatch) imageUrl = imgMatch[1]
     }
+    if (imageUrl) imageUrl = decodeEntities(imageUrl)
     items.push({
       title: getCDATA('title'),
       link: getTag('link'),
@@ -143,6 +144,7 @@ function parseAtomXml(xml: string): Array<{ title: string; link: string; descrip
       const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["']/i)
       if (imgMatch) imageUrl = imgMatch[1]
     }
+    if (imageUrl) imageUrl = decodeEntities(imageUrl)
     items.push({
       title: getTag('title'),
       link: linkMatch?.[1] ?? '',
@@ -168,6 +170,28 @@ function decodeEntities(text: string): string {
     .replace(/&#x60;/g, "`")
     .replace(/&#x3D;/g, "=")
     .replace(/&#\d{2,4};/g, " ")
+}
+
+async function fetchOGImage(articleUrl: string): Promise<string | undefined> {
+  try {
+    const resp = await fetchWithTimeout(articleUrl, {
+      timeout: 4000,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        Accept: "text/html",
+      },
+    })
+    if (!resp.ok) return undefined
+    const html = await resp.text()
+    const m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+    if (m) return decodeEntities(m[1])
+    const img = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+    if (img) return decodeEntities(img[1])
+    return undefined
+  } catch {
+    return undefined
+  }
 }
 
 async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticle[]> {
@@ -196,6 +220,7 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
         if (snippet.length > 0 && (alphaRatio < 0.3 || snippet.length < 20)) continue
         const sub = feed.subCategory === "stocks" ? detectSubCategory(cleanTitle, snippet) : feed.subCategory
         const impact = detectImpactCategory(cleanTitle, snippet)
+        const feedImageUrl = item.imageUrl?.startsWith("http") || item.imageUrl?.startsWith("//") ? item.imageUrl : undefined
         articles.push({
           id: id(),
           title: cleanTitle.slice(0, 200),
@@ -208,11 +233,18 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
           publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
           impactCategory: impact?.impactCategory,
           volatility: impact?.volatility,
-          imageUrl: item.imageUrl?.startsWith("http") || item.imageUrl?.startsWith("//") ? item.imageUrl : undefined,
+          imageUrl: feedImageUrl,
         })
       }
     } catch (_) {}
   })
+  const missingImage = articles.filter(a => !a.imageUrl).slice(0, 30)
+  if (missingImage.length > 0) {
+    await runConcurrent(missingImage, async (a) => {
+      const ogUrl = await fetchOGImage(a.url)
+      if (ogUrl) a.imageUrl = ogUrl
+    }, 3)
+  }
   return articles
 }
 
@@ -967,6 +999,9 @@ initCache().then(async () => {
     const flushed = await flushDomainCache()
     if (flushed > 0) console.log(`Flushed ${flushed} cached briefings from blocked domains`)
   } catch {}
+  await del("news:merged")
+  await del("news:breaking")
+  await del("analysis:impact")
   app.listen(PORT, () => {
     console.log(`Markets Terminal running on http://localhost:${PORT}`)
   })
