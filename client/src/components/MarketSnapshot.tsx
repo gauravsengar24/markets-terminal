@@ -6,18 +6,18 @@ function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
   const displayName = name || symbol
   return (
     <div
-      className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default flex-nowrap"
+      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap"
       style={{
         transition: "all 0.2s cubic-bezier(.16,1,.3,1)",
       }}
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
     >
-      <span className="flex-1 min-w-[80px] text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{displayName}</span>
-      <span className="text-right text-[11px] font-medium font-mono tabular-nums w-[72px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
+      <span className="flex-1 min-w-[90px] text-xs truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{displayName}</span>
+      <span className="text-right text-xs font-medium font-mono tabular-nums w-[80px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
         {price < 10 ? price.toFixed(4) : price < 1000 ? price.toFixed(2) : price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
       </span>
-      <span className={`text-right text-[12px] font-semibold font-mono tabular-nums w-[60px] shrink-0 ${positive ? "text-up" : "text-down"}`}>
+      <span className={`text-right text-[13px] font-semibold font-mono tabular-nums w-[68px] shrink-0 ${positive ? "text-up" : "text-down"}`}>
         {positive ? "+" : ""}{changePercent.toFixed(2)}%
       </span>
     </div>
@@ -28,9 +28,9 @@ function SectionCard({ title, items }: { title: string; items: MarketPrice[] }) 
   if (!items.length) return null
   return (
     <div className="border-b border-[rgba(255,255,255,0.06)] last:border-b-0">
-      <div className="flex items-center gap-1.5 px-2 py-1.5" style={{ background: "rgba(255,255,255,0.02)" }}>
-        <span className="text-[9px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>{title}</span>
-        <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.18)" }}>({items.length})</span>
+      <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ background: "rgba(255,255,255,0.02)" }}>
+        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>{title}</span>
+        <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.18)" }}>({items.length})</span>
       </div>
       <div className="py-0.5">
         {items.map(item => <PriceRow key={item.symbol} {...item} />)}
@@ -44,9 +44,9 @@ function MoversCard({ title, items, type }: { title: string; items: MarketPrice[
   const accent = type === "gainers" ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"
   return (
     <div className="border-b border-[rgba(255,255,255,0.06)] last:border-b-0">
-      <div className="flex items-center gap-1.5 px-2 py-1.5" style={{ background: "rgba(255,255,255,0.02)" }}>
-        <span className="text-[9px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>{title}</span>
-        <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.18)" }}>({items.length})</span>
+      <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ background: "rgba(255,255,255,0.02)" }}>
+        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>{title}</span>
+        <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.18)" }}>({items.length})</span>
       </div>
       <div className="py-0.5">
         {items.map(item => {
@@ -54,17 +54,17 @@ function MoversCard({ title, items, type }: { title: string; items: MarketPrice[
           return (
             <div
               key={item.symbol}
-      className="flex items-center gap-1 md:gap-1.5 px-2 py-1 rounded-md cursor-default flex-nowrap"
+      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap"
               style={{ transition: "all 0.2s cubic-bezier(.16,1,.3,1)" }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
             >
-              <span className="w-1 h-1 rounded-full shrink-0" style={{ background: accent, boxShadow: `0 0 4px ${accent}` }} />
-              <span className="flex-1 min-w-[80px] text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{(item.name || item.symbol)}</span>
-              <span className="text-right text-[11px] font-medium font-mono tabular-nums w-[72px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: accent, boxShadow: `0 0 4px ${accent}` }} />
+              <span className="flex-1 min-w-[90px] text-xs truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{(item.name || item.symbol)}</span>
+              <span className="text-right text-xs font-medium font-mono tabular-nums w-[80px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
                 {item.price < 10 ? item.price.toFixed(4) : item.price < 1000 ? item.price.toFixed(2) : item.price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
               </span>
-              <span className={`text-right text-[12px] font-semibold font-mono tabular-nums w-[60px] shrink-0 ${p ? "text-up" : "text-down"}`}>
+              <span className={`text-right text-[13px] font-semibold font-mono tabular-nums w-[68px] shrink-0 ${p ? "text-up" : "text-down"}`}>
                 {p ? "+" : ""}{item.changePercent.toFixed(2)}%
               </span>
             </div>
@@ -144,14 +144,14 @@ export function MarketSnapshot() {
         pointerEvents: "none",
       }} />
 
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[rgba(255,255,255,0.06)]">
+      <div className="flex items-center justify-between px-3 py-3 border-b border-[rgba(255,255,255,0.06)]">
         <div className="flex items-center gap-2">
           <div style={{
-            width: "6px", height: "6px", borderRadius: "50%",
+            width: "7px", height: "7px", borderRadius: "50%",
             background: "rgba(6, 182, 212, 0.8)",
             boxShadow: "0 0 8px rgba(6, 182, 212, 0.3)",
           }} />
-          <h3 className="text-[11px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <h3 className="text-xs font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.6)" }}>
             Market Snapshot
           </h3>
           {error && <span className="text-[10px]" style={{ color: "#f59e0b" }}>⚠ {error}</span>}
@@ -165,7 +165,7 @@ export function MarketSnapshot() {
               animation: isLive ? "1.2s ease-in-out infinite ticker-blink" : "none",
             }}
           />
-          <span className="text-[10px] font-semibold" style={{ color: isLive ? "#22c55e" : "rgba(255,255,255,0.35)" }}>
+          <span className="text-[11px] font-semibold" style={{ color: isLive ? "#22c55e" : "rgba(255,255,255,0.35)" }}>
             {isLive ? "LIVE" : "DELAYED"}
           </span>
         </div>
@@ -176,7 +176,7 @@ export function MarketSnapshot() {
           <Shimmer count={8} />
         </div>
       ) : (
-        <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 220px)" }}>
+        <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 200px)" }}>
           <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-y md:divide-y-0 divide-[rgba(255,255,255,0.04)]">
             <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
               {data?.usIndices?.length ? <SectionCard title="US Indices" items={data.usIndices} /> : null}

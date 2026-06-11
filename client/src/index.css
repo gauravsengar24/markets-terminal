@@ -22,7 +22,7 @@
 }
 
 @utility marquee-cards {
-  animation: ticker-marquee 70s linear infinite;
+  animation: ticker-marquee 98s linear infinite;
   &:hover { animation-play-state: paused; }
 }
 
@@ -524,7 +524,7 @@ html {
 
 .home-sidebar {
   display: none;
-  width: 240px;
+  width: 300px;
   flex-shrink: 0;
 }
 
@@ -546,7 +546,13 @@ html {
 
 @media (min-width: 1100px) {
   .home-sidebar {
-    width: 210px;
+    width: 320px;
+  }
+}
+
+@media (min-width: 1300px) {
+  .home-sidebar {
+    width: 360px;
   }
 }
 
@@ -1041,7 +1047,7 @@ html {
   display: flex;
   gap: 0;
   width: max-content;
-  animation: tickerScroll 80s linear infinite;
+  animation: tickerScroll 112s linear infinite;
   padding: 0.35rem 0;
   will-change: transform;
 }
@@ -1212,7 +1218,7 @@ html {
   display: flex;
   gap: 0.75rem;
   width: max-content;
-  animation: breakingScroll 300s linear infinite;
+  animation: breakingScroll 420s linear infinite;
   will-change: transform;
 }
 
