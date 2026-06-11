@@ -30,7 +30,20 @@ export interface MarketPrice {
   price: number
   change: number
   changePercent: number
-  assetType: "crypto" | "commodity" | "stock"
+  assetType: "crypto" | "commodity" | "stock" | "index" | "forex"
+}
+
+export interface MarketSnapshotResponse {
+  commodities: MarketPrice[]
+  crypto: MarketPrice[]
+  usIndices: MarketPrice[]
+  europeIndices: MarketPrice[]
+  indiaIndices: MarketPrice[]
+  forex: MarketPrice[]
+  usGainers: MarketPrice[]
+  usLosers: MarketPrice[]
+  niftyGainers: MarketPrice[]
+  niftyLosers: MarketPrice[]
 }
 
 export interface NewsBriefing {

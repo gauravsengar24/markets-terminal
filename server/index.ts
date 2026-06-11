@@ -4,7 +4,7 @@ import { fileURLToPath } from "url"
 import { initCache, get, set, del } from "./cache.js"
 import { RSS_FEEDS, BREAKING_RSS_FEEDS } from "../shared/constants.js"
 import type { RssFeed } from "../shared/constants.js"
-import type { NewsArticle, BreakingNews, MarketPrice, LearningPreferences } from "../shared/types.js"
+import type { NewsArticle, BreakingNews, MarketPrice, MarketSnapshotResponse, LearningPreferences } from "../shared/types.js"
 import { generateBriefing as geminiBriefing } from "./gemini-briefing.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -249,28 +249,101 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
 }
 
 // ════════════════════════════════════════════════════════════════
-//  MARKET SNAPSHOT — Crypto movers, S&P 500 movers, Nifty 50 movers
+//  MARKET SNAPSHOT — Commodities, Crypto, Indices, Forex, Movers
 // ════════════════════════════════════════════════════════════════
 
-async function fetchCryptoTicker(): Promise<MarketPrice[]> {
+async function fetchYahooQuote(symbol: string): Promise<MarketPrice | null> {
   try {
     const resp = await fetchWithTimeout(
-      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=100&page=1&price_change_percentage=24h",
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`,
+      { timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } }
+    )
+    if (!resp.ok) return null
+    const json = await resp.json() as any
+    const meta = json?.chart?.result?.[0]?.meta
+    if (!meta) return null
+    const price = meta.regularMarketPrice ?? meta.previousClose ?? null
+    const prevClose = meta.previousClose ?? price ?? null
+    if (price === null || prevClose === null) return null
+    const rawDiff = price - prevClose
+    const isLowPrice = price < 50
+    const decimals = isLowPrice ? 4 : 2
+    const change = +rawDiff.toFixed(decimals)
+    const changePercent = +(((price - prevClose) / prevClose) * 100).toFixed(2)
+    const displaySym = symbol.replace("=X", "").replace(/^\^/, "")
+    return {
+      symbol: displaySym,
+      name: SYMBOL_NAMES[symbol] ?? displaySym,
+      price,
+      change,
+      changePercent,
+      assetType: "stock",
+    }
+  } catch { return null }
+}
+
+function yahooToMarketPrice(q: any, type: MarketPrice["assetType"], name?: string): MarketPrice | null {
+  const price = q.regularMarketPrice?.raw ?? q.regularMarketPrice ?? null
+  const prev = q.regularMarketPreviousClose?.raw ?? q.regularMarketPreviousClose ?? null
+  const change = q.regularMarketChange?.raw ?? q.regularMarketChange ?? null
+  const pct = q.regularMarketChangePercent?.raw ?? q.regularMarketChangePercent ?? null
+  if (price === null || price === 0) return null
+  return {
+    symbol: q.symbol,
+    name: name ?? q.shortName ?? q.longName ?? q.symbol,
+    price,
+    change: change ?? 0,
+    changePercent: pct ?? 0,
+    assetType: type,
+  }
+}
+
+async function fetchQuotesFromYahoo(symbols: string[]): Promise<(MarketPrice | null)[]> {
+  if (!symbols.length) return []
+  const results: (MarketPrice | null)[] = []
+  const chunkSize = 5
+  for (let i = 0; i < symbols.length; i += chunkSize) {
+    const chunk = symbols.slice(i, i + chunkSize)
+    const chunkResults = await Promise.all(chunk.map(s => fetchYahooQuote(s)))
+    results.push(...chunkResults)
+    if (i + chunkSize < symbols.length) await new Promise(r => setTimeout(r, 300))
+  }
+  return results
+}
+
+async function fetchCoinGeckoPrices(): Promise<MarketPrice[]> {
+  try {
+    const resp = await fetchWithTimeout(
+      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple,cardano,dogecoin,polkadot,avalanche-2&vs_currencies=usd&include_24hr_change=true",
       { timeout: 8000 }
     )
     if (!resp.ok) return []
-    const json = await resp.json() as any[]
-    const sorted = [...json].sort((a, b) => (b.price_change_percentage_24h ?? 0) - (a.price_change_percentage_24h ?? 0))
-    const gainers = sorted.slice(0, 10)
-    const losers = sorted.slice(-5).reverse()
-    return [...gainers, ...losers].map(coin => ({
-      symbol: coin.symbol.toUpperCase(),
-      name: coin.name,
-      price: coin.current_price,
-      change: coin.price_change_24h ?? 0,
-      changePercent: coin.price_change_percentage_24h ?? 0,
-      assetType: "crypto" as const,
-    }))
+    const json = await resp.json() as any
+    const map: Record<string, { symbol: string; name: string }> = {
+      bitcoin: { symbol: "BTC", name: "Bitcoin" },
+      ethereum: { symbol: "ETH", name: "Ethereum" },
+      solana: { symbol: "SOL", name: "Solana" },
+      ripple: { symbol: "XRP", name: "XRP" },
+      cardano: { symbol: "ADA", name: "Cardano" },
+      dogecoin: { symbol: "DOGE", name: "Dogecoin" },
+      polkadot: { symbol: "DOT", name: "Polkadot" },
+      "avalanche-2": { symbol: "AVAX", name: "Avalanche" },
+    }
+    const prices: MarketPrice[] = []
+    for (const [id, info] of Object.entries(map)) {
+      const d = (json as any)[id]
+      if (d?.usd) {
+        prices.push({
+          symbol: info.symbol,
+          name: info.name,
+          price: d.usd,
+          changePercent: d.usd_24h_change ?? 0,
+          change: d.usd * ((d.usd_24h_change ?? 0) / 100),
+          assetType: "crypto",
+        })
+      }
+    }
+    return prices
   } catch { return [] }
 }
 
@@ -283,128 +356,73 @@ async function fetchYahooMovers(region: string, scrId: string, count: number): P
     if (!resp.ok) return []
     const json = await resp.json() as any
     const quotes: any[] = json?.finance?.result?.[0]?.quotes ?? []
-    if (!quotes.length) return []
-    return quotes.map(q => ({
-      symbol: q.symbol,
-      name: q.shortName ?? q.symbol,
-      price: q.regularMarketPrice?.raw ?? q.regularMarketPrice ?? 0,
-      change: q.regularMarketChange?.raw ?? q.regularMarketChange ?? 0,
-      changePercent: q.regularMarketChangePercent?.raw ?? q.regularMarketChangePercent ?? 0,
-      assetType: "stock" as const,
-    }))
+    return quotes.map(q => yahooToMarketPrice(q, "stock")).filter(Boolean) as MarketPrice[]
   } catch { return [] }
 }
 
-async function fetchStockMoversViaJina(): Promise<MarketPrice[]> {
-  const jinaKey = process.env.JINA_API_KEY
-  if (!jinaKey) return []
-  const results: MarketPrice[] = []
-  const queries = [
-    "top stock market gainers today S&P 500",
-    "top stock market losers today S&P 500",
-  ]
-  for (const q of queries) {
-    try {
-      const resp = await fetchWithTimeout(
-        `https://s.jina.ai/${encodeURIComponent(q)}`,
-        { timeout: 10000, headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" } }
-      )
-      if (!resp.ok) continue
-      const text = await resp.text()
-      const matches = text.matchAll(/([A-Z]{1,5})\s*[:\s]*\$?([0-9,]+(?:\.[0-9]+)?)\s*[^0-9]*([+-]?\d+\.?\d*)\s*%/g)
-      for (const m of matches) {
-        const price = parseFloat(m[2].replace(/,/g, ""))
-        const changePct = parseFloat(m[3])
-        if (price > 0 && results.length < 20) {
-          results.push({
-            symbol: m[1].toUpperCase(),
-            name: m[1].toUpperCase(),
-            price,
-            change: 0,
-            changePercent: changePct,
-            assetType: "stock",
-          })
-        }
-      }
-    } catch {}
-  }
-  return results
-}
-
-async function fetchNiftyViaJina(): Promise<MarketPrice[]> {
-  const jinaKey = process.env.JINA_API_KEY
-  if (!jinaKey) return []
-  try {
-    const resp = await fetchWithTimeout(
-      "https://s.jina.ai/top gainers and losers nifty 50 today stock market",
-      { timeout: 10000, headers: { Authorization: `Bearer ${jinaKey}`, Accept: "text/plain" } }
-    )
-    if (!resp.ok) return []
-    const text = await resp.text()
-    const results: MarketPrice[] = []
-    const lines = text.split("\n")
-    for (const line of lines) {
-      const m = line.match(/([A-Z]{1,10})\s*(?:\([^)]*\))?[:\s]*₹?\s*([0-9,]+(?:\.[0-9]+)?)\s*[^0-9]*([+-]?\d+\.?\d*)\s*%/i)
-      if (m) {
-        const price = parseFloat(m[2].replace(/,/g, ""))
-        const changePct = parseFloat(m[3])
-        if (price > 0) {
-          results.push({
-            symbol: m[1].toUpperCase(),
-            name: m[1].toUpperCase(),
-            price,
-            change: 0,
-            changePercent: changePct,
-            assetType: "stock",
-          })
-        }
-      }
-    }
-    return results.slice(0, 10)
-  } catch { return [] }
+const SYMBOL_NAMES: Record<string, string> = {
+  "CL=F": "Crude Oil WTI", "BZ=F": "Brent Crude", "GC=F": "Gold", "SI=F": "Silver",
+  "HG=F": "Copper", "PL=F": "Platinum",
+  "^GSPC": "S&P 500", "^IXIC": "Nasdaq Composite", "^DJI": "Dow Jones",
+  "^RUT": "Russell 2000", "^VIX": "CBOE Volatility Index",
+  "^FTSE": "FTSE 100", "^GDAXI": "DAX 40", "^FCHI": "CAC 40",
+  "^STOXX50E": "Euro Stoxx 50", "^IBEX": "IBEX 35",
+  "^NSEI": "Nifty 50", "^BSESN": "Sensex", "^NSEBANK": "Bank Nifty",
+  "INDIAVIX.NSE": "India VIX",
+  "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY",
+  "USDCHF=X": "USD/CHF", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD",
 }
 
 app.get("/api/market-snapshot", async (_req, res) => {
   try {
-    const cached = await get<MarketPrice[]>("market:snapshot")
+    const cached = await get<MarketSnapshotResponse>("market:snapshot-v2")
     if (cached) return res.json(cached)
 
-    const [crypto, spGainers, spLosers, stockJina, nifty] = await Promise.all([
-      fetchCryptoTicker(),
-      fetchYahooMovers("US", "day_gainers", 5),
-      fetchYahooMovers("US", "day_losers", 5),
-      fetchStockMoversViaJina(),
-      fetchNiftyViaJina(),
+    const COMMODITIES = ["CL=F", "BZ=F", "GC=F", "SI=F", "HG=F", "PL=F"]
+    const US_INDICES = ["^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX"]
+    const EUROPE_INDICES = ["^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^IBEX"]
+    const INDIA_INDICES = ["^NSEI", "^BSESN", "^NSEBANK", "INDIAVIX.NSE"]
+    const FOREX = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X"]
+
+    const [
+      commodityResults,
+      usIndexResults,
+      europeIndexResults,
+      indiaIndexResults,
+      forexResults,
+      cryptoPrices,
+      usGainers,
+      usLosers,
+      niftyGainersRaw,
+      niftyLosersRaw,
+    ] = await Promise.all([
+      fetchQuotesFromYahoo(COMMODITIES),
+      fetchQuotesFromYahoo(US_INDICES),
+      fetchQuotesFromYahoo(EUROPE_INDICES),
+      fetchQuotesFromYahoo(INDIA_INDICES),
+      fetchQuotesFromYahoo(FOREX),
+      fetchCoinGeckoPrices(),
+      fetchYahooMovers("US", "day_gainers", 8),
+      fetchYahooMovers("US", "day_losers", 8),
+      fetchYahooMovers("IN", "day_gainers", 8),
+      fetchYahooMovers("IN", "day_losers", 8),
     ])
 
-    const stocks = spGainers.length + spLosers.length >= 4
-      ? [...spGainers, ...spLosers]
-      : stockJina
-
-    const prices: MarketPrice[] = [...crypto, ...stocks, ...nifty]
-
-    if (!prices.length) {
-      try {
-        const resp = await fetchWithTimeout(
-          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true",
-          { timeout: 5000 }
-        )
-        if (resp.ok) {
-          const json = await resp.json() as any
-          if (json.bitcoin) {
-            prices.push({
-              symbol: "BTC", name: "Bitcoin",
-              price: json.bitcoin.usd,
-              change: 0, changePercent: json.bitcoin.usd_24h_change ?? 0,
-              assetType: "crypto",
-            })
-          }
-        }
-      } catch {}
+    const response: MarketSnapshotResponse = {
+      commodities: commodityResults.filter(Boolean).map(r => ({ ...r!, assetType: "commodity" as const })),
+      crypto: cryptoPrices,
+      usIndices: usIndexResults.filter(Boolean).map(r => ({ ...r!, assetType: "index" as const })),
+      europeIndices: europeIndexResults.filter(Boolean).map(r => ({ ...r!, assetType: "index" as const })),
+      indiaIndices: indiaIndexResults.filter(Boolean).map(r => ({ ...r!, assetType: "index" as const })),
+      forex: forexResults.filter(Boolean).map(r => ({ ...r!, assetType: "forex" as const })),
+      usGainers,
+      usLosers,
+      niftyGainers: niftyGainersRaw,
+      niftyLosers: niftyLosersRaw,
     }
 
-    await set("market:snapshot", prices, FIVE_MIN)
-    res.json(prices)
+    await set("market:snapshot-v2", response, FIVE_MIN)
+    res.json(response)
   } catch (err: any) {
     console.error("Market snapshot error:", err)
     res.status(500).json({ error: "Failed to fetch market snapshot" })
