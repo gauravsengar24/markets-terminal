@@ -317,6 +317,7 @@ html {
   overflow: hidden;
   position: relative;
   align-self: stretch;
+  background: rgba(255,255,255,0.04);
 }
 
 @media (min-width: 768px) {

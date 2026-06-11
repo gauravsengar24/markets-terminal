@@ -109,7 +109,7 @@ export function HomePage() {
                     {a.imageUrl ? (
                       <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/40 to-slate-800/60" />
                     )}
                   </div>
                   <div className="news-card-body">
