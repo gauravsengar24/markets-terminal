@@ -338,12 +338,12 @@ async function fetchYahooBatchQuotes(symbols: string[]): Promise<any[]> {
   try {
     const resp = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols.map(encodeURIComponent).join(",")}`,
-      { timeout: 15000, headers: YH.headers }
+      { timeout: 8000, headers: YH.headers }
     )
     if (!resp.ok) {
       const resp2 = await fetchWithTimeout(
         `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${symbols.map(encodeURIComponent).join(",")}`,
-        { timeout: 15000, headers: YH.headers }
+        { timeout: 8000, headers: YH.headers }
       )
       if (!resp2.ok) return []
       const json = await resp2.json() as any
@@ -355,12 +355,14 @@ async function fetchYahooBatchQuotes(symbols: string[]): Promise<any[]> {
 }
 
 async function fetchYahooIndividualFallback(symbols: string[]): Promise<any[]> {
+  if (!symbols.length) return []
   const results: any[] = []
-  for (const sym of symbols) {
+  const concurrency = 4
+  const fetchOne = async (sym: string) => {
     try {
       const resp = await fetchWithTimeout(
         `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=5m`,
-        { timeout: 10000, headers: YH.headers }
+        { timeout: 5000, headers: YH.headers }
       )
       if (resp.ok) {
         const json = await resp.json() as any
@@ -381,7 +383,9 @@ async function fetchYahooIndividualFallback(symbols: string[]): Promise<any[]> {
         }
       }
     } catch {}
-    await new Promise(r => setTimeout(r, 300))
+  }
+  for (let i = 0; i < symbols.length; i += concurrency) {
+    await Promise.all(symbols.slice(i, i + concurrency).map(fetchOne))
   }
   return results
 }
@@ -446,12 +450,12 @@ async function fetchYahooMovers(region: string, scrId: string, count: number): P
   try {
     const resp = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=true&lang=en-US&region=${region}&scrIds=${scrId}&count=${count}`,
-      { timeout: 12000, headers: YH.headers }
+      { timeout: 8000, headers: YH.headers }
     )
     if (!resp.ok) {
       const resp2 = await fetchWithTimeout(
         `https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=true&lang=en-US&region=${region}&scrIds=${scrId}&count=${count}`,
-        { timeout: 12000, headers: YH.headers }
+        { timeout: 8000, headers: YH.headers }
       )
       if (!resp2.ok) return []
       const json = await resp2.json() as any
@@ -495,13 +499,20 @@ app.get("/api/market-snapshot", async (_req, res) => {
       "EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X",
     ]
 
+    async function withFallback<T>(p: Promise<T>, fb: T): Promise<T> {
+      return Promise.race([
+        p,
+        new Promise<T>(r => setTimeout(() => r(fb), 10000)),
+      ])
+    }
+
     const [batchRaw, cryptoPrices, usGainers, usLosers, niftyGainersRaw, niftyLosersRaw] = await Promise.all([
-      fetchYahooBatchQuotes(ALL_SYMBOLS),
-      fetchCoinGeckoPrices(),
-      fetchYahooMovers("US", "day_gainers", 8),
-      fetchYahooMovers("US", "day_losers", 8),
-      fetchYahooMovers("IN", "day_gainers", 8),
-      fetchYahooMovers("IN", "day_losers", 8),
+      withFallback(fetchYahooBatchQuotes(ALL_SYMBOLS), []),
+      withFallback(fetchCoinGeckoPrices(), []),
+      withFallback(fetchYahooMovers("US", "day_gainers", 8), []),
+      withFallback(fetchYahooMovers("US", "day_losers", 8), []),
+      withFallback(fetchYahooMovers("IN", "day_gainers", 8), []),
+      withFallback(fetchYahooMovers("IN", "day_losers", 8), []),
     ])
 
     let combined = [...batchRaw]

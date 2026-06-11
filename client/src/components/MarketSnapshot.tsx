@@ -93,7 +93,7 @@ export function MarketSnapshot() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const res = await fetch("/api/market-snapshot", { signal: AbortSignal.timeout(30000) })
+      const res = await fetch("/api/market-snapshot", { signal: AbortSignal.timeout(15000) })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json() as MarketSnapshotResponse
       setData(json)
