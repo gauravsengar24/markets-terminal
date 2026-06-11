@@ -464,8 +464,8 @@ async function fetchYahooMovers(region: string, scrId: string, count: number): P
 }
 
 const SYMBOL_NAMES: Record<string, string> = {
-  "CL=F": "Crude Oil WTI Futures", "BZ=F": "Brent Crude Oil Futures", "GC=F": "Gold Futures",
-  "SI=F": "Silver Futures", "HG=F": "High-Grade Copper Futures", "PL=F": "Platinum Futures", "NG=F": "Natural Gas Futures",
+  "CL=F": "Crude Oil WTI", "BZ=F": "Brent Crude Oil", "GC=F": "Gold",
+  "SI=F": "Silver", "HG=F": "High-Grade Copper", "PL=F": "Platinum", "NG=F": "Natural Gas",
   "^GSPC": "S&P 500", "^IXIC": "Nasdaq", "^DJI": "Dow Jones", "^RUT": "Russell 2000", "^VIX": "VIX",
   "SPY": "S&P 500 ETF", "QQQ": "Nasdaq ETF",
   "TSLA": "Tesla", "NVDA": "NVIDIA", "AAPL": "Apple", "META": "Meta",

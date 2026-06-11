@@ -1212,7 +1212,7 @@ html {
   display: flex;
   gap: 0.75rem;
   width: max-content;
-  animation: breakingScroll 60s linear infinite;
+  animation: breakingScroll 180s linear infinite;
   will-change: transform;
 }
 
