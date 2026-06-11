@@ -1,6 +1,8 @@
 import { useMemo } from "react"
 import { useNavigate, useOutletContext } from "react-router-dom"
-import type { NewsArticle, LayoutContext } from "@shared/types"
+import { useQuery } from "@tanstack/react-query"
+import type { NewsArticle, LayoutContext, CuratedArticle } from "@shared/types"
+import { fetchCuratedBreakingNews } from "../lib/api"
 import { CryptoSection } from "../components/CryptoSection"
 import { StockSection } from "../components/StockSection"
 import { CommoditySection } from "../components/CommoditySection"
@@ -31,14 +33,37 @@ const IMPACT_LABELS: Record<string, string> = {
   currency: "Currency",
 }
 
+const TOPIC_LABELS: Record<string, string> = {
+  "tech-founder": "TECH", "politics-leader": "POLITICS", "ipo": "IPO",
+  "war-conflict": "CONFLICT", "crypto-defi": "DeFi", "crypto-regulation": "REGULATION",
+  "trending": "TRENDING", "markets": "MARKETS",
+}
+
+const TOPIC_COLORS: Record<string, string> = {
+  "tech-founder": "#60cdff", "politics-leader": "#f59e0b", "ipo": "#22c55e",
+  "war-conflict": "#ef4444", "crypto-defi": "#a78bfa", "crypto-regulation": "#f472b6",
+  "trending": "#f97316", "markets": "#34d399",
+}
+
 export function HomePage() {
   const navigate = useNavigate()
   const { articles, selectedImpact } = useOutletContext<LayoutContext>()
+
+  const curated = useQuery({
+    queryKey: ["breaking-news-curated"],
+    queryFn: () => fetchCuratedBreakingNews() as Promise<{ articles: CuratedArticle[] }>,
+    staleTime: 120_000,
+  })
 
   const filtered = useMemo(() => {
     if (selectedImpact === "all") return articles
     return articles.filter(a => a.impactCategory === selectedImpact)
   }, [articles, selectedImpact])
+
+  const curatedArticles = curated.data?.articles ?? []
+  const topArticles = curatedArticles.length >= 3
+    ? curatedArticles.slice(0, 3)
+    : filtered.slice(0, 3)
 
   if (!articles.length) {
     return (
@@ -49,8 +74,6 @@ export function HomePage() {
       </div>
     )
   }
-
-  const topArticles = filtered.slice(0, 3)
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0.5rem 0' }}>
@@ -68,7 +91,10 @@ export function HomePage() {
               <span className="mac-count-badge">{filtered.length}</span>
             </div>
             <div className="px-2 md:px-5 grid gap-2">
-              {topArticles.map((a) => (
+              {topArticles.map((a) => {
+                const curated = "topics" in a ? (a as CuratedArticle) : null
+                const topic = curated?.topics?.[0]
+                return (
                 <button
                   key={a.id}
                   onClick={() => navigate(`/article/${a.id}`)}
@@ -83,6 +109,15 @@ export function HomePage() {
                   </div>
                   <div className="news-card-body">
                     <div className="flex items-center gap-2 mb-1.5">
+                      {topic && (
+                        <span style={{
+                          fontSize: "0.5rem", fontWeight: 600, textTransform: "uppercase",
+                          padding: "0.1rem 0.35rem", borderRadius: "4px", letterSpacing: "0.06em",
+                          background: `${TOPIC_COLORS[topic] || "#64748b"}20`,
+                          border: `1px solid ${TOPIC_COLORS[topic] || "#64748b"}40`,
+                          color: TOPIC_COLORS[topic] || "#64748b",
+                        }}>{TOPIC_LABELS[topic] || topic.toUpperCase()}</span>
+                      )}
                       <span className="mac-source">{a.source}</span>
                       {a.volatility && (
                         <span
@@ -109,7 +144,7 @@ export function HomePage() {
                     )}
                   </div>
                 </button>
-              ))}
+              )})}
             </div>
           </div>
 

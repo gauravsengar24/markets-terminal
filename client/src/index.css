@@ -312,13 +312,15 @@ html {
 .news-card-img-wrap {
   width: 120px;
   min-width: 120px;
+  min-height: 80px;
   flex-shrink: 0;
   overflow: hidden;
   position: relative;
+  align-self: stretch;
 }
 
 @media (min-width: 768px) {
-  .news-card-img-wrap { width: 160px; min-width: 160px; }
+  .news-card-img-wrap { width: 160px; min-width: 160px; min-height: 100px; }
 }
 
 .news-card-img {
