@@ -48,6 +48,26 @@ export interface MarketSnapshotResponse {
   niftyLosers: MarketPrice[]
 }
 
+export interface CuratedArticle {
+  id: string
+  title: string
+  url: string
+  source: string
+  snippet: string
+  region: string
+  publishedAt: string
+  imageUrl?: string
+  score: number
+  topics: string[]
+  reasoning: string
+}
+
+export interface CuratedBreakingNews {
+  articles: CuratedArticle[]
+  generatedAt: string
+  totalAnalyzed: number
+}
+
 export interface NewsBriefing {
   url: string
   title: string

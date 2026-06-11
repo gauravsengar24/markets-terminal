@@ -4,8 +4,9 @@ import { fileURLToPath } from "url"
 import { initCache, get, set, del } from "./cache.js"
 import { RSS_FEEDS, BREAKING_RSS_FEEDS } from "../shared/constants.js"
 import type { RssFeed } from "../shared/constants.js"
-import type { NewsArticle, BreakingNews, MarketPrice, MarketSnapshotResponse, LearningPreferences } from "../shared/types.js"
+import type { NewsArticle, BreakingNews, CuratedArticle, CuratedBreakingNews, MarketPrice, MarketSnapshotResponse, LearningPreferences } from "../shared/types.js"
 import { generateBriefing as geminiBriefing } from "./gemini-briefing.js"
+import { curateArticles } from "./curated-news.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -581,6 +582,39 @@ app.get("/api/breaking-news", async (_req, res) => {
 })
 
 // ════════════════════════════════════════════════════════════════
+//  CURATED BREAKING NEWS — AI-powered article scoring + ranking
+// ════════════════════════════════════════════════════════════════
+
+app.get("/api/breaking-news/curated", async (_req, res) => {
+  try {
+    const cached = await get<CuratedArticle[]>("news:curated")
+    if (cached) return res.json(cached)
+
+    const seen = new Set<string>()
+    const articles = await fetchRSS(BREAKING_RSS_FEEDS, seen)
+
+    const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
+    if (!valid.length) {
+      return res.status(502).json({
+        error: "No articles returned from any RSS feed",
+        detail: "Check network connectivity.",
+      })
+    }
+
+    const curated = await curateArticles(valid)
+    await set("news:curated", curated, FIVE_MIN)
+    res.json({
+      articles: curated,
+      generatedAt: new Date().toISOString(),
+      totalAnalyzed: valid.length,
+    })
+  } catch (err: any) {
+    console.error("Curated news error:", err)
+    res.status(500).json({ error: "Failed to curate breaking news" })
+  }
+})
+
+// ════════════════════════════════════════════════════════════════
 //  MERGED NEWS — all RSS feeds, no paid APIs
 // ════════════════════════════════════════════════════════════════
 
@@ -1138,6 +1172,7 @@ initCache().then(async () => {
   } catch {}
   await del("news:merged")
   await del("news:breaking")
+  await del("news:curated")
   await del("analysis:impact")
   await del("market:snapshot-v2")
   app.listen(PORT, () => {

@@ -12,6 +12,12 @@ export async function fetchBreakingNews() {
   return res.json()
 }
 
+export async function fetchCuratedBreakingNews() {
+  const res = await fetch(`${BASE}/breaking-news/curated`)
+  if (!res.ok) throw new Error(await res.text().catch(() => `Curated breaking news fetch failed: ${res.status}`))
+  return res.json()
+}
+
 export async function fetchMarketSnapshot() {
   const res = await fetch(`${BASE}/market-snapshot`)
   if (!res.ok) throw new Error(await res.text().catch(() => `Market snapshot fetch failed: ${res.status}`))
