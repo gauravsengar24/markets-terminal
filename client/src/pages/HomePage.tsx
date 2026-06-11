@@ -106,10 +106,8 @@ export function HomePage() {
                   className="news-card w-full text-left cursor-pointer"
                 >
                   <div className="news-card-img-wrap">
-                    {a.imageUrl ? (
+                    {a.imageUrl && (
                       <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/40 to-slate-800/60" />
                     )}
                   </div>
                   <div className="news-card-body">

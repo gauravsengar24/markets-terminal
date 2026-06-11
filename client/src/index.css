@@ -317,7 +317,7 @@ html {
   overflow: hidden;
   position: relative;
   align-self: stretch;
-  background: rgba(255,255,255,0.04);
+  background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(30,41,59,0.5));
 }
 
 @media (min-width: 768px) {
