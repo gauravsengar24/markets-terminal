@@ -525,8 +525,10 @@ html {
 }
 
 .home-sidebar {
-  display: none;
-  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
   flex-shrink: 0;
 }
 
@@ -538,9 +540,7 @@ html {
     padding: 0 0.75rem;
   }
   .home-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    width: 300px;
     position: sticky;
     top: 0.5rem;
   }
@@ -554,7 +554,7 @@ html {
 
 @media (min-width: 1300px) {
   .home-sidebar {
-    width: 360px;
+    width: 340px;
   }
 }
 

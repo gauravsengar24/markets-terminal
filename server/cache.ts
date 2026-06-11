@@ -35,6 +35,12 @@ export async function initCache(): Promise<void> {
 
 const memStore = new Map<string, { data: unknown; expires: number }>()
 
+export function getStaleSync<T>(key: string): { data: T; stale: boolean } | null {
+  const mem = memStore.get(key)
+  if (mem) return { data: mem.data as T, stale: Date.now() > mem.expires }
+  return null
+}
+
 export async function get<T>(key: string, ttl = 30_000): Promise<T | null> {
   const mem = memStore.get(key)
   if (mem) {

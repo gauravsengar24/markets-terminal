@@ -1,7 +1,7 @@
 import express from "express"
 import path from "path"
 import { fileURLToPath } from "url"
-import { initCache, get, set, del } from "./cache.js"
+import { initCache, get, set, del, getStaleSync } from "./cache.js"
 import { RSS_FEEDS, BREAKING_RSS_FEEDS } from "../shared/constants.js"
 import type { RssFeed } from "../shared/constants.js"
 import type { NewsArticle, BreakingNews, CuratedArticle, CuratedBreakingNews, MarketPrice, MarketSnapshotResponse, LearningPreferences } from "../shared/types.js"
@@ -177,7 +177,7 @@ function decodeEntities(text: string): string {
 async function fetchOGImage(articleUrl: string): Promise<string | undefined> {
   try {
     const resp = await fetchWithTimeout(articleUrl, {
-      timeout: 6000,
+      timeout: 4000,
       headers: {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         Accept: "text/html",
@@ -248,7 +248,7 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
       }
     } catch (_) {}
   })
-  const missingImage = articles.filter(a => !a.imageUrl).slice(0, 60)
+  const missingImage = articles.filter(a => !a.imageUrl).slice(0, 40)
   if (missingImage.length > 0) {
     await runConcurrent(missingImage, async (a) => {
       const ogUrl = await fetchOGImage(a.url)
@@ -606,8 +606,22 @@ app.get("/api/breaking-news", async (_req, res) => {
 
 app.get("/api/breaking-news/curated", async (_req, res) => {
   try {
-    const cached = await get<any>("news:curated")
-    if (cached && cached.articles) return res.json(cached)
+    const cached = await getStale<any>("news:curated")
+    if (cached) {
+      if (cached.stale && cached.data?.articles?.length) {
+        res.json(cached.data)
+        fetchRSS(BREAKING_RSS_FEEDS, new Set()).then(articles => {
+          const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
+          if (valid.length) {
+            curateArticles(valid).then(curated => {
+              set("news:curated", { articles: curated, generatedAt: new Date().toISOString(), totalAnalyzed: valid.length }, FIVE_MIN)
+            }).catch(() => {})
+          }
+        }).catch(() => {})
+        return
+      }
+      if (cached.data?.articles) return res.json(cached.data)
+    }
 
     const seen = new Set<string>()
     const articles = await fetchRSS(BREAKING_RSS_FEEDS, seen)
@@ -638,10 +652,30 @@ app.get("/api/breaking-news/curated", async (_req, res) => {
 //  MERGED NEWS — all RSS feeds, no paid APIs
 // ════════════════════════════════════════════════════════════════
 
+async function getStale<T>(key: string): Promise<{ data: T; stale: boolean } | null> {
+  return getStaleSync<T>(key) || (await (async () => {
+    const fresh = await get<T>(key)
+    return fresh ? { data: fresh, stale: false } : null
+  })())
+}
+
 app.get("/api/news", async (_req, res) => {
   try {
-    const cached = await get<NewsArticle[]>("news:merged")
-    if (cached) return res.json(cached)
+    const cached = await getStale<NewsArticle[]>("news:merged")
+    if (cached) {
+      if (cached.stale) {
+        res.json(cached.data)
+        fetchRSS(RSS_FEEDS, new Set()).then(articles => {
+          const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
+          if (valid.length) {
+            valid.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+            set("news:merged", valid, 1800_000)
+          }
+        }).catch(() => {})
+        return
+      }
+      return res.json(cached.data)
+    }
 
     const seen = new Set<string>()
     const articles = await fetchRSS(RSS_FEEDS, seen)
@@ -902,7 +936,7 @@ app.post("/api/briefing", async (req, res) => {
     if (!rawContent) {
       try {
         const resp = await fetchWithTimeout(url, {
-          timeout: 10000,
+        timeout: 8000,
           headers: {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
