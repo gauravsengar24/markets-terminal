@@ -62,7 +62,7 @@ function MoversCard({ title, items, type }: { title: string; items: MarketPrice[
               <span className="w-1 h-1 rounded-full shrink-0" style={{ background: accent, boxShadow: `0 0 4px ${accent}` }} />
               <span className="flex-1 min-w-0 text-[11px] truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{(item.name || item.symbol)}</span>
               <span className="text-right text-[11px] font-medium font-mono tabular-nums w-[72px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
-                ${item.price < 1000 ? item.price.toFixed(2) : item.price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                {item.price < 10 ? item.price.toFixed(4) : item.price < 1000 ? item.price.toFixed(2) : item.price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
               </span>
               <span className={`text-right text-[12px] font-semibold font-mono tabular-nums w-[60px] shrink-0 ${p ? "text-up" : "text-down"}`}>
                 {p ? "+" : ""}{item.changePercent.toFixed(2)}%

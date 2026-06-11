@@ -76,6 +76,11 @@ export function BreakingNewsBar({ onSelect }: Props) {
                   className="breaking-card"
                   style={{ borderLeftColor: color }}
                 >
+                  {a.imageUrl && (
+                    <div className="breaking-thumb-wrap">
+                      <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="breaking-thumb" loading="lazy" />
+                    </div>
+                  )}
                   <div className="breaking-card-body">
                     <div className="breaking-card-top">
                       <span className="breaking-tag" style={{ color, borderColor: color }}>{label}</span>
