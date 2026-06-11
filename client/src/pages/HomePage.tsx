@@ -48,6 +48,11 @@ const TOPIC_COLORS: Record<string, string> = {
 export function HomePage() {
   const navigate = useNavigate()
   const { articles, selectedImpact } = useOutletContext<LayoutContext>()
+  const handleTopStoryClick = (url: string) => {
+    const found = articles.find(a => a.url === url)
+    if (found) navigate(`/article/${found.id}`)
+    else window.open(url, "_blank", "noopener")
+  }
 
   const curated = useQuery({
     queryKey: ["breaking-news-curated"],
@@ -97,7 +102,7 @@ export function HomePage() {
                 return (
                 <button
                   key={a.id}
-                  onClick={() => navigate(`/article/${a.id}`)}
+                  onClick={() => handleTopStoryClick(a.url)}
                   className="news-card w-full text-left cursor-pointer"
                 >
                   <div className="news-card-img-wrap">

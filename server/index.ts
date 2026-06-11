@@ -177,7 +177,7 @@ function decodeEntities(text: string): string {
 async function fetchOGImage(articleUrl: string): Promise<string | undefined> {
   try {
     const resp = await fetchWithTimeout(articleUrl, {
-      timeout: 4000,
+      timeout: 6000,
       headers: {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         Accept: "text/html",
@@ -185,11 +185,19 @@ async function fetchOGImage(articleUrl: string): Promise<string | undefined> {
     })
     if (!resp.ok) return undefined
     const html = await resp.text()
-    const m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
-    if (m) return decodeEntities(m[1])
-    const img = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
-    if (img) return decodeEntities(img[1])
+    const patterns = [
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+      /<meta[^>]+property=["']og:image:secure_url["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+    ]
+    for (const p of patterns) {
+      const m = html.match(p)
+      if (m) {
+        const url = m[1]
+        if (url.startsWith("http") || url.startsWith("//")) return decodeEntities(url)
+      }
+    }
     return undefined
   } catch {
     return undefined
@@ -240,12 +248,12 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
       }
     } catch (_) {}
   })
-  const missingImage = articles.filter(a => !a.imageUrl).slice(0, 30)
+  const missingImage = articles.filter(a => !a.imageUrl).slice(0, 60)
   if (missingImage.length > 0) {
     await runConcurrent(missingImage, async (a) => {
       const ogUrl = await fetchOGImage(a.url)
       if (ogUrl) a.imageUrl = ogUrl
-    }, 3)
+    }, 5)
   }
   return articles
 }
