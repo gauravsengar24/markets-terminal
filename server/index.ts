@@ -177,29 +177,58 @@ function decodeEntities(text: string): string {
 async function fetchOGImage(articleUrl: string): Promise<string | undefined> {
   try {
     const resp = await fetchWithTimeout(articleUrl, {
-      timeout: 4000,
+      timeout: 8000,
       headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        Accept: "text/html",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
       },
+      redirect: "follow",
     })
-    if (!resp.ok) return undefined
+    if (!resp.ok) {
+      console.log(`fetchOGImage: ${resp.status} for ${articleUrl.slice(0, 80)}`)
+      return undefined
+    }
     const html = await resp.text()
     const patterns = [
       /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
       /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
       /<meta[^>]+property=["']og:image:secure_url["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image:secure_url["']/i,
+      /<meta[^>]+property=["']og:image:url["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image:url["']/i,
       /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i,
+      /<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i,
     ]
     for (const p of patterns) {
       const m = html.match(p)
       if (m) {
-        const url = m[1]
-        if (url.startsWith("http") || url.startsWith("//")) return decodeEntities(url)
+        const url = decodeEntities(m[1])
+        if (url.startsWith("http") || url.startsWith("//")) return url
       }
     }
+    const firstImg = html.match(/<img[^>]+src=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp))["'][^>]*>/i)
+    if (firstImg) {
+      const url = firstImg[1]
+      if (!url.includes("logo") && !url.includes("icon") && !url.includes("avatar") && !url.includes("spacer")) {
+        return decodeEntities(url)
+      }
+    }
+    const ldJson = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i)
+    if (ldJson) {
+      try {
+        const parsed = JSON.parse(ldJson[1])
+        const imgUrl = parsed?.image?.url || parsed?.image ||
+          (Array.isArray(parsed?.["@graph"]) ? parsed["@graph"].find((g: any) => g?.image?.url)?.image?.url : undefined)
+        if (imgUrl && typeof imgUrl === "string" && (imgUrl.startsWith("http") || imgUrl.startsWith("//"))) {
+          return decodeEntities(imgUrl)
+        }
+      } catch {}
+    }
     return undefined
-  } catch {
+  } catch (e) {
+    console.log(`fetchOGImage error: ${(e as Error)?.message?.slice(0, 60)} for ${articleUrl.slice(0, 80)}`)
     return undefined
   }
 }
