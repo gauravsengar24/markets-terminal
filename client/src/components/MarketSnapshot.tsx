@@ -177,23 +177,19 @@ export function MarketSnapshot() {
         </div>
       ) : (
         <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 200px)" }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-y md:divide-y-0 divide-[rgba(255,255,255,0.04)]">
-            <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
-              {data?.usIndices?.length ? <SectionCard title="US Indices" items={data.usIndices} /> : null}
-              {data?.europeIndices?.length ? <SectionCard title="Europe Indices" items={data.europeIndices} /> : null}
-              {data?.indiaIndices?.length ? <SectionCard title="India Indices" items={data.indiaIndices} /> : null}
-              {data?.ausIndices?.length ? <SectionCard title="Australia Indices" items={data.ausIndices} /> : null}
-              {data?.asiaIndices?.length ? <SectionCard title="Asia Indices" items={data.asiaIndices} /> : null}
-              {data?.commodities?.length ? <SectionCard title="Commodities" items={data.commodities} /> : null}
-              {data?.forex?.length ? <SectionCard title="Forex" items={data.forex} /> : null}
-            </div>
-            <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
-              {data?.crypto?.length ? <SectionCard title="Crypto" items={data.crypto} /> : null}
-              {data?.usGainers?.length ? <MoversCard title="US Top Gainers" items={data.usGainers} type="gainers" /> : null}
-              {data?.usLosers?.length ? <MoversCard title="US Top Losers" items={data.usLosers} type="losers" /> : null}
-              {data?.niftyGainers?.length ? <MoversCard title="Nifty Gainers" items={data.niftyGainers} type="gainers" /> : null}
-              {data?.niftyLosers?.length ? <MoversCard title="Nifty Losers" items={data.niftyLosers} type="losers" /> : null}
-            </div>
+          <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
+            {data?.usIndices?.length ? <SectionCard title="US Indices" items={data.usIndices} /> : null}
+            {data?.europeIndices?.length ? <SectionCard title="Europe Indices" items={data.europeIndices} /> : null}
+            {data?.indiaIndices?.length ? <SectionCard title="India Indices" items={data.indiaIndices} /> : null}
+            {data?.ausIndices?.length ? <SectionCard title="Australia Indices" items={data.ausIndices} /> : null}
+            {data?.asiaIndices?.length ? <SectionCard title="Asia Indices" items={data.asiaIndices} /> : null}
+            {data?.commodities?.length ? <SectionCard title="Commodities" items={data.commodities} /> : null}
+            {data?.forex?.length ? <SectionCard title="Forex" items={data.forex} /> : null}
+            {data?.crypto?.length ? <SectionCard title="Crypto" items={data.crypto} /> : null}
+            {data?.usGainers?.length ? <MoversCard title="US Top Gainers" items={data.usGainers} type="gainers" /> : null}
+            {data?.usLosers?.length ? <MoversCard title="US Top Losers" items={data.usLosers} type="losers" /> : null}
+            {data?.niftyGainers?.length ? <MoversCard title="Nifty Gainers" items={data.niftyGainers} type="gainers" /> : null}
+            {data?.niftyLosers?.length ? <MoversCard title="Nifty Losers" items={data.niftyLosers} type="losers" /> : null}
           </div>
         </div>
       )}
