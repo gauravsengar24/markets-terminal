@@ -1405,12 +1405,21 @@ html {
 
 /* ─── Briefing ─── */
 
-.briefing-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.4;
-  margin: 0 0 0.6rem 0;
+.briefing-section {
+  margin-bottom: 0.7rem;
+}
+.briefing-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.briefing-section-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--electric-blue);
+  margin-bottom: 0.35rem;
+  opacity: 0.8;
 }
 
 .briefing-list {
@@ -1419,7 +1428,7 @@ html {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.3rem;
 }
 
 .briefing-item {

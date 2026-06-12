@@ -70,16 +70,33 @@ export function NewsBriefing({ url, fullPage, articleTitle, source, region, impa
   }
 
   if (query.data) {
-    const d = query.data
+    const d = query.data as {
+      whatHappened?: string[]; marketContext?: string[]; keyTakeaways?: string[]; url: string
+    }
+    const wh = d.whatHappened ?? []
+    const mc = d.marketContext ?? []
+    const kt = d.keyTakeaways ?? []
     return (
       <div className={`p-3 md:p-5 ${wrapper}`}>
         <div className="mac-panel" style={{ padding: fullPage ? "1.5rem 1.75rem 1.25rem" : "1rem 1.15rem" }}>
-          <h3 className="briefing-title">{d.title}</h3>
-          <ul className="briefing-list">
-            {d.bullets.map((t: string, i: number) => (
-              <li key={i} className="briefing-item">{t}</li>
-            ))}
-          </ul>
+          {wh.length > 0 && (
+            <div className="briefing-section">
+              <div className="briefing-section-label">What Happened</div>
+              <ul className="briefing-list">{wh.map((t, i) => <li key={i} className="briefing-item">{t}</li>)}</ul>
+            </div>
+          )}
+          {mc.length > 0 && (
+            <div className="briefing-section">
+              <div className="briefing-section-label">Market Context</div>
+              <ul className="briefing-list">{mc.map((t, i) => <li key={i} className="briefing-item">{t}</li>)}</ul>
+            </div>
+          )}
+          {kt.length > 0 && (
+            <div className="briefing-section">
+              <div className="briefing-section-label">Key Takeaways</div>
+              <ul className="briefing-list">{kt.map((t, i) => <li key={i} className="briefing-item">{t}</li>)}</ul>
+            </div>
+          )}
           <div className="briefing-footer">
             <a href={d.url} target="_blank" rel="noopener noreferrer" className="action-link text-xs">
               Read full article ↗

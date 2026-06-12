@@ -758,15 +758,17 @@ function buildBriefing(title: string, content: string, url: string, snippet?: st
     /will|could|expected|forecast|outlook|next|future|ahead|plan|aim|goal|target|strategy|opportunity|risk|according|said|added|noted/i.test(s)
   const takeaways = addUnique(sentences, 3, takeawayFilter)
 
-  let bullets = [...whatHappened, ...marketCtx, ...takeaways]
-  if (!bullets.length && snippet) {
+  let wh = whatHappened
+  let mc = marketCtx
+  let tk = takeaways
+  if ((!wh.length || wh.length < 2) && snippet) {
     const mt = snippet.replace(/\$(\d+)\.(\d+)/g, "__DLR__$1__PT__$2")
-    bullets = mt.split(/[.!?]+/).filter(s => restore(s).trim().length > 20).map(s => restore(s.trim()) + ".").slice(0, 3)
+    const fallback = mt.split(/[.!?]+/).filter(s => restore(s).trim().length > 20).map(s => restore(s.trim()) + ".").slice(0, 3)
+    wh = [...wh, ...fallback]
   }
-  if (!bullets.length) bullets = [`${title}.`]
-  bullets = bullets.slice(0, 3)
+  if (!wh.length) wh = [`${title}.`]
 
-  return { url, title, bullets }
+  return { url, title, whatHappened: wh.slice(0, 3), marketContext: mc.slice(0, 2), keyTakeaways: tk.slice(0, 2) }
 }
 
 async function getLearningPreferences(): Promise<LearningPreferences> {
@@ -928,10 +930,7 @@ app.post("/api/briefing", async (req, res) => {
     if (jinaKey && rawContent) briefing = await generateAIBriefing(title, content, url)
     if (!briefing && geminiAvailable) {
       const gem = await geminiBriefing(title, fallbackSnippet || content, url)
-      if (gem) {
-        const flat = [...(gem.whatHappened || []), ...(gem.marketContext || []), ...(gem.keyTakeaways || [])].slice(0, 3)
-        briefing = { url, title, bullets: flat }
-      }
+      if (gem) briefing = { url, title, ...gem }
     }
     if (!briefing) briefing = buildBriefing(title, content || title, url, fallbackSnippet)
 
