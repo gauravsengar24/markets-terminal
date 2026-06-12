@@ -9,14 +9,16 @@ if (GEMINI_API_KEY) {
 }
 
 const TOPIC_WEIGHTS: Record<string, number> = {
+  "crypto-defi": 18,
+  "ipo": 17,
+  "crypto-regulation": 16,
   "tech-founder": 15,
-  "politics-leader": 14,
-  "war-conflict": 13,
-  "crypto-defi": 12,
-  "crypto-regulation": 11,
-  "ipo": 10,
-  "trending": 8,
+  "trending": 13,
+  "politics-leader": 8,
+  "war-conflict": 6,
 }
+
+const LOW_QUALITY_SOURCES = ["rediff.com", "u.today", "newsbtc.com", "zerohedge.com", "france24.com", "aljazeera.com"]
 
 function keywordScore(article: NewsArticle): { score: number; topics: string[]; reasoning: string } {
   const text = `${article.title} ${article.snippet}`.toLowerCase()
@@ -43,6 +45,7 @@ function keywordScore(article: NewsArticle): { score: number; topics: string[]; 
 
   if (article.snippet && article.snippet.length > 100) score += 3
   if (article.imageUrl) score += 2
+  if (article.source && LOW_QUALITY_SOURCES.includes(article.source)) score -= 10
 
   return {
     score: Math.round(score * 10) / 10,
@@ -59,8 +62,14 @@ async function geminiScoreBatch(articles: NewsArticle[]): Promise<Map<string, { 
   for (let i = 0; i < articles.length; i += batchSize) {
     const batch = articles.slice(i, i + batchSize)
     try {
-      const prompt = `You are NeuraBrain, a market intelligence AI. Score these news headlines for importance and trendiness.
-Return a JSON array of objects with: index (0-based), score (0-100), topics (array of strings like "tech-founder", "politics-leader", "war-conflict", "ipo", "crypto-defi", "crypto-regulation", "trending", "markets"), reasoning (1 sentence).
+      const prompt = `You are a markets terminal AI. Score only financial-market-relevant news (crypto, stocks, IPOs, commodities, earnings, M&A, macro, regulation). Score 0-100. Penalize generic politics, war, or entertainment news by scoring below 20. Prefer:
+- Crypto/DeFi: 80-100
+- IPOs/stock markets/earnings: 70-90  
+- Commodities/macro: 60-80
+- General business: 40-60
+- Everything else (politics, war, gossip): 0-20
+
+Return JSON array: [{"index":0,"score":45,"topics":["crypto-defi","markets"],"reasoning":"..."}]
 
 Headlines:
 ${batch.map((a, j) => `[${j}] ${a.title} (${a.source})`).join("\n")}
@@ -155,7 +164,7 @@ export async function curateArticles(articles: NewsArticle[]): Promise<CuratedAr
     if (seen.has(key)) continue
     seen.add(key)
     deduped.push(c)
-    if (deduped.length >= 40) break
+    if (deduped.length >= 60) break
   }
 
   return deduped
