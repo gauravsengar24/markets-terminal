@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Outlet, useNavigate } from "react-router-dom"
 import { fetchNews } from "../lib/api"
 import { getPersisted, setPersisted, STORAGE_KEYS } from "../lib/persist"
@@ -22,6 +22,12 @@ export function Layout() {
     refetchIntervalInBackground: true,
     staleTime: 0,
   })
+
+  const ctxRef = useMemo(() => ({
+    articles: news.data ?? [],
+    selectedImpact,
+    setSelectedImpact,
+  }), [news.data, selectedImpact, setSelectedImpact])
 
   const refresh = () => client.invalidateQueries({ queryKey: ["news"] })
 
@@ -79,7 +85,7 @@ export function Layout() {
       />
 
       <div className="flex-1 overflow-y-auto">
-        <Outlet context={{ articles: news.data ?? [], selectedImpact, setSelectedImpact }} />
+        <Outlet context={ctxRef} />
       </div>
     </div>
   )

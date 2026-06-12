@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai"
 import type { NewsArticle, CuratedArticle } from "../shared/types.js"
 import { TOPIC_KEYWORDS } from "../shared/constants.js"
+import { cleanJsonResponse } from "./util.js"
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ""
 let ai: GoogleGenAI | null = null
@@ -85,7 +86,7 @@ Return ONLY valid JSON array.`
       const text = response.text
       if (!text) continue
 
-      const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*$/gm, "").trim()
+      const cleaned = cleanJsonResponse(text)
       const parsed = JSON.parse(cleaned)
       if (!Array.isArray(parsed)) continue
 
@@ -109,7 +110,6 @@ Return ONLY valid JSON array.`
 export async function curateArticles(articles: NewsArticle[]): Promise<CuratedArticle[]> {
   if (!articles.length) return []
 
-  articles = articles.filter(a => !a.source?.includes("cnbc"))
   if (!articles.length) return []
 
   const keywordResults = new Map<string, { score: number; topics: string[]; reasoning: string }>()

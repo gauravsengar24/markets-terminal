@@ -54,7 +54,7 @@ export async function get<T>(key: string, ttl = 30_000): Promise<T | null> {
     const res = await pool.query(`SELECT value FROM cache_store WHERE key = $1 AND expires_at > NOW()`, [key])
     if (res.rows.length) {
       const data = res.rows[0].value as T
-      memStore.set(key, { data, expires: Date.now() + Math.min(ttl, 60000) })
+      memStore.set(key, { data, expires: Date.now() + Math.min(ttl, 300_000) })
       return data
     }
   } catch {}

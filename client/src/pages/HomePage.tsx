@@ -70,12 +70,22 @@ export function HomePage() {
     return result
   }, [articles, selectedImpact])
 
-  const curatedArticles = (curated.data?.articles ?? []).filter(
-    a => Date.now() - new Date(a.publishedAt).getTime() < THREE_DAYS
+  const curatedArticles = useMemo(() =>
+    (curated.data?.articles ?? []).filter(
+      a => Date.now() - new Date(a.publishedAt).getTime() < THREE_DAYS
+    ),
+    [curated.data?.articles]
   )
-  const topArticles = curatedArticles.length >= 3
-    ? [...curatedArticles].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 3)
-    : [...filtered].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 3)
+  const topArticles = useMemo(() => {
+    if (curatedArticles.length >= 3) {
+      const withTime = curatedArticles.map(a => ({ a, t: new Date(a.publishedAt).getTime() }))
+      withTime.sort((a, b) => b.t - a.t)
+      return withTime.slice(0, 3).map(({ a }) => a)
+    }
+    const withTime = filtered.map(a => ({ a, t: new Date(a.publishedAt).getTime() }))
+    withTime.sort((a, b) => b.t - a.t)
+    return withTime.slice(0, 3).map(({ a }) => a)
+  }, [curatedArticles, filtered])
 
   if (!articles.length) {
     return (

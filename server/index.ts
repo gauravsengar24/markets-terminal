@@ -7,6 +7,7 @@ import type { RssFeed } from "../shared/constants.js"
 import type { NewsArticle, BreakingNews, CuratedArticle, MarketPrice, MarketSnapshotResponse, LearningPreferences } from "../shared/types.js"
 import { generateBriefing as geminiBriefing } from "./gemini-briefing.js"
 import { curateArticles } from "./curated-news.js"
+import { cleanJsonResponse } from "./util.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -237,64 +238,7 @@ function decodeEntities(text: string): string {
     .replace(/&#\d{2,4};/g, " ")
 }
 
-async function fetchOGImage(articleUrl: string): Promise<string | undefined> {
-  try {
-    const resp = await fetchWithTimeout(articleUrl, {
-      timeout: 8000,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-      redirect: "follow",
-    })
-    if (!resp.ok) {
-      console.log(`fetchOGImage: ${resp.status} for ${articleUrl.slice(0, 80)}`)
-      return undefined
-    }
-    const html = await resp.text()
-    const patterns = [
-      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
-      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
-      /<meta[^>]+property=["']og:image:secure_url["'][^>]+content=["']([^"']+)["']/i,
-      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image:secure_url["']/i,
-      /<meta[^>]+property=["']og:image:url["'][^>]+content=["']([^"']+)["']/i,
-      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image:url["']/i,
-      /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
-      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i,
-      /<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i,
-    ]
-    for (const p of patterns) {
-      const m = html.match(p)
-      if (m) {
-        const url = decodeEntities(m[1])
-        if (url.startsWith("http") || url.startsWith("//")) return url
-      }
-    }
-    const firstImg = html.match(/<img[^>]+src=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp))["'][^>]*>/i)
-    if (firstImg) {
-      const url = firstImg[1]
-      if (!url.includes("logo") && !url.includes("icon") && !url.includes("avatar") && !url.includes("spacer")) {
-        return decodeEntities(url)
-      }
-    }
-    const ldJson = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i)
-    if (ldJson) {
-      try {
-        const parsed = JSON.parse(ldJson[1])
-        const imgUrl = parsed?.image?.url || parsed?.image ||
-          (Array.isArray(parsed?.["@graph"]) ? parsed["@graph"].find((g: any) => g?.image?.url)?.image?.url : undefined)
-        if (imgUrl && typeof imgUrl === "string" && (imgUrl.startsWith("http") || imgUrl.startsWith("//"))) {
-          return decodeEntities(imgUrl)
-        }
-      } catch {}
-    }
-    return undefined
-  } catch (e) {
-    console.log(`fetchOGImage error: ${(e as Error)?.message?.slice(0, 60)} for ${articleUrl.slice(0, 80)}`)
-    return undefined
-  }
-}
+
 
 async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticle[]> {
   const articles: NewsArticle[] = []
@@ -594,7 +538,7 @@ async function refreshMarketSnapshot(): Promise<MarketSnapshotResponse | null> {
       "EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X",
     ]
 
-    async function withFallback<T>(p: Promise<T>, fb: T): Promise<T> {
+    function withFallback<T>(p: Promise<T>, fb: T): Promise<T> {
       return Promise.race([
         p,
         new Promise<T>(r => setTimeout(() => r(fb), 10000)),
@@ -611,7 +555,8 @@ async function refreshMarketSnapshot(): Promise<MarketSnapshotResponse | null> {
     ])
 
     let combined = [...batchRaw]
-    const missingFromBatch = ALL_SYMBOLS.filter(sym => !combined.some(q => q.symbol === sym))
+    const foundSymbols = new Set(combined.map(q => q.symbol))
+    const missingFromBatch = ALL_SYMBOLS.filter(sym => !foundSymbols.has(sym))
     if (missingFromBatch.length > 0) {
       const individual = await fetchYahooIndividualFallback(missingFromBatch)
       combined = [...combined, ...individual]
@@ -892,7 +837,7 @@ Rules:
     const json = await resp.json() as any
     const text = json?.choices?.[0]?.message?.content
     if (!text) return null
-    const parsed = JSON.parse(text.replace(/```json\s*/gi, "").replace(/```\s*$/g, "").trim())
+    const parsed = JSON.parse(cleanJsonResponse(text))
     const wh = Array.isArray(parsed.whatHappened) ? parsed.whatHappened.slice(0, 5) : ["No summary available."]
     const mc = Array.isArray(parsed.marketContext) ? parsed.marketContext.slice(0, 3) : []
     const kt = Array.isArray(parsed.keyTakeaways) ? parsed.keyTakeaways.slice(0, 5) : ["More details in the full article."]

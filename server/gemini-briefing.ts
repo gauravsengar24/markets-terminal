@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai"
+import { cleanJsonResponse } from "./util.js"
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ""
 
@@ -44,7 +45,7 @@ Each bullet must be 10-30 words, specific to this news, and include relevant num
     const text = response.text
     if (!text) return null
 
-    const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*$/gm, "").trim()
+    const cleaned = cleanJsonResponse(text)
     const parsed = JSON.parse(cleaned)
 
     return {

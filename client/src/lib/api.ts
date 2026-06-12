@@ -1,5 +1,15 @@
 const BASE = "/api"
 
+async function tryParseError(res: Response): Promise<string> {
+  try {
+    const body = await res.text()
+    if (body) {
+      try { return JSON.parse(body).error || body } catch { return body }
+    }
+  } catch {}
+  return res.statusText
+}
+
 export async function fetchNews() {
   const res = await fetch(`${BASE}/news`)
   if (!res.ok) throw new Error(await res.text().catch(() => `News fetch failed: ${res.status}`))
@@ -31,9 +41,8 @@ export async function fetchBriefing(url: string, snippet?: string) {
     body: JSON.stringify({ url, snippet }),
   })
   if (!res.ok) {
-    const body = await res.text().catch(() => "")
-    const detail = body ? JSON.parse(body).error || body : res.statusText
-    throw new Error(detail)
+    const err = await tryParseError(res)
+    throw new Error(err)
   }
   return res.json()
 }
@@ -45,8 +54,8 @@ export async function fetchSummary(url: string) {
     body: JSON.stringify({ url }),
   })
   if (!res.ok) {
-    const body = await res.text().catch(() => "")
-    const detail = body ? JSON.parse(body).error || body : res.statusText
+    const err = await tryParseError(res)
+    throw new Error(err)
     throw new Error(detail)
   }
   return res.json()

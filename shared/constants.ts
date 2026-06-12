@@ -26,9 +26,10 @@ export interface RssFeed {
   subCategory: string
 }
 
+export const BLOCKED_FEED_SOURCES = ["cnbc", "zerohedge", "seekingalpha", "rediff", "u.today", "newsbtc", "aljazeera", "france24"]
+
 export const BREAKING_RSS_FEEDS: RssFeed[] = [
   { url: 'https://feeds.marketwatch.com/marketwatch/topstories', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114', region: 'USA', subCategory: 'stocks' },
   { url: 'https://finance.yahoo.com/news/rssindex', region: 'USA', subCategory: 'stocks' },
   { url: 'https://feeds.bbci.co.uk/news/business/rss.xml', region: 'Europe', subCategory: 'stocks' },
   { url: 'https://www.theguardian.com/business/stock-markets/rss', region: 'Europe', subCategory: 'stocks' },
@@ -41,9 +42,7 @@ export const BREAKING_RSS_FEEDS: RssFeed[] = [
   { url: 'https://cointelegraph.com/rss', region: 'USA', subCategory: 'crypto' },
   { url: 'https://cryptonews.com/news/feed/', region: 'USA', subCategory: 'crypto' },
   { url: 'https://news.bitcoin.com/feed/', region: 'USA', subCategory: 'crypto' },
-  { url: 'https://u.today/rss', region: 'USA', subCategory: 'crypto' },
   { url: 'https://cryptoslate.com/feed/', region: 'USA', subCategory: 'crypto' },
-  { url: 'https://www.newsbtc.com/feed/', region: 'USA', subCategory: 'crypto' },
   { url: 'https://www.investing.com/rss/news.rss', region: 'USA', subCategory: 'stocks' },
   { url: 'https://feeds.content.dowjones.io/public/rss/markets', region: 'USA', subCategory: 'stocks' },
   { url: 'https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best&best-sectors=markets-news', region: 'USA', subCategory: 'stocks' },
@@ -54,20 +53,14 @@ export const BREAKING_RSS_FEEDS: RssFeed[] = [
   { url: 'https://techcrunch.com/feed/', region: 'USA', subCategory: 'tech' },
   { url: 'https://www.theverge.com/rss/index.xml', region: 'USA', subCategory: 'tech' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml', region: 'USA', subCategory: 'tech' },
-  { url: 'https://www.zerohedge.com/rss.xml', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://seekingalpha.com/feed.xml', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://www.aljazeera.com/xml/rss/all.xml', region: 'Middle East', subCategory: 'politics' },
-  { url: 'https://www.france24.com/en/rss', region: 'Europe', subCategory: 'politics' },
-  { url: 'https://rss.dw.com/rdf/rss-en-world', region: 'Europe', subCategory: 'politics' },
-  { url: 'https://www.thehindu.com/news/feed/', region: 'India', subCategory: 'politics' },
-  { url: 'https://www.rediff.com/rss/inrss.xml', region: 'India', subCategory: 'politics' },
   { url: 'https://feeds.arstechnica.com/arstechnica/index', region: 'USA', subCategory: 'tech' },
   { url: 'https://www.wired.com/feed/rss', region: 'USA', subCategory: 'tech' },
   { url: 'https://decrypt.co/feed', region: 'USA', subCategory: 'crypto-defi' },
   { url: 'https://blockworks.co/feed', region: 'USA', subCategory: 'crypto-defi' },
   { url: 'https://fortune.com/feed', region: 'USA', subCategory: 'stocks' },
   { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', region: 'Europe', subCategory: 'politics' },
-  { url: 'https://www.cnbc.com/id/100727362/device/rss/rss.html', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://rss.dw.com/rdf/rss-en-world', region: 'Europe', subCategory: 'politics' },
+  { url: 'https://www.thehindu.com/news/feed/', region: 'India', subCategory: 'politics' },
 ]
 
 export const RSS_FEEDS: RssFeed[] = [
@@ -76,10 +69,6 @@ export const RSS_FEEDS: RssFeed[] = [
   { url: 'https://feeds.marketwatch.com/marketwatch/stocks', region: 'USA', subCategory: 'stocks' },
   { url: 'https://feeds.marketwatch.com/marketwatch/commodities', region: 'USA', subCategory: 'commodities' },
   { url: 'https://feeds.marketwatch.com/marketwatch/etfs', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000100', region: 'USA', subCategory: 'commodities' },
-  { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000671', region: 'USA', subCategory: 'stocks' },
-  { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000115', region: 'USA', subCategory: 'stocks' },
   { url: 'https://www.theguardian.com/business/economics/rss', region: 'Europe', subCategory: 'stocks' },
   { url: 'https://www.euronews.com/rss/business', region: 'Europe', subCategory: 'stocks' },
   { url: 'https://www.telegraph.co.uk/business/rss.xml', region: 'Europe', subCategory: 'stocks' },
