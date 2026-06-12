@@ -22,8 +22,8 @@ export function Layout() {
       setPersisted(STORAGE_KEYS.NEWS, data, 3_600_000)
       return data
     },
-    refetchInterval: 3_600_000,
-    staleTime: 3_600_000,
+    refetchInterval: 900_000,
+    staleTime: 900_000,
     initialData: () => getPersisted<NewsArticle[]>(STORAGE_KEYS.NEWS) ?? undefined,
   })
 

@@ -100,6 +100,9 @@ Return ONLY valid JSON array.`
 export async function curateArticles(articles: NewsArticle[]): Promise<CuratedArticle[]> {
   if (!articles.length) return []
 
+  articles = articles.filter(a => !a.source?.includes("cnbc"))
+  if (!articles.length) return []
+
   const keywordResults = new Map<string, { score: number; topics: string[]; reasoning: string }>()
   for (const a of articles) {
     keywordResults.set(a.url, keywordScore(a))

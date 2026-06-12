@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"NODE_TLS_REJECT_UNAUTHORIZED=0 tsx watch --env-file=.env server/index.ts\" \"vite\"",
-    "build": "NODE_TLS_REJECT_UNAUTHORIZED=0 vite build && NODE_TLS_REJECT_UNAUTHORIZED=0 tsc -p tsconfig.node.json",
-    "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node dist/server/index.js",
+    "dev": "concurrently \"tsx watch --env-file=.env server/index.ts\" \"vite\"",
+    "build": "vite build && tsc -p tsconfig.node.json",
+    "start": "node dist/server/index.js",
     "deploy": "npm run build && npx gh-pages -d dist/client"
   },
   "dependencies": {

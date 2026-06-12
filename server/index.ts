@@ -1,10 +1,10 @@
 import express from "express"
 import path from "path"
 import { fileURLToPath } from "url"
-import { initCache, get, set, del, getStaleSync } from "./cache.js"
-import { RSS_FEEDS, BREAKING_RSS_FEEDS } from "../shared/constants.js"
+import { initCache, get, set, del } from "./cache.js"
+import { RSS_FEEDS } from "../shared/constants.js"
 import type { RssFeed } from "../shared/constants.js"
-import type { NewsArticle, BreakingNews, CuratedArticle, CuratedBreakingNews, MarketPrice, MarketSnapshotResponse, LearningPreferences } from "../shared/types.js"
+import type { NewsArticle, BreakingNews, CuratedArticle, MarketPrice, MarketSnapshotResponse, LearningPreferences } from "../shared/types.js"
 import { generateBriefing as geminiBriefing } from "./gemini-briefing.js"
 import { curateArticles } from "./curated-news.js"
 
@@ -61,7 +61,7 @@ function detectImpactCategory(title: string, snippet: string): { impactCategory:
   return null
 }
 
-function runConcurrent<T>(items: T[], fn: (item: T) => Promise<void>, limit = 5): Promise<void> {
+function runConcurrent<T>(items: T[], fn: (item: T) => Promise<void>, limit = 15): Promise<void> {
   let i = 0
   const next = async (): Promise<void> => {
     while (i < items.length) {
@@ -92,6 +92,69 @@ const TEN_MIN = 600_000
 
 const FIVE_MIN = 300_000
 const FIFTEEN_MIN = 900_000
+
+let isRefreshing = false
+
+async function refreshAllContent(): Promise<void> {
+  if (isRefreshing) return
+  isRefreshing = true
+  const start = Date.now()
+  try {
+    console.log(`[${new Date().toISOString()}] Background refresh started...`)
+
+    const seen = new Set<string>()
+    const articles = await fetchRSS(RSS_FEEDS, seen)
+    const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
+
+    if (valid.length) {
+      valid.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      await set("news:merged", valid, FIFTEEN_MIN * 3)
+      console.log(`  ✓ News: ${valid.length} articles`)
+
+      curateArticles(valid).then(curated => {
+        set("news:curated", { articles: curated, generatedAt: new Date().toISOString(), totalAnalyzed: valid.length }, FIFTEEN_MIN * 3)
+        console.log(`  ✓ Curated: ${curated.length} articles`)
+      }).catch(e => console.error("  ✗ Curate error:", (e as Error)?.message))
+    }
+
+    const cachedNews = await get<NewsArticle[]>("news:merged")
+    if (cachedNews && cachedNews.length) {
+      const now = Date.now()
+      const counts = new Map<string, { count: number; recencySum: number }>()
+      for (const a of cachedNews) {
+        const cat = a.impactCategory
+        if (!cat) continue
+        if (!counts.has(cat)) counts.set(cat, { count: 0, recencySum: 0 })
+        const entry = counts.get(cat)!
+        entry.count++
+        const ageHours = (now - new Date(a.publishedAt).getTime()) / 3600000
+        if (ageHours < 48) entry.recencySum += Math.max(0, 1 - ageHours / 48)
+      }
+      const totalTagged = [...counts.values()].reduce((s, c) => s + c.count, 0) || 1
+      const maxCount = Math.max(...[...counts.values()].map(c => c.count), 1)
+      const categories = IMPACT_CATEGORIES_CONFIG.map((cfg) => {
+        const data = counts.get(cfg.id)
+        if (!data || data.count < 1) return { id: cfg.id, label: cfg.label, short: cfg.short, vol: cfg.vol, articleCount: 0, score: 0 }
+        const volMult = cfg.vol === "high" ? 1.3 : 1.0
+        const freq = data.count / totalTagged
+        const recencyBoost = data.recencySum / data.count
+        const dominance = data.count / maxCount
+        const raw = (freq * 50 + dominance * 30 + recencyBoost * 20) * volMult
+        const score = Math.min(98, Math.max(3, Math.round(raw)))
+        return { id: cfg.id, label: cfg.label, short: cfg.short, vol: cfg.vol, articleCount: data.count, score }
+      }).sort((a, b) => b.score - a.score)
+      await set("analysis:impact", { categories, totalArticles: cachedNews.length, generatedAt: new Date().toISOString() }, FIFTEEN_MIN * 3)
+      console.log(`  ✓ Impact analysis: ${categories.filter(c => c.score > 0).length} categories`)
+    }
+
+    refreshMarketSnapshot().catch(e => console.error("  ✗ Market snapshot error:", (e as Error)?.message))
+
+    console.log(`  ✓ Complete in ${((Date.now() - start) / 1000).toFixed(1)}s`)
+  } finally {
+    isRefreshing = false
+  }
+}
+
 function parseRSSXml(xml: string): Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> {
   const items: Array<{ title: string; link: string; description: string; pubDate: string; imageUrl?: string }> = []
   const itemRegex = /<item>([\s\S]*?)<\/item>/gi
@@ -277,13 +340,6 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
       }
     } catch (_) {}
   })
-  const missingImage = articles.filter(a => !a.imageUrl).slice(0, 40)
-  if (missingImage.length > 0) {
-    await runConcurrent(missingImage, async (a) => {
-      const ogUrl = await fetchOGImage(a.url)
-      if (ogUrl) a.imageUrl = ogUrl
-    }, 5)
-  }
   return articles
 }
 
@@ -522,11 +578,8 @@ const SYMBOL_NAMES: Record<string, string> = {
   "USDINR=X": "USD/INR",
 }
 
-app.get("/api/market-snapshot", async (_req, res) => {
+async function refreshMarketSnapshot(): Promise<MarketSnapshotResponse | null> {
   try {
-    const cached = await get<MarketSnapshotResponse>("market:snapshot-v2")
-    if (cached) return res.json(cached)
-
     const ALL_SYMBOLS = [
       "CL=F", "BZ=F", "GC=F", "SI=F", "HG=F", "PL=F",
       "^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX",
@@ -589,12 +642,19 @@ app.get("/api/market-snapshot", async (_req, res) => {
       niftyLosers: niftyLosersRaw,
     }
 
-    await set("market:snapshot-v2", response, FIVE_MIN)
-    res.json(response)
+    await set("market:snapshot-v2", response, FIFTEEN_MIN * 3)
+    return response
   } catch (err: any) {
     console.error("Market snapshot error:", err)
-    res.status(500).json({ error: "Failed to fetch market snapshot" })
+    return null
   }
+}
+
+app.get("/api/market-snapshot", async (_req, res) => {
+  const cached = await get<MarketSnapshotResponse>("market:snapshot-v2")
+  if (cached) return res.json(cached)
+  const result = await refreshMarketSnapshot()
+  res.json(result ?? { commodities: [], crypto: [], usIndices: [], europeIndices: [], indiaIndices: [], ausIndices: [], asiaIndices: [], forex: [], usGainers: [], usLosers: [], niftyGainers: [], niftyLosers: [] })
 })
 
 // ════════════════════════════════════════════════════════════════
@@ -602,31 +662,21 @@ app.get("/api/market-snapshot", async (_req, res) => {
 // ════════════════════════════════════════════════════════════════
 
 app.get("/api/breaking-news", async (_req, res) => {
-  try {
-    const cached = await get<BreakingNews[]>("news:breaking")
-    if (cached) return res.json(cached)
-
-    const seen = new Set<string>()
-    const articles = await fetchRSS(BREAKING_RSS_FEEDS, seen)
-
-    const byRegion = new Map<string, NewsArticle[]>()
-    for (const a of articles) {
-      if (!byRegion.has(a.region)) byRegion.set(a.region, [])
-      byRegion.get(a.region)!.push(a)
-    }
-
-    const result: BreakingNews[] = []
-    for (const [region, arts] of byRegion) {
-      arts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-      result.push({ region, articles: arts.slice(0, 4) })
-    }
-
-    await set("news:breaking", result, FIFTEEN_MIN)
-    res.json(result)
-  } catch (err: any) {
-    console.error("Breaking news error:", err)
-    res.status(500).json({ error: "Failed to fetch breaking news" })
+  const cached = await get<BreakingNews[]>("news:breaking")
+  if (cached) return res.json(cached)
+  const news = await get<NewsArticle[]>("news:merged")
+  if (!news || !news.length) return res.json([])
+  const byRegion = new Map<string, NewsArticle[]>()
+  for (const a of news) {
+    if (!byRegion.has(a.region)) byRegion.set(a.region, [])
+    byRegion.get(a.region)!.push(a)
   }
+  const result: BreakingNews[] = []
+  for (const [region, arts] of byRegion) {
+    arts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    result.push({ region, articles: arts.slice(0, 4) })
+  }
+  res.json(result)
 })
 
 // ════════════════════════════════════════════════════════════════
@@ -634,96 +684,24 @@ app.get("/api/breaking-news", async (_req, res) => {
 // ════════════════════════════════════════════════════════════════
 
 app.get("/api/breaking-news/curated", async (_req, res) => {
-  try {
-    const cached = await getStale<any>("news:curated")
-    if (cached) {
-      if (cached.stale && cached.data?.articles?.length) {
-        res.json(cached.data)
-        fetchRSS(BREAKING_RSS_FEEDS, new Set()).then(articles => {
-          const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
-          if (valid.length) {
-            curateArticles(valid).then(curated => {
-              set("news:curated", { articles: curated, generatedAt: new Date().toISOString(), totalAnalyzed: valid.length }, FIVE_MIN)
-            }).catch(() => {})
-          }
-        }).catch(() => {})
-        return
-      }
-      if (cached.data?.articles) return res.json(cached.data)
-    }
-
-    const seen = new Set<string>()
-    const articles = await fetchRSS(BREAKING_RSS_FEEDS, seen)
-
-    const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
-    if (!valid.length) {
-      return res.status(502).json({
-        error: "No articles returned from any RSS feed",
-        detail: "Check network connectivity.",
-      })
-    }
-
-    const curated = await curateArticles(valid)
-    const result = {
-      articles: curated,
-      generatedAt: new Date().toISOString(),
-      totalAnalyzed: valid.length,
-    }
-    await set("news:curated", result, FIVE_MIN)
-    res.json(result)
-  } catch (err: any) {
-    console.error("Curated news error:", err)
-    res.status(500).json({ error: "Failed to curate breaking news" })
-  }
+  const cached = await get<any>("news:curated")
+  if (cached) return res.json(cached)
+  const news = await get<NewsArticle[]>("news:merged")
+  if (!news || !news.length) return res.json({ articles: [], generatedAt: new Date().toISOString(), totalAnalyzed: 0 })
+  curateArticles(news).then(curated => {
+    set("news:curated", { articles: curated, generatedAt: new Date().toISOString(), totalAnalyzed: news.length }, FIFTEEN_MIN * 3)
+  }).catch(() => {})
+  res.json({ articles: [], generatedAt: new Date().toISOString(), totalAnalyzed: 0 })
 })
 
 // ════════════════════════════════════════════════════════════════
 //  MERGED NEWS — all RSS feeds, no paid APIs
 // ════════════════════════════════════════════════════════════════
 
-async function getStale<T>(key: string): Promise<{ data: T; stale: boolean } | null> {
-  return getStaleSync<T>(key) || (await (async () => {
-    const fresh = await get<T>(key)
-    return fresh ? { data: fresh, stale: false } : null
-  })())
-}
-
 app.get("/api/news", async (_req, res) => {
-  try {
-    const cached = await getStale<NewsArticle[]>("news:merged")
-    if (cached) {
-      if (cached.stale) {
-        res.json(cached.data)
-        fetchRSS(RSS_FEEDS, new Set()).then(articles => {
-          const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
-          if (valid.length) {
-            valid.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-            set("news:merged", valid, 1800_000)
-          }
-        }).catch(() => {})
-        return
-      }
-      return res.json(cached.data)
-    }
-
-    const seen = new Set<string>()
-    const articles = await fetchRSS(RSS_FEEDS, seen)
-
-    const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
-    if (!valid.length) {
-      return res.status(502).json({
-        error: "No articles returned from any RSS feed",
-        detail: "Check network connectivity.",
-      })
-    }
-
-    valid.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    await set("news:merged", valid, 1800_000)
-    res.json(valid)
-  } catch (err: any) {
-    console.error("News fetch error:", err)
-    res.status(500).json({ error: "Failed to fetch news" })
-  }
+  const cached = await get<NewsArticle[]>("news:merged")
+  if (cached) return res.json(cached)
+  res.json([])
 })
 
 // ════════════════════════════════════════════════════════════════
@@ -1153,67 +1131,9 @@ app.get("/api/learning/preferences", async (_req, res) => {
 // ════════════════════════════════════════════════════════════════
 
 app.get("/api/impact-analysis", async (_req, res) => {
-  try {
-    const cached = await get<any>("analysis:impact")
-    let articles = await get<NewsArticle[]>("news:merged")
-    
-    if (cached && articles && articles.length > 0 && cached.totalArticles === articles.length) {
-      return res.json(cached)
-    }
-
-    if (!articles || !articles.length) {
-      const seen = new Set<string>()
-      articles = await fetchRSS(RSS_FEEDS, seen)
-      const valid = articles.filter(a => a.title && a.title.trim() && a.url && a.url.trim())
-      if (valid.length) {
-        valid.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-        await set("news:merged", valid, 1800_000)
-        articles = valid
-      }
-    }
-
-    if (!articles || !articles.length) {
-      return res.json({ categories: [], totalArticles: 0 })
-    }
-
-    const now = Date.now()
-    const counts = new Map<string, { count: number; recencySum: number }>()
-    const volMap = new Map<string, string>()
-
-    for (const a of articles) {
-      const cat = a.impactCategory
-      if (!cat) continue
-      if (!counts.has(cat)) { counts.set(cat, { count: 0, recencySum: 0 }); volMap.set(cat, a.volatility || "medium") }
-      const entry = counts.get(cat)!
-      entry.count++
-      const ageHours = (now - new Date(a.publishedAt).getTime()) / 3600000
-      if (ageHours < 48) entry.recencySum += Math.max(0, 1 - ageHours / 48)
-    }
-
-    const totalTagged = [...counts.values()].reduce((s, c) => s + c.count, 0) || 1
-    const maxCount = Math.max(...[...counts.values()].map(c => c.count), 1)
-
-    const categories = IMPACT_CATEGORIES_CONFIG.map((cfg) => {
-      const data = counts.get(cfg.id)
-      if (!data || data.count < 1) {
-        return { id: cfg.id, label: cfg.label, short: cfg.short, vol: cfg.vol, articleCount: 0, score: 0 }
-      }
-      const volMult = cfg.vol === "high" ? 1.3 : 1.0
-      const freq = data.count / totalTagged
-      const recencyBoost = data.recencySum / data.count
-      const dominance = data.count / maxCount
-      const raw = (freq * 50 + dominance * 30 + recencyBoost * 20) * volMult
-      const score = Math.min(98, Math.max(3, Math.round(raw)))
-      return { id: cfg.id, label: cfg.label, short: cfg.short, vol: cfg.vol, articleCount: data.count, score }
-    }).sort((a, b) => b.score - a.score)
-
-    const result = { categories, totalArticles: articles.length, generatedAt: new Date().toISOString() }
-    await set("analysis:impact", result, FIVE_MIN)
-    res.json(result)
-  } catch (err: any) {
-    console.error("Impact analysis error:", err)
-    res.status(500).json({ error: "Failed to compute impact analysis" })
-  }
+  const cached = await get<any>("analysis:impact")
+  if (cached) return res.json(cached)
+  res.json({ categories: [], totalArticles: 0, generatedAt: new Date().toISOString() })
 })
 
 // ════════════════════════════════════════════════════════════════
@@ -1253,12 +1173,12 @@ initCache().then(async () => {
     const flushed = await flushDomainCache()
     if (flushed > 0) console.log(`Flushed ${flushed} cached briefings from blocked domains`)
   } catch {}
-  await del("news:merged")
-  await del("news:breaking")
-  await del("news:curated")
-  await del("analysis:impact")
-  await del("market:snapshot-v2")
+
   app.listen(PORT, () => {
     console.log(`Markets Terminal running on http://localhost:${PORT}`)
+  })
+
+  refreshAllContent().then(() => {
+    setInterval(() => refreshAllContent(), FIFTEEN_MIN)
   })
 })
