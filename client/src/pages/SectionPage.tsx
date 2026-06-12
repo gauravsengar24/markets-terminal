@@ -55,9 +55,10 @@ export function SectionPage() {
     return result
   }, [articles, filter, selectedImpact])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
+  const sorted = [...filtered].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE))
   const safePage = Math.min(page, totalPages)
-  const display = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE)
+  const display = sorted.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE)
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0.5rem 0' }}>

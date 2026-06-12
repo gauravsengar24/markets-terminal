@@ -36,7 +36,8 @@ function fallbackIcon(assetClass: string) {
 
 export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props) {
   const navigate = useNavigate()
-  const display = maxArticles ? articles.slice(0, maxArticles) : articles
+  const sorted = [...articles].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+  const display = maxArticles ? sorted.slice(0, maxArticles) : sorted
 
   if (!display.length) return null
 
