@@ -690,13 +690,21 @@ app.get("/api/breaking-news", async (_req, res) => {
 
 app.get("/api/breaking-news/curated", async (_req, res) => {
   const cached = await get<any>("news:curated")
-  if (cached) return res.json(cached)
+  if (cached) {
+    if (cached.generatedAt && (Date.now() - new Date(cached.generatedAt).getTime()) < 300000) {
+      return res.json(cached)
+    }
+  }
   const news = await get<NewsArticle[]>("news:merged")
   if (!news || !news.length) return res.json({ articles: [], generatedAt: new Date().toISOString(), totalAnalyzed: 0 })
-  curateArticles(news).then(curated => {
-    set("news:curated", { articles: curated, generatedAt: new Date().toISOString(), totalAnalyzed: news.length }, FIFTEEN_MIN * 3)
-  }).catch(() => {})
-  res.json({ articles: [], generatedAt: new Date().toISOString(), totalAnalyzed: 0 })
+  try {
+    const curated = await curateArticles(news)
+    const result = { articles: curated, generatedAt: new Date().toISOString(), totalAnalyzed: news.length }
+    await set("news:curated", result, FIVE_MIN * 3)
+    res.json(result)
+  } catch {
+    res.json({ articles: [], generatedAt: new Date().toISOString(), totalAnalyzed: 0 })
+  }
 })
 
 // ════════════════════════════════════════════════════════════════
@@ -1184,6 +1192,6 @@ initCache().then(async () => {
   })
 
   refreshAllContent().then(() => {
-    setInterval(() => refreshAllContent(), FIFTEEN_MIN)
+    setInterval(() => refreshAllContent(), FIVE_MIN)
   })
 })

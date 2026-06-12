@@ -40,8 +40,9 @@ export function BreakingNewsBar({ onSelect }: Props) {
   const query = useQuery({
     queryKey: ["breaking-news-curated"],
     queryFn: () => fetchCuratedBreakingNews() as Promise<CuratedBreakingNews>,
-    refetchInterval: 120_000,
-    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
   })
 
   const items = query.data?.articles ?? []

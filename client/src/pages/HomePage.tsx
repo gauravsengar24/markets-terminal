@@ -57,7 +57,7 @@ export function HomePage() {
   const curated = useQuery({
     queryKey: ["breaking-news-curated"],
     queryFn: () => fetchCuratedBreakingNews() as Promise<{ articles: CuratedArticle[] }>,
-    staleTime: 120_000,
+    staleTime: 0,
   })
 
   const filtered = useMemo(() => {

@@ -20,7 +20,8 @@ export function MarketTicker() {
       return flattenSnapshot(data)
     },
     refetchInterval: 300_000,
-    staleTime: 300_000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
   })
 
   const prices = query.data ?? []

@@ -17,21 +17,11 @@ export function Layout() {
 
   const news = useQuery({
     queryKey: ["news"],
-    queryFn: async () => {
-      const data = await fetchNews() as NewsArticle[]
-      setPersisted(STORAGE_KEYS.NEWS, data, 3_600_000)
-      return data
-    },
-    refetchInterval: 900_000,
-    staleTime: 900_000,
-    initialData: () => getPersisted<NewsArticle[]>(STORAGE_KEYS.NEWS) ?? undefined,
+    queryFn: fetchNews as () => Promise<NewsArticle[]>,
+    refetchInterval: 300_000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
   })
-
-  useEffect(() => {
-    if (news.data && !getPersisted(STORAGE_KEYS.NEWS)) {
-      setPersisted(STORAGE_KEYS.NEWS, news.data, 3_600_000)
-    }
-  }, [news.data])
 
   const refresh = () => client.invalidateQueries({ queryKey: ["news"] })
 
