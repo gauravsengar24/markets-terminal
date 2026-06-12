@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import type { NewsArticle, LayoutContext, CuratedArticle } from "@shared/types"
 import { fetchCuratedBreakingNews } from "../lib/api"
+import { decodeEntities } from "../lib/format"
 import { CryptoSection } from "../components/CryptoSection"
 import { StockSection } from "../components/StockSection"
 import { CommoditySection } from "../components/CommoditySection"
@@ -158,9 +159,9 @@ export function HomePage() {
                       )}
                       <span className="mac-meta">{fmtShort(a.publishedAt)}</span>
                     </div>
-                    <div className="news-card-title">{a.title}</div>
+                    <div className="news-card-title">{decodeEntities(a.title)}</div>
                     {a.snippet && (
-                      <div className="news-card-snippet">{a.snippet}</div>
+                      <div className="news-card-snippet">{decodeEntities(a.snippet)}</div>
                     )}
                   </div>
                 </button>

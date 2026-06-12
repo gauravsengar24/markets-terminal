@@ -1,6 +1,7 @@
 import type { NewsArticle } from "@shared/types"
 import { useNavigate } from "react-router-dom"
 import { SectionHeading } from "./SectionHeading"
+import { decodeEntities } from "../lib/format"
 
 function cleanImgUrl(url: string | undefined): string | undefined {
   if (!url) return undefined
@@ -65,9 +66,9 @@ export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props
                 <span className="mac-source">{a.source}</span>
                 <span className="mac-meta">{fmtRelative(a.publishedAt)}</span>
               </div>
-              <div className="news-card-title">{a.title}</div>
+              <div className="news-card-title">{decodeEntities(a.title)}</div>
               {a.snippet && (
-                <div className="news-card-snippet">{a.snippet}</div>
+                <div className="news-card-snippet">{decodeEntities(a.snippet)}</div>
               )}
             </div>
           </button>

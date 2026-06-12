@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { fetchCuratedBreakingNews } from "../lib/api"
 import type { CuratedArticle, CuratedBreakingNews } from "@shared/types"
+import { decodeEntities } from "../lib/format"
 
 interface Props {
   onSelect: (url: string) => void
@@ -89,7 +90,7 @@ export function BreakingNewsBar({ onSelect }: Props) {
                       <span className="breaking-time">{fmtTime(a.publishedAt)}</span>
                       <span className="breaking-source">{a.source}</span>
                     </div>
-                    <div className="breaking-card-title">{a.title}</div>
+                    <div className="breaking-card-title">{decodeEntities(a.title)}</div>
                   </div>
                 </button>
               )

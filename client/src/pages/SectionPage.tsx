@@ -3,6 +3,7 @@ import { useParams, useNavigate, useOutletContext } from "react-router-dom"
 import type { NewsArticle, LayoutContext } from "@shared/types"
 import { SectionHeading } from "../components/SectionHeading"
 import { Pagination } from "../components/Pagination"
+import { decodeEntities } from "../lib/format"
 
 const PER_PAGE = 10
 
@@ -104,9 +105,9 @@ export function SectionPage() {
                 )}
                 <span className="mac-meta">{fmtRelative(a.publishedAt)}</span>
               </div>
-              <div className="mac-title">{a.title}</div>
+              <div className="mac-title">{decodeEntities(a.title)}</div>
               {a.snippet && (
-                <div className="mac-snippet">{a.snippet}</div>
+                <div className="mac-snippet">{decodeEntities(a.snippet)}</div>
               )}
             </div>
           </button>
