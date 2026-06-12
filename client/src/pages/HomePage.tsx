@@ -66,8 +66,11 @@ export function HomePage() {
   }, [articles, selectedImpact])
 
   const curatedArticles = curated.data?.articles ?? []
-  const topArticles = curatedArticles.length >= 3
-    ? curatedArticles.slice(0, 3)
+  const sortedByFresh = [...curatedArticles].sort((a, b) =>
+    new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  )
+  const topArticles = sortedByFresh.length >= 3
+    ? sortedByFresh.slice(0, 3)
     : filtered.slice(0, 3)
 
   if (!articles.length) {

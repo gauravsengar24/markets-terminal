@@ -118,12 +118,15 @@ export async function curateArticles(articles: NewsArticle[]): Promise<CuratedAr
     let topics: string[]
     let reasoning: string
 
+    const ageHours = (Date.now() - new Date(a.publishedAt).getTime()) / 3600000
+    const recencyMult = Math.max(0.3, 1 - ageHours / 48)
+
     if (gm) {
-      finalScore = Math.round((kw.score * 0.4 + gm.score * 0.6) * 10) / 10
+      finalScore = Math.round((kw.score * 0.4 + gm.score * 0.6) * recencyMult * 10) / 10
       topics = [...new Set([...kw.topics, ...gm.topics])]
       reasoning = `AI: ${gm.reasoning} | Keywords: ${kw.reasoning}`
     } else {
-      finalScore = kw.score
+      finalScore = Math.round(kw.score * recencyMult * 10) / 10
       topics = kw.topics
       reasoning = kw.reasoning
     }
