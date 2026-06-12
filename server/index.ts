@@ -316,6 +316,11 @@ async function fetchRSS(feeds: RssFeed[], seen: Set<string>): Promise<NewsArticl
         const snippet = rawSnippet.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim().slice(0, 280)
         const cleanTitle = decodeEntities(item.title).replace(/<[^>]+>/g, "").replace(/^(\d+[hd] ago\s*)/i, "").trim()
         if (!cleanTitle || cleanTitle.length < 10) continue
+        const pubDate = item.pubDate ? new Date(item.pubDate) : null
+        if (pubDate && !isNaN(pubDate.getTime())) {
+          const ageHours = (Date.now() - pubDate.getTime()) / 3600000
+          if (ageHours > 72 || ageHours < -1) continue
+        }
         const lowerUrl = url.toLowerCase()
         if (/seekingalpha|seeking.?alpha|etfreplay|barrons\.com|investopedia\.com|fool\.com|zacks|kiplinger/i.test(lowerUrl)) continue
         const alphaRatio = (snippet.match(/[a-zA-Z]/g) || []).length / (snippet.length || 1)
