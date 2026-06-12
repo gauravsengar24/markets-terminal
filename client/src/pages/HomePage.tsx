@@ -54,6 +54,8 @@ export function HomePage() {
     else window.open(url, "_blank", "noopener")
   }
 
+  const THREE_DAYS = 72 * 60 * 60 * 1000
+
   const curated = useQuery({
     queryKey: ["breaking-news-curated"],
     queryFn: () => fetchCuratedBreakingNews() as Promise<{ articles: CuratedArticle[] }>,
@@ -61,13 +63,18 @@ export function HomePage() {
   })
 
   const filtered = useMemo(() => {
-    if (selectedImpact === "all") return articles
-    return articles.filter(a => a.impactCategory === selectedImpact)
+    let result = articles.filter(a => Date.now() - new Date(a.publishedAt).getTime() < THREE_DAYS)
+    if (selectedImpact !== "all") {
+      result = result.filter(a => a.impactCategory === selectedImpact)
+    }
+    return result
   }, [articles, selectedImpact])
 
-  const curatedArticles = curated.data?.articles ?? []
+  const curatedArticles = (curated.data?.articles ?? []).filter(
+    a => Date.now() - new Date(a.publishedAt).getTime() < THREE_DAYS
+  )
   const topArticles = curatedArticles.length >= 3
-    ? curatedArticles.slice(0, 3)
+    ? [...curatedArticles].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 3)
     : [...filtered].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 3)
 
   if (!articles.length) {

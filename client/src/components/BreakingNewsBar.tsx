@@ -45,7 +45,8 @@ export function BreakingNewsBar({ onSelect }: Props) {
     staleTime: 0,
   })
 
-  const items = query.data?.articles ?? []
+  const THREE_DAYS = 72 * 60 * 60 * 1000
+  const items = (query.data?.articles ?? []).filter(a => Date.now() - new Date(a.publishedAt).getTime() < THREE_DAYS)
   if (!items.length) return null
 
   const duplicated = [...items, ...items, ...items]

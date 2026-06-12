@@ -47,8 +47,10 @@ export function SectionPage() {
   const filter = SECTION_FILTERS[section ?? ""]
   const label = SECTION_LABELS[section ?? ""] ?? "News"
 
+  const THREE_DAYS = 72 * 60 * 60 * 1000
   const filtered = useMemo(() => {
     let result = filter ? articles.filter(filter) : []
+    result = result.filter(a => Date.now() - new Date(a.publishedAt).getTime() < THREE_DAYS)
     if (selectedImpact !== "all") {
       result = result.filter(a => a.impactCategory === selectedImpact)
     }
