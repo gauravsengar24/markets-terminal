@@ -36,7 +36,7 @@ export function ArticlePage() {
 
       <div className="mac-panel" style={{ padding: "1.25rem", marginBottom: "0.75rem" }}>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span className="mac-source" style={{ fontSize: "0.65rem" }}>{article.source}</span>
+          <span className="mac-source">{article.source}</span>
           {article.volatility && (
             <span style={{
               fontSize: "0.5rem", fontWeight: 600, textTransform: "uppercase",

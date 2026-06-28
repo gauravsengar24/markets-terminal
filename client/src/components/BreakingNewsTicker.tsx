@@ -17,13 +17,20 @@ export function BreakingNewsTicker() {
   const duplicated = [...tiles, ...tiles]
 
   return (
-    <div className="bg-background/90 border-b border-border relative overflow-hidden">
-      <div className="flex items-center gap-2.5 max-w-[1400px] mx-auto px-3 py-1.5">
+    <div style={{
+      background: "rgba(8,8,15,0.5)",
+      backdropFilter: "var(--glass-blur)",
+      WebkitBackdropFilter: "var(--glass-blur)",
+      borderBottom: "1px solid var(--glass-border)",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <div className="flex items-center gap-2.5" style={{ maxWidth: "1400px", margin: "0 auto", padding: "0.375rem 0.75rem" }}>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="block w-1.5 h-1.5 rounded-full bg-down animate-blink shadow-[0_0_6px_rgba(239,68,68,0.6)]" />
-          <span className="text-[11px] font-bold tracking-widest text-down whitespace-nowrap">BREAKING</span>
+          <span className="block w-1.5 h-1.5 rounded-full animate-blink" style={{ background: "var(--color-negative)", boxShadow: "0 0 6px rgba(239,68,68,0.6)" }} />
+          <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "var(--color-negative)", whiteSpace: "nowrap" }}>BREAKING</span>
         </div>
-        <div className="flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_2%_98%,transparent)]">
+        <div className="flex-1 overflow-hidden" style={{ maskImage: "linear-gradient(90deg,transparent,#000 2% 98%,transparent)", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 2% 98%,transparent)" }}>
           <div className="flex gap-2 w-max marquee-cards">
             {duplicated.map((a, i) => (
               <a
@@ -31,25 +38,31 @@ export function BreakingNewsTicker() {
                 href={a.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex gap-2.5 items-center w-60 min-w-60 h-[68px] p-2 bg-card border border-border/60 rounded-lg no-underline transition-all duration-200 cursor-pointer shrink-0 hover:border-border hover:bg-card/80 hover:-translate-y-px"
+                className="flex gap-2.5 items-center w-60 min-w-60 h-[68px] p-2 rounded-lg no-underline transition-all duration-200 cursor-pointer shrink-0"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid var(--glass-border)",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--glass-border-hover)"; e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.transform = "translateY(-1px)" }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--glass-border)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.transform = "translateY(0)" }}
               >
-                <div className="w-12 h-12 min-w-12 rounded-md overflow-hidden bg-muted shrink-0">
+                <div className="w-12 h-12 min-w-12 rounded-md overflow-hidden shrink-0" style={{ background: "rgba(255,255,255,0.03)" }}>
                   {a.imageUrl ? (
                     <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="w-full h-full object-cover" loading="lazy" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20" />
+                    <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, rgba(96,205,255,0.2), rgba(180,140,255,0.2))" }} />
                   )}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="flex items-center gap-0.5 text-[9px] font-bold text-down tracking-wider whitespace-nowrap">
-                      <span className="block w-1 h-1 rounded-full bg-down animate-blink" />
+                    <span className="flex items-center gap-0.5 whitespace-nowrap" style={{ fontSize: "9px", fontWeight: 700, color: "var(--color-negative)", letterSpacing: "0.08em" }}>
+                      <span className="block w-1 h-1 rounded-full" style={{ background: "var(--color-negative)", animation: "ticker-blink 1.2s ease-in-out infinite" }} />
                       LIVE
                     </span>
-                    <span className="text-[9px] text-muted-foreground whitespace-nowrap">{a.source}</span>
-                    <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap">{fmtTime(a.publishedAt)}</span>
+                    <span style={{ fontSize: "9px", color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>{a.source}</span>
+                    <span style={{ fontSize: "9px", color: "var(--text-tertiary)", opacity: 0.6, whiteSpace: "nowrap" }}>{fmtTime(a.publishedAt)}</span>
                   </div>
-                  <div className="text-[11px] text-foreground font-medium leading-tight line-clamp-2">{a.title}</div>
+                  <div style={{ fontSize: "11px", color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{a.title}</div>
                 </div>
               </a>
             ))}

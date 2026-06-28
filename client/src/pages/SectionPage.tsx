@@ -71,20 +71,19 @@ export function SectionPage() {
           <button
             key={a.id}
             onClick={() => navigate(`/article/${a.id}`)}
-            className="mac-card w-full text-left cursor-pointer"
-            style={{ display: "flex", alignItems: "stretch" }}
+            className="news-card w-full text-left cursor-pointer"
           >
-            <div style={{ width: 72, minWidth: 72, height: 72, borderRadius: 8, overflow: "hidden", flexShrink: 0, position: "relative", margin: "0.65rem 0 0.65rem 0.75rem" }}>
+            <div className="news-card-img-wrap" style={{ width: 72, minWidth: 72, height: 72 }}>
               {a.imageUrl ? (
-                <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} loading="lazy" />
+                <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
               ) : (
-                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: FALLBACK_COLORS[a.assetClass] ?? "#64748b" }}>
-                  <span style={{ fontSize: 18, opacity: 0.6, color: "rgba(255,255,255,0.8)" }}>{fallbackIcon(a.assetClass)}</span>
+                <div className="news-card-fallback" style={{ background: FALLBACK_COLORS[a.assetClass] ?? "#64748b" }}>
+                  <span className="news-card-fallback-icon">{fallbackIcon(a.assetClass)}</span>
                 </div>
               )}
             </div>
-            <div className="mac-card-body" style={{ flex: 1, minWidth: 0, padding: "0.65rem 0.75rem" }}>
-              <div className="flex items-center gap-2 mb-1.5">
+            <div className="news-card-body">
+              <div className="flex items-center gap-2 mb-1">
                 <span className="mac-source">{a.source}</span>
                 {a.volatility && (
                   <span
@@ -105,9 +104,9 @@ export function SectionPage() {
                 )}
                 <span className="mac-meta">{fmtRelative(a.publishedAt)}</span>
               </div>
-              <div className="mac-title">{decodeEntities(a.title)}</div>
+              <div className="news-card-title">{decodeEntities(a.title)}</div>
               {a.snippet && (
-                <div className="mac-snippet">{decodeEntities(a.snippet)}</div>
+                <div className="news-card-snippet">{decodeEntities(a.snippet)}</div>
               )}
             </div>
           </button>

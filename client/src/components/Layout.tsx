@@ -1,15 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Outlet, useNavigate, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { fetchNews } from "../lib/api"
-import { getPersisted, setPersisted, STORAGE_KEYS } from "../lib/persist"
 import type { NewsArticle } from "@shared/types"
 import { BreakingNewsBar } from "./BreakingNewsBar"
 import { MarketTicker } from "./MarketTicker"
 import { LastUpdated } from "./LastUpdated"
 import { ImpactFilterBar } from "./ImpactFilterBar"
-
+import { ParticleField } from "./ParticleField"
 
 export function Layout() {
   const navigate = useNavigate()
@@ -40,8 +39,10 @@ export function Layout() {
   }
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--oled-black)' }}>
-      <div className="glass-nav shrink-0 z-10">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--oled-black)', position: 'relative' }}>
+      <ParticleField />
+
+      <div className="glass-nav shrink-0 z-20 sticky top-0">
         <div className="flex items-center justify-between px-4 md:px-5 py-2.5 md:py-3">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 mr-1">
@@ -86,7 +87,7 @@ export function Layout() {
         articles={news.data ?? []}
       />
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
