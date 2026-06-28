@@ -37,7 +37,7 @@ export const BREAKING_RSS_FEEDS: RssFeed[] = [
   { url: 'https://www3.nhk.or.jp/rss/news/cat4.xml', region: 'Japan', subCategory: 'stocks' },
   { url: 'https://www.chinadaily.com.cn/rss/business_news.rss', region: 'China', subCategory: 'stocks' },
   { url: 'https://www.abc.net.au/news/feed/51260/rss.xml', region: 'Australia', subCategory: 'stocks' },
-  { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', region: 'USA', subCategory: 'crypto' },
+  { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml', region: 'USA', subCategory: 'crypto' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', region: 'USA', subCategory: 'stocks' },
   { url: 'https://cointelegraph.com/rss', region: 'USA', subCategory: 'crypto' },
   { url: 'https://cryptonews.com/news/feed/', region: 'USA', subCategory: 'crypto' },
@@ -61,6 +61,12 @@ export const BREAKING_RSS_FEEDS: RssFeed[] = [
   { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', region: 'Europe', subCategory: 'politics' },
   { url: 'https://rss.dw.com/rdf/rss-en-world', region: 'Europe', subCategory: 'politics' },
   { url: 'https://www.thehindu.com/news/feed/', region: 'India', subCategory: 'politics' },
+  { url: 'https://thedefiant.io/feed/', region: 'USA', subCategory: 'crypto-defi' },
+  { url: 'https://cryptopotato.com/feed/', region: 'USA', subCategory: 'crypto' },
+  { url: 'https://smartliquidity.info/feed/', region: 'USA', subCategory: 'crypto-defi' },
+  { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://time.com/nextadvisor/feed/', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://benjaminion.xyz/newineth2/rss_feed.xml', region: 'Europe', subCategory: 'crypto-defi' },
 ]
 
 export const RSS_FEEDS: RssFeed[] = [

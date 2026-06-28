@@ -1,26 +1,61 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import type { MarketPrice, MarketSnapshotResponse } from "@shared/types"
 
 function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
   const positive = changePercent >= 0
   const displayName = name || symbol
+  const prevRef = useRef(price)
+  const [flash, setFlash] = useState<"up" | "down" | null>(null)
+
+  useEffect(() => {
+    if (prevRef.current !== price) {
+      setFlash(price > prevRef.current ? "up" : "down")
+      prevRef.current = price
+      const t = setTimeout(() => setFlash(null), 800)
+      return () => clearTimeout(t)
+    }
+  }, [price])
+
   return (
-    <div
+    <motion.div
       className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap"
       style={{
-        transition: "all 0.2s cubic-bezier(.16,1,.3,1)",
+        position: "relative",
+        transition: "background 0.2s cubic-bezier(.16,1,.3,1)",
       }}
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
     >
+      {flash && (
+        <motion.div
+          initial={{ opacity: 0.5 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{
+            position: "absolute", inset: 0, borderRadius: "6px",
+            background: flash === "up"
+              ? "rgba(34,197,94,0.15)"
+              : "rgba(239,68,68,0.15)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
       <span className="flex-1 min-w-[90px] text-xs truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{displayName}</span>
-      <span className="text-right text-xs font-medium font-mono tabular-nums w-[80px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
+      <motion.span
+        key={`${symbol}-${price}`}
+        initial={{ scale: 1.15 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        className="text-right text-xs font-medium font-mono tabular-nums w-[80px] shrink-0"
+        style={{ color: "rgba(255,255,255,0.85)" }}
+      >
         {price < 10 ? price.toFixed(4) : price < 1000 ? price.toFixed(2) : price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-      </span>
+      </motion.span>
       <span className={`text-right text-[13px] font-semibold font-mono tabular-nums w-[68px] shrink-0 ${positive ? "text-up" : "text-down"}`}>
         {positive ? "+" : ""}{changePercent.toFixed(2)}%
       </span>
-    </div>
+    </motion.div>
   )
 }
 

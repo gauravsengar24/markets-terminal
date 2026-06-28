@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 import { fetchCuratedBreakingNews } from "../lib/api"
 import type { CuratedArticle, CuratedBreakingNews } from "@shared/types"
 import { decodeEntities } from "../lib/format"
@@ -73,8 +74,13 @@ export function BreakingNewsBar({ onSelect }: Props) {
               const color = TOPIC_COLORS[topic] || "var(--glass-border)"
               const label = TOPIC_LABELS[topic] || topic.toUpperCase()
               return (
-                <button
+                <motion.button
                   key={`${a.id}-${i}`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: (i % items.length) * 0.03, ease: [0.16, 1, 0.3, 1] }}
+                  whileHover={{ scale: 1.02, y: -1 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => handleClick(a.url)}
                   className="breaking-card"
                   style={{ borderLeftColor: color }}
@@ -92,7 +98,7 @@ export function BreakingNewsBar({ onSelect }: Props) {
                     </div>
                     <div className="breaking-card-title">{decodeEntities(a.title)}</div>
                   </div>
-                </button>
+                </motion.button>
               )
             })}
           </div>

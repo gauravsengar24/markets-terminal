@@ -74,6 +74,38 @@ export interface NewsBriefing {
   bullets: string[]
 }
 
+export interface DataPoint {
+  fact: string
+  source: string
+  confidence: "high" | "medium" | "low"
+}
+
+export interface ArticleCrossReference {
+  source: string
+  url: string
+  title: string
+  snippet: string
+  similarity: number
+}
+
+export interface CrossReferenceEntry {
+  source: string
+  url: string
+  keyPoints: string[]
+}
+
+export interface FullArticleResponse {
+  url: string
+  title: string
+  source: string
+  publishedAt: string
+  summary: string
+  fullContent: string
+  keyDataPoints: DataPoint[]
+  crossReferences: CrossReferenceEntry[]
+  verificationNotes: string
+}
+
 export interface LearningPreferences {
   totalFeedback: number
   totalUp: number

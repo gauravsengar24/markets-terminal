@@ -34,6 +34,19 @@ export async function fetchMarketSnapshot() {
   return res.json()
 }
 
+export async function fetchFullArticle(url: string, snippet?: string) {
+  const res = await fetch(`${BASE}/article`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, snippet }),
+  })
+  if (!res.ok) {
+    const err = await tryParseError(res)
+    throw new Error(err)
+  }
+  return res.json()
+}
+
 export async function fetchBriefing(url: string, snippet?: string) {
   const res = await fetch(`${BASE}/briefing`, {
     method: "POST",
@@ -56,7 +69,6 @@ export async function fetchSummary(url: string) {
   if (!res.ok) {
     const err = await tryParseError(res)
     throw new Error(err)
-    throw new Error(detail)
   }
   return res.json()
 }

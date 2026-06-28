@@ -1,5 +1,6 @@
 import type { NewsArticle } from "@shared/types"
 import { useNavigate } from "react-router-dom"
+import { motion } from "framer-motion"
 import { SectionHeading } from "./SectionHeading"
 import { decodeEntities } from "../lib/format"
 
@@ -45,10 +46,20 @@ export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props
   return (
     <div className="mb-4 md:mb-5 mac-section">
       <SectionHeading count={articles.length}>{title}</SectionHeading>
-      <div className="px-2 md:px-5 grid gap-1.5 md:gap-2.5">
+      <motion.div
+        className="px-2 md:px-5 grid gap-1.5 md:gap-2.5"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-50px" }}
+        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+      >
         {display.map((a, i) => (
-          <button
+          <motion.button
             key={a.id}
+            variants={{
+              hidden: { opacity: 0, y: 20, scale: 0.97 },
+              visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+            }}
             onClick={() => navigate(`/article/${a.id}`)}
             className="news-card w-full text-left cursor-pointer"
           >
@@ -71,9 +82,9 @@ export function NewsSection({ title, articles, maxArticles, viewAllLink }: Props
                 <div className="news-card-snippet">{decodeEntities(a.snippet)}</div>
               )}
             </div>
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
       {viewAllLink && articles.length > (maxArticles ?? Infinity) && (
         <div className="px-3 md:px-5 mt-2.5">
           <button

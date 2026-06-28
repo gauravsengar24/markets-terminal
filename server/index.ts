@@ -4,10 +4,9 @@ import { fileURLToPath } from "url"
 import { initCache, get, set, del } from "./cache.js"
 import { RSS_FEEDS } from "../shared/constants.js"
 import type { RssFeed } from "../shared/constants.js"
-import type { NewsArticle, BreakingNews, CuratedArticle, MarketPrice, MarketSnapshotResponse, LearningPreferences } from "../shared/types.js"
-import { generateBriefing as geminiBriefing } from "./gemini-briefing.js"
+import type { NewsArticle, BreakingNews, CuratedArticle, MarketPrice, MarketSnapshotResponse, LearningPreferences, FullArticleResponse } from "../shared/types.js"
 import { curateArticles } from "./curated-news.js"
-import { cleanJsonResponse } from "./util.js"
+import { getFullArticle } from "./full-article.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -660,116 +659,8 @@ app.get("/api/news", async (_req, res) => {
 })
 
 // ════════════════════════════════════════════════════════════════
-//  BRIEFING
+//  LEARNING PREFERENCES
 // ════════════════════════════════════════════════════════════════
-
-function cleanArticleContent(raw: string): string {
-  let text = raw
-  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-  text = text.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
-  text = text.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
-  text = text.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
-  text = text.replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "")
-  text = text.replace(/!\[.*?\]\(.*?\)/g, "")
-  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-  text = text.replace(/<[^>]+>/g, "")
-  text = text.replace(/\{[^{}]*"@context"[^{}]*\}[^{}]*\}/g, "")
-  text = text.replace(/\{[^}]*\}/g, "")
-  text = text.replace(/https?:\/\/\S+/g, "")
-  text = text.replace(/&#?\w+;/g, (m) => {
-    const entities: Record<string, string> = { "&#x27;": "'", "&#39;": "'", "&apos;": "'", "&amp;": "&", "&quot;": '"', "&#34;": '"', "&lt;": "<", "&#60;": "<", "&gt;": ">", "&#62;": ">", "&nbsp;": " ", "&#8217;": "'", "&#8216;": "'", "&#8220;": '"', "&#8221;": '"', "&#8211;": "-", "&#8212;": "-", "&ndash;": "-", "&mdash;": "-", "&hellip;": "...", "&rsquo;": "'", "&lsquo;": "'", "&ldquo;": '"', "&rdquo;": '"', "&bull;": " * ", "&middot;": " * " }
-    return entities[m.toLowerCase()] || m
-  })
-  text = text.replace(/ShareSaveAdd.*?(?=[A-Z]|$)/g, "")
-  text = text.replace(/ShareSavePlay.*?(?=[A-Z]|$)/gi, "")
-  text = text.replace(/FollowFollow\d*/g, "")
-  text = text.replace(/Followers?\d*/gi, "")
-  text = text.replace(/(\d+\s*)?(min|hr|hrs|sec)\s*(read|play|ago)/gi, "")
-  text = text.replace(/Summary/i, "")
-  text = text.replace(/Comments?\d*/gi, "")
-  text = text.replace(/\b\d+\s*(m|h|min)\s*ago\b/gi, "")
-  text = text.replace(/Getty Images/i, "")
-  text = text.replace(/Reuters\s*/gi, "")
-  text = text.replace(/\b[A-Z][a-z]+ [A-Z][a-z]+[A-Z][a-z]+\b/g, "")
-  text = text.replace(/([a-zA-Z])\d{2,}(?=[A-Za-z])/g, "$1 ") // "Management53Follow" → "Management Follow"
-  text = text.replace(/([a-zA-Z])\d{2,}(?=\s|$)/g, "$1") // "Management53" → "Management"
-  text = text.replace(/\(?(\d+min)\)/gi, "") // "(5min)" or "5min)"
-  text = text.replace(/\)(?=[A-Z][a-z])/g, ") ") // ")T" → ") T"
-  text = text.replace(/\s{2,}/g, " ")
-  text = text.replace(/^.*?(?=[A-Z][a-z]{4,}\s)/, "") // strip leading junk before a real word
-  text = text.split("\n")
-    .map(l => l.trim())
-    .filter(l => {
-      if (!l) return false
-      const alpha = (l.match(/[a-zA-Z]/g) || []).length
-      if (alpha < 7) return false
-      if (alpha < l.length * 0.25) return false
-      if (/^(just now|earlier|minutes? ago|hours? ago|today|yesterday|reuters|ap news|bbc news|cnn|the guardian|the .+post)$/i.test(l)) return false
-      if (/^[A-Z][a-z]+ [A-Z][a-z]+$/i.test(l) && alpha === l.replace(/\s/g, "").length) return false
-      if (/^(by|from|in|at|on|updated|published|posted|share|save|add)/i.test(l)) return false
-      return true
-    }).join(" ")
-  text = text.replace(/\s+/g, " ").trim()
-  return text.slice(0, 6000)
-}
-
-function buildBriefing(title: string, content: string, url: string, snippet?: string) {
-  const textWithMarkers = content.replace(/\$(\d+)\.(\d+)/g, "__DLR__$1__PT__$2")
-  const sentences = textWithMarkers.split(/[.!?]+(?:\s|$)/).filter(s => {
-    const t = s.trim().replace(/__DLR__/g, "$").replace(/__PT__/g, ".")
-    if (t.length < 25 || t.length > 600) return false
-    if (/^[{\["]/.test(t)) return false
-    if ((t.match(/[a-zA-Z]/g) || []).length < t.length * 0.35) return false
-    if (/(seeking alpha|disclaimer|this account|not managed|not monitored|follow us|subscribe|sign up|all rights reserved|terms of service|privacy policy|past performance|investment advice|for informational|nomura asset|form 144|form def)/i.test(t)) return false
-    if (t.split(/\s+/).length < 5) return false
-    if (/^\d/.test(t.trim())) return false
-    return true
-  })
-
-  const restore = (s: string) => s.replace(/__DLR__/g, "$").replace(/__PT__/g, ".")
-
-  const used = new Set<string>()
-  function addUnique(arr: string[], max: number, filter?: (s: string) => boolean): string[] {
-    const result: string[] = []
-    for (const s of arr) {
-      if (result.length >= max) break
-      const restored = restore(s.trim())
-      const deduped = restored + "."
-      if (used.has(deduped)) continue
-      if (filter && !filter(restored)) continue
-      used.add(deduped)
-      result.push(deduped)
-    }
-    return result
-  }
-
-  const makeFallback = (text: string) => {
-    const mt = text.replace(/\$(\d+)\.(\d+)/g, "__DLR__$1__PT__$2")
-    const parts = mt.split(/[.!?]+/).filter(s => s.trim().length > 15)
-    return addUnique(parts, 3)
-  }
-
-  const whatHappened = addUnique(sentences, 2)
-  const marketCtx = addUnique(sentences, 2, s =>
-    /market|price|percent|dollar|billion|million|index|share|economy|trade|growth|inflation|rate|fed|central bank|impact|revenue|profit|loss|volatile|surge|decline|fell|rose/i.test(s)
-  )
-  const takeawayFilter = (s: string) =>
-    /will|could|expected|forecast|outlook|next|future|ahead|plan|aim|goal|target|strategy|opportunity|risk|according|said|added|noted/i.test(s)
-  const takeaways = addUnique(sentences, 3, takeawayFilter)
-
-  let wh = whatHappened
-  let mc = marketCtx
-  let tk = takeaways
-  if ((!wh.length || wh.length < 2) && snippet) {
-    const mt = snippet.replace(/\$(\d+)\.(\d+)/g, "__DLR__$1__PT__$2")
-    const fallback = mt.split(/[.!?]+/).filter(s => restore(s).trim().length > 20).map(s => restore(s.trim()) + ".").slice(0, 3)
-    wh = [...wh, ...fallback]
-  }
-  if (!wh.length) wh = [`${title}.`]
-
-  return { url, title, whatHappened: wh.slice(0, 3), marketContext: mc.slice(0, 2), keyTakeaways: tk.slice(0, 2) }
-}
 
 async function getLearningPreferences(): Promise<LearningPreferences> {
   const empty = { totalFeedback: 0, totalUp: 0, totalDown: 0, preferredStyle: "bullet" as const, topSources: [], topCategories: [] }
@@ -790,152 +681,60 @@ async function getLearningPreferences(): Promise<LearningPreferences> {
   }
 }
 
-async function generateAIBriefing(title: string, content: string, url: string): Promise<any | null> {
-  const jinaKey = process.env.JINA_API_KEY
-  if (!jinaKey) return null
+app.post("/api/article", async (req, res) => {
   try {
-    const learning = await getLearningPreferences()
-    const learningHint = learning.totalFeedback > 10
-      ? `\nUser feedback so far: ${learning.totalUp} up, ${learning.totalDown} down. Top categories: ${learning.topCategories.slice(0, 3).join(", ")}. Focus on clear, concise bullet points that match what users found helpful.`
-      : ""
+    const { url, snippet } = req.body
+    if (!url) return res.status(400).json({ error: "url required" })
 
-    const resp = await fetchWithTimeout("https://api.jina.ai/v1/chat/completions", {
-      method: "POST",
-      timeout: 30000,
-      headers: {
-        Authorization: `Bearer ${jinaKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "jina-deepsearch-v1",
-        messages: [
-          {
-            role: "system",
-            content: `You are NeuraBrain, a self-learning financial AI that generates precise article briefings. Always respond in JSON with three keys:
+    const cached = await get<FullArticleResponse>(`article:${url}`)
+    if (cached) return res.json(cached)
 
-- whatHappened: array of 3-4 bullet point strings summarizing what happened
-- marketContext: array of 1-2 bullet point strings with market/financial context (empty array if none)
-- keyTakeaways: array of 3-5 bullet point strings with forward-looking implications
+    const article = await getFullArticle(url, snippet)
 
-Rules:
-- EVERY field must be an array of strings (bullet points). Never use paragraphs.
-- Each bullet point should be a complete, concise sentence.
-- marketContext must be empty array [] if the article has no clear market impact.
-- Do not fabricate data. Use only what is in the article.
-- CRITICAL: Never repeat the same information across sections. whatHappened, marketContext, and keyTakeaways must all contain distinct content.${learningHint}`,
-          },
-          {
-            role: "user",
-            content: `Title: ${title}\n\nArticle:\n${content.slice(0, 8000)}`,
-          },
-        ],
-        temperature: 0.1,
-      }),
-    })
-    if (!resp.ok) return null
-    const json = await resp.json() as any
-    const text = json?.choices?.[0]?.message?.content
-    if (!text) return null
-    const parsed = JSON.parse(cleanJsonResponse(text))
-    const wh = Array.isArray(parsed.whatHappened) ? parsed.whatHappened.slice(0, 5) : ["No summary available."]
-    const mc = Array.isArray(parsed.marketContext) ? parsed.marketContext.slice(0, 3) : []
-    const kt = Array.isArray(parsed.keyTakeaways) ? parsed.keyTakeaways.slice(0, 5) : ["More details in the full article."]
-    return { url, title, whatHappened: wh, marketContext: mc, keyTakeaways: kt }
-  } catch {
-    return null
+    await set(`article:${url}`, article, TEN_MIN)
+    res.json(article)
+  } catch (err) {
+    console.error("Full article error:", err)
+    res.status(500).json({ error: "Failed to generate full article" })
   }
-}
+})
 
 app.post("/api/briefing", async (req, res) => {
   try {
     const { url, snippet } = req.body
     if (!url) return res.status(400).json({ error: "url required" })
 
-    const cached = await get<any>(`briefing:${url}`)
-    if (cached) return res.json(cached)
-
-    let title = ""
-    let rawContent = ""
-    let fallbackSnippet = snippet || ""
-    const jinaKey = process.env.JINA_API_KEY
-    const geminiAvailable = !!(process.env.GEMINI_API_KEY)
-
-    if (!fallbackSnippet) {
-      try {
-        const news = await get<NewsArticle[]>("news:merged")
-        if (news) {
-          const article = news.find(a => a.url === url)
-          if (article) {
-            fallbackSnippet = article.snippet || ""
-            if (!title) title = article.title
-          }
-        }
-      } catch {}
+    const cached = await get<FullArticleResponse>(`article:${url}`)
+    if (cached) {
+      return res.json({
+        url: cached.url,
+        title: cached.title,
+        summary: cached.summary,
+        fullContent: cached.fullContent,
+        keyDataPoints: cached.keyDataPoints,
+        crossReferences: cached.crossReferences,
+        verificationNotes: cached.verificationNotes,
+        whatHappened: [cached.summary],
+        marketContext: cached.keyDataPoints.slice(0, 2).map(d => `${d.fact} (${d.source})`),
+        keyTakeaways: cached.crossReferences.slice(0, 2).map(r => `Also reported by ${r.source}`),
+      })
     }
 
-    if (jinaKey) {
-      try {
-        const resp = await fetchWithTimeout(`https://r.jina.ai/${encodeURIComponent(url)}`, {
-          timeout: 15000,
-          headers: {
-            Authorization: `Bearer ${jinaKey}`,
-            Accept: "text/plain",
-            "X-Return-Format": "markdown",
-            "X-Exclude": "script, style, nav, footer, header, .sidebar, .ad, .advertisement, .related, .comments, .social",
-          },
-        })
-        if (resp.ok) {
-          const text = await resp.text()
-          const titleMatch = text.match(/^Title:\s*(.+)/m)
-          if (titleMatch) title = titleMatch[1].trim().slice(0, 200)
-          rawContent = text
-            .replace(/^Title:.*\n/m, "")
-            .replace(/^URL Source:.*\n/m, "")
-            .replace(/^Description:.*\n/m, "")
-            .replace(/^Markdown Content:.*\n/m, "")
-        }
-      } catch {}
-    }
+    const article = await getFullArticle(url, snippet)
+    await set(`article:${url}`, article, TEN_MIN)
 
-    if (!rawContent) {
-      try {
-        const resp = await fetchWithTimeout(url, {
-        timeout: 8000,
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-          },
-        })
-        if (resp.ok) {
-          const html = await resp.text()
-          const tMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-          if (tMatch && !title) title = tMatch[1].trim().slice(0, 200)
-          for (const sel of [/<article[^>]*>([\s\S]*?)<\/article>/i, /<div[^>]*class=["'][^"']*article-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*story-body[^"']*["'][^>]*>([\s\S]*?)<\/div>/i, /<div[^>]*class=["'][^"']*post-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/i]) {
-            const m = html.match(sel)
-            if (m) { rawContent = m[1]; break }
-          }
-          if (!rawContent) {
-            const desc = html.match(/<meta[^>]+(?:name|property)=["'](?:og:)?description["'][^>]+content=["']([^"']+)["']/i)
-            rawContent = desc?.[1] ?? ""
-          }
-        }
-      } catch {}
-    }
-
-    const content = cleanArticleContent(rawContent || fallbackSnippet || title)
-    if (!title) title = url.split("/").pop()?.replace(/-/g, " ") || "Article"
-
-    let briefing = null
-    if (jinaKey && rawContent) briefing = await generateAIBriefing(title, content, url)
-    if (!briefing && geminiAvailable) {
-      const gem = await geminiBriefing(title, fallbackSnippet || content, url)
-      if (gem) briefing = { url, title, ...gem }
-    }
-    if (!briefing) briefing = buildBriefing(title, content || title, url, fallbackSnippet)
-
-    await set(`briefing:${url}`, briefing, TEN_MIN)
-    res.json(briefing)
+    res.json({
+      url: article.url,
+      title: article.title,
+      summary: article.summary,
+      fullContent: article.fullContent,
+      keyDataPoints: article.keyDataPoints,
+      crossReferences: article.crossReferences,
+      verificationNotes: article.verificationNotes,
+      whatHappened: [article.summary],
+      marketContext: article.keyDataPoints.slice(0, 2).map(d => `${d.fact} (${d.source})`),
+      keyTakeaways: article.crossReferences.slice(0, 2).map(r => `Also reported by ${r.source}`),
+    })
   } catch (err) {
     console.error("Briefing error:", err)
     res.status(500).json({ error: "Failed to generate briefing" })
@@ -1115,7 +914,7 @@ async function flushDomainCache(): Promise<number> {
   if (news) {
     for (const a of news) {
       if (BLOCKED_DOMAINS.some(d => new RegExp(d, "i").test(a.url))) {
-        total += await del(`briefing:${a.url}`)
+        total += await del(`article:${a.url}`)
       }
     }
   }

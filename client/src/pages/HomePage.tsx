@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { useNavigate, useOutletContext } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 import type { NewsArticle, LayoutContext, CuratedArticle } from "@shared/types"
 import { fetchCuratedBreakingNews } from "../lib/api"
 import { decodeEntities } from "../lib/format"
@@ -101,9 +102,14 @@ export function HomePage() {
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0.5rem 0' }}>
       <div className="home-layout">
-        <div className="home-left">
+        <motion.div
+          className="home-left"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+        >
           <ImpactAnalysis />
-        </div>
+        </motion.div>
         <div className="home-main">
             <div className="mb-4 md:mb-5">
             <div className="flex items-center gap-2 px-2 md:px-5 mb-1.5 md:mb-2">
@@ -113,16 +119,26 @@ export function HomePage() {
               </h2>
               <span className="mac-count-badge">{filtered.length}</span>
             </div>
-            <div className="px-2 md:px-5 grid gap-2">
+            <motion.div
+              className="px-2 md:px-5 grid gap-2"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
+            >
               {topArticles.map((a) => {
                 const curated = "topics" in a ? (a as CuratedArticle) : null
                 const topic = curated?.topics?.[0]
                 return (
-                <button
-                  key={a.id}
-                  onClick={() => handleTopStoryClick(a.url)}
-                  className="news-card w-full text-left cursor-pointer"
-                >
+                  <motion.button
+                    key={a.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 16, scale: 0.98 },
+                      visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+                    }}
+                    onClick={() => handleTopStoryClick(a.url)}
+                    className="news-card w-full text-left cursor-pointer"
+                  >
                   <div className="news-card-img-wrap">
                     {a.imageUrl && (
                       <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
@@ -164,9 +180,9 @@ export function HomePage() {
                       <div className="news-card-snippet">{decodeEntities(a.snippet)}</div>
                     )}
                   </div>
-                </button>
+                </motion.button>
               )})}
-            </div>
+            </motion.div>
           </div>
 
           <CryptoSection articles={filtered} maxArticles={4} viewAllLink="/crypto" />
@@ -175,9 +191,14 @@ export function HomePage() {
           <IPOSection articles={filtered} maxArticles={4} viewAllLink="/ipo" />
         </div>
 
-        <div className="home-sidebar">
+        <motion.div
+          className="home-sidebar"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+        >
           <MarketSnapshot />
-        </div>
+        </motion.div>
       </div>
     </div>
   )

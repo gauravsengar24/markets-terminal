@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
-import { Outlet, useNavigate } from "react-router-dom"
+import { Outlet, useNavigate, useLocation } from "react-router-dom"
+import { motion, AnimatePresence } from "framer-motion"
 import { fetchNews } from "../lib/api"
 import { getPersisted, setPersisted, STORAGE_KEYS } from "../lib/persist"
 import type { NewsArticle } from "@shared/types"
@@ -13,6 +14,7 @@ import { ImpactFilterBar } from "./ImpactFilterBar"
 export function Layout() {
   const navigate = useNavigate()
   const client = useQueryClient()
+  const location = useLocation()
   const [selectedImpact, setSelectedImpact] = useState("all")
 
   const news = useQuery({
@@ -85,7 +87,17 @@ export function Layout() {
       />
 
       <div className="flex-1 overflow-y-auto">
-        <Outlet context={ctxRef} />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Outlet context={ctxRef} />
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   )
