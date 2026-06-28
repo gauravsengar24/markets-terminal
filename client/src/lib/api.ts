@@ -34,6 +34,12 @@ export async function fetchMarketSnapshot() {
   return res.json()
 }
 
+export async function fetchGlobalStats() {
+  const res = await fetch(`${BASE}/global-stats`)
+  if (!res.ok) throw new Error(await res.text().catch(() => `Global stats fetch failed: ${res.status}`))
+  return res.json()
+}
+
 export async function fetchFullArticle(url: string, snippet?: string) {
   const res = await fetch(`${BASE}/article`, {
     method: "POST",

@@ -63,6 +63,11 @@
   50% { opacity: 0.6; transform: scale(1.05); }
 }
 
+@keyframes tickerFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
 @keyframes shimmerWide {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -88,6 +93,10 @@
 
 @utility animate-pulse-glow {
   animation: pulseGlow 3s ease-in-out infinite;
+}
+
+@utility animate-ticker-float {
+  animation: tickerFloat 3.5s ease-in-out infinite;
 }
 
 @utility animate-shimmer-wide {
@@ -1307,6 +1316,20 @@ a:focus:not(:focus-visible) {
 
 @media (min-width: 768px) {
   .hero-stat-value { font-size: 1.15rem; }
+}
+
+.hero-stat-detail {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-top: 0.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (min-width: 768px) {
+  .hero-stat-detail { font-size: 0.65rem; }
 }
 
 /* ─── Hero Ticker Items ─── */

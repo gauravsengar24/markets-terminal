@@ -148,6 +148,7 @@ async function refreshAllContent(): Promise<void> {
     }
 
     refreshMarketSnapshot().catch(e => console.error("  ✗ Market snapshot error:", (e as Error)?.message))
+    refreshGlobalStats().catch(e => console.error("  ✗ Global stats error:", (e as Error)?.message))
 
     console.log(`  ✓ Complete in ${((Date.now() - start) / 1000).toFixed(1)}s`)
   } finally {
@@ -451,37 +452,46 @@ function fillWithFallbacks(symbols: string[], live: any[]): any[] {
 async function fetchCoinGeckoPrices(): Promise<MarketPrice[]> {
   try {
     const resp = await fetchWithTimeout(
-      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,pepe,dogwifcoin&vs_currencies=usd&include_24hr_change=true",
+      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&sparkline=false",
       { timeout: 8000 }
     )
     if (!resp.ok) return []
-    const json = await resp.json() as any
-    const map: Record<string, { symbol: string; name: string }> = {
-      bitcoin: { symbol: "BTC", name: "Bitcoin" },
-      ethereum: { symbol: "ETH", name: "Ethereum" },
-      solana: { symbol: "SOL", name: "Solana" },
-      binancecoin: { symbol: "BNB", name: "BNB" },
-      ripple: { symbol: "XRP", name: "XRP" },
-      dogecoin: { symbol: "DOGE", name: "Dogecoin" },
-      pepe: { symbol: "PEPE", name: "Pepe" },
-      dogwifcoin: { symbol: "WIF", name: "Dogwifhat" },
-    }
-    const prices: MarketPrice[] = []
-    for (const [id, info] of Object.entries(map)) {
-      const d = (json as any)[id]
-      if (d?.usd) {
-        prices.push({
-          symbol: info.symbol,
-          name: info.name,
-          price: d.usd,
-          changePercent: d.usd_24h_change ?? 0,
-          change: d.usd * ((d.usd_24h_change ?? 0) / 100),
-          assetType: "crypto",
-        })
-      }
-    }
-    return prices
+    const json = await resp.json() as any[]
+    return json.map((c: any) => ({
+      symbol: (c.symbol || "").toUpperCase(),
+      name: c.name || "",
+      price: c.current_price || 0,
+      changePercent: c.price_change_percentage_24h ?? 0,
+      change: c.current_price ? c.current_price * ((c.price_change_percentage_24h ?? 0) / 100) : 0,
+      assetType: "crypto" as const,
+    })).filter(c => c.price > 0)
   } catch { return [] }
+}
+
+async function fetchGlobalCryptoStats(): Promise<{ totalMarketCap: number; totalVolume: number; btcDominance: number } | null> {
+  try {
+    const resp = await fetchWithTimeout("https://api.coingecko.com/api/v3/global", { timeout: 8000 })
+    if (!resp.ok) return null
+    const json = await resp.json() as any
+    const data = json?.data
+    if (!data) return null
+    return {
+      totalMarketCap: data.total_market_cap?.usd ?? 0,
+      totalVolume: data.total_volume?.usd ?? 0,
+      btcDominance: data.market_cap_percentage?.btc ?? 0,
+    }
+  } catch { return null }
+}
+
+async function fetchFearGreedIndex(): Promise<{ value: number; classification: string } | null> {
+  try {
+    const resp = await fetchWithTimeout("https://api.alternative.me/fng/?limit=1", { timeout: 5000 })
+    if (!resp.ok) return null
+    const json = await resp.json() as any
+    const item = json?.data?.[0]
+    if (!item) return null
+    return { value: parseInt(item.value) || 50, classification: item.value_classification || "Neutral" }
+  } catch { return null }
 }
 
 async function fetchYahooMovers(region: string, scrId: string, count: number): Promise<MarketPrice[]> {
@@ -521,6 +531,22 @@ const SYMBOL_NAMES: Record<string, string> = {
   "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "USDJPY=X": "USD/JPY",
   "USDCHF=X": "USD/CHF", "AUDUSD=X": "AUD/USD", "USDCAD=X": "USD/CAD",
   "USDINR=X": "USD/INR",
+}
+
+async function refreshGlobalStats(): Promise<void> {
+  try {
+    const [globalData, fearGreed] = await Promise.all([fetchGlobalCryptoStats(), fetchFearGreedIndex()])
+    if (globalData) {
+      await set("market:global-stats", {
+        totalMarketCap: globalData.totalMarketCap,
+        totalVolume: globalData.totalVolume,
+        btcDominance: globalData.btcDominance,
+        fearGreed: fearGreed?.value ?? 50,
+        fearGreedLabel: fearGreed?.classification ?? "Neutral",
+        generatedAt: new Date().toISOString(),
+      }, TWO_MIN)
+    }
+  } catch {}
 }
 
 async function refreshMarketSnapshot(): Promise<MarketSnapshotResponse | null> {
@@ -601,6 +627,22 @@ app.get("/api/market-snapshot", async (_req, res) => {
   if (cached) return res.json(cached)
   const result = await refreshMarketSnapshot()
   res.json(result ?? { commodities: [], crypto: [], usIndices: [], europeIndices: [], indiaIndices: [], ausIndices: [], asiaIndices: [], forex: [], usGainers: [], usLosers: [], niftyGainers: [], niftyLosers: [] })
+})
+
+app.get("/api/global-stats", async (_req, res) => {
+  const cached = await get<any>("market:global-stats")
+  if (cached) return res.json(cached)
+  const [globalData, fearGreed] = await Promise.all([fetchGlobalCryptoStats(), fetchFearGreedIndex()])
+  const result = {
+    totalMarketCap: globalData?.totalMarketCap ?? 0,
+    totalVolume: globalData?.totalVolume ?? 0,
+    btcDominance: globalData?.btcDominance ?? 0,
+    fearGreed: fearGreed?.value ?? 50,
+    fearGreedLabel: fearGreed?.classification ?? "Neutral",
+    generatedAt: new Date().toISOString(),
+  }
+  await set("market:global-stats", result, TWO_MIN)
+  res.json(result)
 })
 
 // ════════════════════════════════════════════════════════════════

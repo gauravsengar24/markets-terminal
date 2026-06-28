@@ -2,56 +2,85 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { ScrollReveal } from "./ScrollReveal"
 
-const LIVE_STATS = [
-  { label: "Global Market Cap", value: "—" },
-  { label: "24h Volume", value: "—" },
-  { label: "BTC Dominance", value: "—" },
-  { label: "Fear & Greed", value: "—" },
-]
+interface GlobalStats {
+  totalMarketCap: number
+  totalVolume: number
+  btcDominance: number
+  fearGreed: number
+  fearGreedLabel: string
+}
 
-const TICKER_SYMBOLS = ["BTC", "ETH", "SOL", "XRP", "DOGE", "BNB", "ADA", "AVAX"]
+interface TickerPrice {
+  symbol: string
+  name: string
+  price: string
+  change: string
+  up: boolean
+}
+
+function formatLargeNumber(num: number): string {
+  if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`
+  if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`
+  if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`
+  if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`
+  return `$${num.toFixed(2)}`
+}
 
 export function HeroBanner() {
-  const [stats, setStats] = useState(LIVE_STATS)
-  const [prices, setPrices] = useState<Record<string, { price: string; change: string; up: boolean }>>({})
+  const [stats, setStats] = useState<GlobalStats | null>(null)
+  const [prices, setPrices] = useState<TickerPrice[]>([])
 
   useEffect(() => {
-    async function fetchMarketData() {
+    const fetchData = async () => {
       try {
-        const res = await fetch("/api/market-snapshot")
-        if (!res.ok) return
-        const data = await res.json()
-        if (data?.crypto?.length) {
-          const priceMap: Record<string, { price: string; change: string; up: boolean }> = {}
-          data.crypto.forEach((c: any) => {
-            priceMap[c.symbol] = {
-              price: c.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-              change: `${c.changePercent >= 0 ? "+" : ""}${c.changePercent.toFixed(2)}%`,
-              up: c.changePercent >= 0,
-            }
-          })
-          setPrices(priceMap)
+        const [snapRes, statsRes] = await Promise.all([
+          fetch("/api/market-snapshot"),
+          fetch("/api/global-stats"),
+        ])
+        if (snapRes.ok) {
+          const data = await snapRes.json()
+          if (data?.crypto?.length) {
+            const top = [...data.crypto].sort((a: any, b: any) => (b.price || 0) - (a.price || 0)).slice(0, 20)
+            setPrices(
+              top.map((c: any) => ({
+                symbol: c.symbol,
+                name: c.name,
+                price: c.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }),
+                change: `${c.changePercent >= 0 ? "+" : ""}${c.changePercent.toFixed(2)}%`,
+                up: c.changePercent >= 0,
+              }))
+            )
+          }
         }
-        if (data?.crypto?.[0]) {
-          setStats([
-            { label: "Global Market Cap", value: "—" },
-            { label: "24h Volume", value: "—" },
-            { label: "BTC Dominance", value: "58.3%" },
-            { label: "Fear & Greed", value: "62 (Greed)" },
-          ])
+        if (statsRes.ok) {
+          setStats(await statsRes.json())
         }
       } catch {}
     }
-    fetchMarketData()
-    const interval = setInterval(fetchMarketData, 120_000)
+    fetchData()
+    const interval = setInterval(fetchData, 60_000)
     return () => clearInterval(interval)
   }, [])
+
+  const statItems = stats
+    ? [
+        { label: "Global Market Cap", value: formatLargeNumber(stats.totalMarketCap), detail: "" },
+        { label: "24h Volume", value: formatLargeNumber(stats.totalVolume), detail: "" },
+        { label: "BTC Dominance", value: `${stats.btcDominance.toFixed(1)}%`, detail: "" },
+        { label: "Fear & Greed", value: `${stats.fearGreed}`, detail: stats.fearGreedLabel },
+      ]
+    : [
+        { label: "Global Market Cap", value: "—", detail: "" },
+        { label: "24h Volume", value: "—", detail: "" },
+        { label: "BTC Dominance", value: "—", detail: "" },
+        { label: "Fear & Greed", value: "—", detail: "" },
+      ]
 
   return (
     <section className="relative overflow-hidden" style={{ minHeight: "100vh", padding: "1rem 0" }}>
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 pt-12 md:pt-24">
         <ScrollReveal direction="none">
-          <div className="text-center mb-12 md:mb-16">
+          <div className="text-center mb-10 md:mb-14">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -76,44 +105,36 @@ export function HeroBanner() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-wrap items-center justify-center gap-4 mb-12"
+              className="flex flex-wrap items-center justify-center gap-3 mb-12 max-w-5xl mx-auto"
             >
-              {TICKER_SYMBOLS.map((sym) => {
-                const p = prices[sym]
-                return (
-                  <motion.div
-                    key={sym}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: 0.6 + TICKER_SYMBOLS.indexOf(sym) * 0.05 }}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    className="ticker-hero-item"
-                  >
-                    <span className="ticker-hero-sym">{sym}</span>
-                    {p ? (
-                      <>
-                        <span className="ticker-hero-price">${p.price}</span>
-                        <span className={`ticker-hero-change ${p.up ? "pos" : "neg"}`}>{p.change}</span>
-                      </>
-                    ) : (
-                      <span className="ticker-hero-loading">—</span>
-                    )}
-                  </motion.div>
-                )
-              })}
+              {prices.map((p, i) => (
+                <motion.div
+                  key={p.symbol}
+                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: 0.6 + i * 0.035, ease: [0.16, 1, 0.3, 1] }}
+                  whileHover={{ scale: 1.05, y: -4 }}
+                  className="ticker-hero-item animate-ticker-float"
+                  style={{ animationDelay: `${(i % 8) * 0.4}s` }}
+                >
+                  <span className="ticker-hero-sym">{p.symbol}</span>
+                  <span className="ticker-hero-price">${p.price}</span>
+                  <span className={`ticker-hero-change ${p.up ? "pos" : "neg"}`}>{p.change}</span>
+                </motion.div>
+              ))}
             </motion.div>
           </div>
         </ScrollReveal>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 max-w-3xl mx-auto mb-16">
-          {stats.map((stat, i) => (
+          {statItems.map((stat, i) => (
             <ScrollReveal key={stat.label} delay={0.7 + i * 0.1} direction="up" distance={30}>
-              <motion.div
-                className="hero-stat-card"
-                whileHover={{ scale: 1.03, y: -2 }}
-              >
+              <motion.div className="hero-stat-card" whileHover={{ scale: 1.03, y: -2 }}>
                 <div className="hero-stat-label">{stat.label}</div>
-                <div className="hero-stat-value">{stat.value}</div>
+                <div className="hero-stat-value">
+                  {stat.value}
+                  {stat.detail && <span className="hero-stat-detail">{stat.detail}</span>}
+                </div>
               </motion.div>
             </ScrollReveal>
           ))}
