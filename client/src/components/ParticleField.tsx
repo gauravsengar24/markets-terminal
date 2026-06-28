@@ -14,7 +14,10 @@ export function ParticleField() {
   const dimsRef = useRef({ w: 0, h: 0 })
 
   const initParticles = useCallback((w: number, h: number) => {
-    const count = Math.min(80, Math.floor((w * h) / 15000))
+    const isMobile = w < 768
+    const maxParticles = isMobile ? 30 : 80
+    const divisor = isMobile ? 25000 : 15000
+    const count = Math.min(maxParticles, Math.floor((w * h) / divisor))
     const p: Particle[] = []
     for (let i = 0; i < count; i++) {
       p.push({

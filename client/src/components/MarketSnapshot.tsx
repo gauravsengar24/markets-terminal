@@ -211,7 +211,7 @@ export function MarketSnapshot() {
           <Shimmer count={8} />
         </div>
       ) : (
-        <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 200px)" }}>
+        <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "clamp(300px, calc(100vh - 200px), 600px)" }}>
           <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
             {data?.crypto?.length ? <SectionCard title="Crypto" items={data.crypto} /> : null}
             {data?.indiaIndices?.length ? <SectionCard title="Indian Stocks" items={data.indiaIndices} /> : null}

@@ -312,7 +312,7 @@ export function HomePage() {
         >
           <div className="px-2 md:px-0">
             <StaggerReveal stagger={0.03}>
-              <div className="grid gap-2">
+              <div className="grid gap-1.5 md:gap-2">
                 {filtered.slice(3, 12).map((a) => (
                   <motion.button
                     key={a.id}

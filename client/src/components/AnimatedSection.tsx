@@ -30,7 +30,7 @@ export function AnimatedSection({
   return (
     <section
       id={id}
-      className={`relative ${fullHeight ? "min-h-screen" : "py-12 md:py-16"} ${className}`}
+      className={`relative ${fullHeight ? "min-h-screen" : "py-8 sm:py-10 md:py-16"} ${className}`}
     >
       <div
         className="absolute inset-0 pointer-events-none"

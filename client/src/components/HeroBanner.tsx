@@ -48,8 +48,8 @@ export function HeroBanner() {
   }, [])
 
   return (
-    <section className="relative overflow-hidden" style={{ minHeight: "100vh", padding: "2rem 0" }}>
-      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 pt-16 md:pt-24">
+    <section className="relative overflow-hidden" style={{ minHeight: "100vh", padding: "1rem 0" }}>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 pt-12 md:pt-24">
         <ScrollReveal direction="none">
           <div className="text-center mb-12 md:mb-16">
             <motion.div
