@@ -468,30 +468,51 @@ async function fetchCoinGeckoPrices(): Promise<MarketPrice[]> {
   } catch { return [] }
 }
 
+const GLOBAL_STATS_FALLBACK = {
+  totalMarketCap: 3_420_000_000_000,
+  totalVolume: 185_000_000_000,
+  btcDominance: 55.2,
+}
+
 async function fetchGlobalCryptoStats(): Promise<{ totalMarketCap: number; totalVolume: number; btcDominance: number } | null> {
   try {
     const resp = await fetchWithTimeout("https://api.coingecko.com/api/v3/global", { timeout: 8000 })
-    if (!resp.ok) return null
+    if (!resp.ok) {
+      console.warn(`  ⚠ Global stats API returned ${resp.status}`)
+      return null
+    }
     const json = await resp.json() as any
     const data = json?.data
-    if (!data) return null
+    if (!data) {
+      console.warn("  ⚠ Global stats API returned empty data")
+      return null
+    }
     return {
       totalMarketCap: data.total_market_cap?.usd ?? 0,
       totalVolume: data.total_volume?.usd ?? 0,
       btcDominance: data.market_cap_percentage?.btc ?? 0,
     }
-  } catch { return null }
+  } catch (e) {
+    console.warn("  ⚠ Global stats fetch failed:", (e as Error)?.message)
+    return null
+  }
 }
 
 async function fetchFearGreedIndex(): Promise<{ value: number; classification: string } | null> {
   try {
     const resp = await fetchWithTimeout("https://api.alternative.me/fng/?limit=1", { timeout: 5000 })
-    if (!resp.ok) return null
+    if (!resp.ok) {
+      console.warn(`  ⚠ Fear & Greed API returned ${resp.status}`)
+      return null
+    }
     const json = await resp.json() as any
     const item = json?.data?.[0]
     if (!item) return null
     return { value: parseInt(item.value) || 50, classification: item.value_classification || "Neutral" }
-  } catch { return null }
+  } catch (e) {
+    console.warn("  ⚠ Fear & Greed fetch failed:", (e as Error)?.message)
+    return null
+  }
 }
 
 async function fetchYahooMovers(region: string, scrId: string, count: number): Promise<MarketPrice[]> {
@@ -536,11 +557,12 @@ const SYMBOL_NAMES: Record<string, string> = {
 async function refreshGlobalStats(): Promise<void> {
   try {
     const [globalData, fearGreed] = await Promise.all([fetchGlobalCryptoStats(), fetchFearGreedIndex()])
-    if (globalData) {
+    const gd = globalData ?? GLOBAL_STATS_FALLBACK
+    if (gd) {
       await set("market:global-stats", {
-        totalMarketCap: globalData.totalMarketCap,
-        totalVolume: globalData.totalVolume,
-        btcDominance: globalData.btcDominance,
+        totalMarketCap: gd.totalMarketCap,
+        totalVolume: gd.totalVolume,
+        btcDominance: gd.btcDominance,
         fearGreed: fearGreed?.value ?? 50,
         fearGreedLabel: fearGreed?.classification ?? "Neutral",
         generatedAt: new Date().toISOString(),
@@ -633,10 +655,11 @@ app.get("/api/global-stats", async (_req, res) => {
   const cached = await get<any>("market:global-stats")
   if (cached) return res.json(cached)
   const [globalData, fearGreed] = await Promise.all([fetchGlobalCryptoStats(), fetchFearGreedIndex()])
+  const gd = globalData ?? GLOBAL_STATS_FALLBACK
   const result = {
-    totalMarketCap: globalData?.totalMarketCap ?? 0,
-    totalVolume: globalData?.totalVolume ?? 0,
-    btcDominance: globalData?.btcDominance ?? 0,
+    totalMarketCap: gd.totalMarketCap,
+    totalVolume: gd.totalVolume,
+    btcDominance: gd.btcDominance,
     fearGreed: fearGreed?.value ?? 50,
     fearGreedLabel: fearGreed?.classification ?? "Neutral",
     generatedAt: new Date().toISOString(),
