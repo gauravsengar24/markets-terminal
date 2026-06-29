@@ -8,7 +8,7 @@ import { BreakingNewsBar } from "./BreakingNewsBar"
 import { MarketTicker } from "./MarketTicker"
 import { LastUpdated } from "./LastUpdated"
 import { ImpactFilterBar } from "./ImpactFilterBar"
-import { ParticleField } from "./ParticleField"
+import { Scene3D } from "./canvas/Scene3D"
 
 export function Layout() {
   const navigate = useNavigate()
@@ -40,14 +40,24 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-oled-black relative">
-      <ParticleField />
+      <Scene3D variant="full" />
 
-      <div className="glass-nav shrink-0 z-20 sticky top-0">
+      <div className="glass-nav shrink-0 z-30 sticky top-0">
         <div className="flex items-center justify-between px-4 md:px-5 py-2.5 md:py-3">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 mr-1">
-              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: 'rgba(6, 182, 212, 0.7)' }} />
-              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: 'rgba(240, 180, 41, 0.5)' }} />
+              <motion.span
+                className="w-1.5 h-1.5 rounded-full inline-block"
+                style={{ background: 'rgba(6, 182, 212, 0.7)' }}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.span
+                className="w-1.5 h-1.5 rounded-full inline-block"
+                style={{ background: 'rgba(240, 180, 41, 0.5)' }}
+                animate={{ opacity: [0.3, 0.8, 0.3] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              />
             </div>
             <button
               onClick={() => navigate("/")}
@@ -59,14 +69,23 @@ export function Layout() {
           </div>
           <div className="flex items-center gap-3">
             <LastUpdated at={news.dataUpdatedAt} />
-            <button
+            <motion.button
               onClick={refresh}
               disabled={news.isRefetching}
               className="action-link"
               aria-label="Refresh news"
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.05 }}
             >
-              {news.isRefetching ? "⟳" : "↻"}
-            </button>
+              {news.isRefetching ? (
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  ⟳
+                </motion.span>
+              ) : "↻"}
+            </motion.button>
           </div>
         </div>
 
@@ -93,7 +112,7 @@ export function Layout() {
             initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           >
             <Outlet context={ctxRef} />
           </motion.div>

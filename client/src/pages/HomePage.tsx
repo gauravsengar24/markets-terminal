@@ -103,10 +103,8 @@ export function HomePage() {
 
   return (
     <div>
-      {/* ─── SECTION 1: Hero ─── */}
       <HeroBanner />
 
-      {/* ─── SECTION 2: Features ─── */}
       <AnimatedSection
         gradient="blue-purple"
         title="Market Intelligence Platform"
@@ -117,20 +115,27 @@ export function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
             {FEATURES.map((f) => (
               <motion.div key={f.title} variants={staggerItem}>
-                <div className="glass-section p-5 md:p-6">
-                  <div className={`gradient-text-${f.gradient === "blue-purple" ? "blue-purple" : f.gradient === "purple-pink" ? "pink-gold" : f.gradient === "orange-red" ? "orange-red" : "green-teal"} text-2xl mb-3 inline-block`}>
+                <motion.div
+                  className="glass-section p-5 md:p-6"
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                >
+                  <motion.div
+                    className={`gradient-text-${f.gradient === "blue-purple" ? "blue-purple" : f.gradient === "purple-pink" ? "pink-gold" : f.gradient === "orange-red" ? "orange-red" : "green-teal"} text-2xl mb-3 inline-block`}
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  >
                     {f.icon}
-                  </div>
+                  </motion.div>
                   <h3 className="text-base font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{f.title}</h3>
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{f.desc}</p>
-                </div>
+                </motion.div>
               </motion.div>
             ))}
           </div>
         </StaggerReveal>
       </AnimatedSection>
 
-      {/* ─── SECTION 3: Side-by-Side Content ─── */}
       <AnimatedSection
         gradient="purple-pink"
         title="Live Market Dashboard"
@@ -152,15 +157,25 @@ export function HomePage() {
             <ScrollReveal direction="up" delay={0.1}>
               {!articles.length ? (
                 <div className="flex items-center justify-center py-16">
-                  <div className="glass-card" style={{ padding: '2.5rem', textAlign: 'center', maxWidth: '24rem' }}>
+                  <motion.div
+                    className="glass-card"
+                    style={{ padding: '2.5rem', textAlign: 'center', maxWidth: '24rem' }}
+                    animate={{ opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  >
                     <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading markets...</p>
-                  </div>
+                  </motion.div>
                 </div>
               ) : (
                 <>
                   <div className="mb-4 md:mb-5">
                     <div className="flex items-center gap-2 px-2 md:px-5 mb-1.5 md:mb-2">
-                      <div className="mac-dot" style={{ background: 'rgba(6, 182, 212, 0.8)' }} />
+                      <motion.div
+                        className="mac-dot"
+                        style={{ background: 'rgba(6, 182, 212, 0.8)' }}
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      />
                       <h2 className="mac-section-title">
                         {selectedImpact === "all" ? "Top Stories" : `${IMPACT_LABELS[selectedImpact] ?? "Top"} Stories`}
                       </h2>
@@ -186,6 +201,8 @@ export function HomePage() {
                             }}
                             onClick={() => handleTopStoryClick(a.url)}
                             className="news-card w-full text-left cursor-pointer"
+                            whileHover={{ scale: 1.005, y: -2 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
                           >
                             <div className="news-card-img-wrap">
                               {a.imageUrl && (
@@ -253,7 +270,6 @@ export function HomePage() {
         </div>
       </AnimatedSection>
 
-      {/* ─── SECTION 4: Markets By Category ─── */}
       <AnimatedSection
         gradient="green-teal"
         title="Explore Markets"
@@ -268,9 +284,16 @@ export function HomePage() {
                 variants={staggerItem}
                 onClick={() => navigate(s.link)}
                 className="glass-section p-6 text-left cursor-pointer"
-                whileHover={{ scale: 1.03, y: -3 }}
+                whileHover={{ scale: 1.03, y: -6 }}
+                transition={{ type: "spring", stiffness: 400, damping: 20 }}
               >
-                <div style={{ fontSize: "2rem", marginBottom: "0.75rem", color: s.color }}>{s.icon}</div>
+                <motion.div
+                  style={{ fontSize: "2rem", marginBottom: "0.75rem", color: s.color }}
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {s.icon}
+                </motion.div>
                 <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{s.label}</h3>
                 <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
                   View all {s.label.toLowerCase()} news and market data
@@ -281,7 +304,6 @@ export function HomePage() {
         </StaggerReveal>
       </AnimatedSection>
 
-      {/* ─── SECTION 5: CTA / Stats ─── */}
       <AnimatedSection
         gradient="orange-red"
         title="Your Market Command Center"
@@ -294,15 +316,18 @@ export function HomePage() {
             <p className="text-sm md:text-base" style={{ color: 'var(--text-tertiary)' }}>
               Data refreshes every 60s · AI analysis updates every 5min · Breaking news in real-time
             </p>
-            <div className="flex items-center justify-center gap-3 mt-4">
+            <motion.div
+              className="flex items-center justify-center gap-3 mt-4"
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
               <span className="live-dot" />
               <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#22c55e' }}>Live Data Feed</span>
-            </div>
+            </motion.div>
           </div>
         </ScrollReveal>
       </AnimatedSection>
 
-      {/* ─── SECTION 6: Extra full article feed for infinite scroll feel ─── */}
       {filtered.length > 6 && (
         <AnimatedSection
           gradient="pink-gold"
@@ -319,6 +344,7 @@ export function HomePage() {
                     variants={staggerItem as any}
                     onClick={() => handleTopStoryClick(a.url)}
                     className="news-card w-full text-left cursor-pointer"
+                    whileHover={{ scale: 1.005, y: -2 }}
                   >
                     <div className="news-card-img-wrap" style={{ width: 72, minWidth: 72, height: 72 }}>
                       {a.imageUrl && (
@@ -341,7 +367,6 @@ export function HomePage() {
         </AnimatedSection>
       )}
 
-      {/* ─── SECTION 7: Final CTA / Footer Banner ─── */}
       <AnimatedSection
         gradient="blue-purple"
         title="Built for Traders & Analysts"
@@ -352,10 +377,33 @@ export function HomePage() {
         <ScrollReveal delay={0.3}>
           <div className="text-center py-6">
             <div className="flex items-center justify-center gap-6 flex-wrap">
-              <span className="feature-badge"><span className="live-dot" />Real-time</span>
-              <span className="feature-badge" style={{ borderColor: 'rgba(180,140,255,0.2)', background: 'rgba(180,140,255,0.06)', color: '#b48cff' }}>AI-Powered</span>
-              <span className="feature-badge" style={{ borderColor: 'rgba(255,100,180,0.2)', background: 'rgba(255,100,180,0.06)', color: '#ff64b4' }}>Multi-Market</span>
-              <span className="feature-badge" style={{ borderColor: 'rgba(34,197,94,0.2)', background: 'rgba(34,197,94,0.06)', color: '#22c55e' }}>24/7 Live</span>
+              <motion.span
+                className="feature-badge"
+                whileHover={{ scale: 1.05 }}
+              >
+                <span className="live-dot" />Real-time
+              </motion.span>
+              <motion.span
+                className="feature-badge"
+                style={{ borderColor: 'rgba(180,140,255,0.15)', background: 'rgba(180,140,255,0.05)', color: '#b48cff' }}
+                whileHover={{ scale: 1.05 }}
+              >
+                AI-Powered
+              </motion.span>
+              <motion.span
+                className="feature-badge"
+                style={{ borderColor: 'rgba(255,100,180,0.15)', background: 'rgba(255,100,180,0.05)', color: '#ff64b4' }}
+                whileHover={{ scale: 1.05 }}
+              >
+                Multi-Market
+              </motion.span>
+              <motion.span
+                className="feature-badge"
+                style={{ borderColor: 'rgba(34,197,94,0.15)', background: 'rgba(34,197,94,0.05)', color: '#22c55e' }}
+                whileHover={{ scale: 1.05 }}
+              >
+                24/7 Live
+              </motion.span>
             </div>
           </div>
         </ScrollReveal>
