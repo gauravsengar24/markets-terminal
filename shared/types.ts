@@ -17,6 +17,7 @@ export interface LayoutContext {
   articles: NewsArticle[]
   selectedImpact: string
   setSelectedImpact: (cat: string) => void
+  scrollProgress?: number
 }
 
 export interface BreakingNews {

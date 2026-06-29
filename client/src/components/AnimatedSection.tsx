@@ -7,7 +7,7 @@ interface Props {
   className?: string
   title?: string
   subtitle?: string
-  gradient?: "blue-purple" | "pink-gold" | "green-teal" | "orange-red" | "purple-pink"
+  gradient?: "cyan-violet" | "violet-pink" | "emerald-cyan" | "orange-red" | "gold-amber"
   accentColor?: string
   delay?: number
   fullHeight?: boolean
@@ -15,15 +15,15 @@ interface Props {
 }
 
 const GRADIENT_MAPS = {
-  "blue-purple": { from: "rgba(96,205,255,0.15)", via: "rgba(180,140,255,0.1)", to: "transparent", border: "rgba(96,205,255,0.15)" },
-  "pink-gold": { from: "rgba(255,100,180,0.15)", via: "rgba(255,180,50,0.1)", to: "transparent", border: "rgba(255,100,180,0.15)" },
-  "green-teal": { from: "rgba(34,197,94,0.12)", via: "rgba(96,205,255,0.08)", to: "transparent", border: "rgba(34,197,94,0.15)" },
-  "orange-red": { from: "rgba(255,100,50,0.12)", via: "rgba(239,68,68,0.08)", to: "transparent", border: "rgba(255,100,50,0.15)" },
-  "purple-pink": { from: "rgba(180,140,255,0.15)", via: "rgba(255,100,180,0.1)", to: "transparent", border: "rgba(180,140,255,0.15)" },
+  "cyan-violet": { from: "rgba(0,229,255,0.12)", via: "rgba(124,58,237,0.08)", to: "transparent", border: "rgba(0,229,255,0.12)" },
+  "violet-pink": { from: "rgba(124,58,237,0.12)", via: "rgba(236,72,153,0.08)", to: "transparent", border: "rgba(124,58,237,0.12)" },
+  "emerald-cyan": { from: "rgba(16,185,129,0.10)", via: "rgba(0,229,255,0.06)", to: "transparent", border: "rgba(16,185,129,0.12)" },
+  "orange-red": { from: "rgba(245,158,11,0.10)", via: "rgba(239,68,68,0.06)", to: "transparent", border: "rgba(245,158,11,0.12)" },
+  "gold-amber": { from: "rgba(245,158,11,0.10)", via: "rgba(217,119,6,0.06)", to: "transparent", border: "rgba(245,158,11,0.12)" },
 }
 
 export function AnimatedSection({
-  children, className = "", title, subtitle, gradient = "blue-purple",
+  children, className = "", title, subtitle, gradient = "cyan-violet",
   accentColor, delay = 0, fullHeight, id,
 }: Props) {
   const g = GRADIENT_MAPS[gradient]

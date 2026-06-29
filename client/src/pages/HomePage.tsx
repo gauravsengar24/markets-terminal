@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useRef } from "react"
 import { useNavigate, useOutletContext } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { motion } from "framer-motion"
+import { motion, useScroll, useTransform } from "framer-motion"
 import type { NewsArticle, LayoutContext, CuratedArticle } from "@shared/types"
 import { fetchCuratedBreakingNews } from "../lib/api"
 import { decodeEntities } from "../lib/format"
@@ -37,8 +37,11 @@ const TABS = ["All", "Market", "Crypto", "Stocks", "Commodities", "IPO"]
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { articles, selectedImpact } = useOutletContext<LayoutContext>()
+  const { articles, selectedImpact, scrollProgress } = useOutletContext<LayoutContext>()
   const [activeTab, setActiveTab] = useState("All")
+  const heroRef = useRef<HTMLDivElement>(null!)
+  const { scrollYProgress: localScroll } = useScroll({ target: heroRef, offset: ["start start", "end start"] })
+  const heroParallax = useTransform(localScroll, [0, 1], [0, 80])
 
   const THREE_DAYS = 72 * 60 * 60 * 1000
 
@@ -91,7 +94,11 @@ export function HomePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
-      <HeroBanner />
+      <div ref={heroRef}>
+        <motion.div style={{ y: heroParallax }}>
+          <HeroBanner />
+        </motion.div>
+      </div>
 
       {/* Split Featured Section */}
       <section className="mb-6 md:mb-8">
@@ -215,17 +222,20 @@ export function HomePage() {
             <div className="mb-4">
               <div className="flex items-center gap-1 mb-3 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
                 {TABS.map((tab) => (
-                  <button
+                  <motion.button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap bg-transparent border-none"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     style={{
                       color: activeTab === tab ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
-                      background: activeTab === tab ? "rgba(255,255,255,0.06)" : "transparent",
+                      background: activeTab === tab ? "rgba(0,229,255,0.08)" : "transparent",
+                      border: activeTab === tab ? "1px solid rgba(0,229,255,0.15)" : "1px solid transparent",
                     }}
                   >
                     {tab}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
 
@@ -281,10 +291,38 @@ export function HomePage() {
             </div>
 
             {/* Market Sections */}
-            <CryptoSection articles={filtered} maxArticles={3} viewAllLink="/crypto" />
-            <StockSection articles={filtered} maxArticles={3} viewAllLink="/stocks" />
-            <CommoditySection articles={filtered} maxArticles={3} viewAllLink="/commodities" />
-            <IPOSection articles={filtered} maxArticles={3} viewAllLink="/ipo" />
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.6 }}
+            >
+              <CryptoSection articles={filtered} maxArticles={3} viewAllLink="/crypto" />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <StockSection articles={filtered} maxArticles={3} viewAllLink="/stocks" />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+            >
+              <CommoditySection articles={filtered} maxArticles={3} viewAllLink="/commodities" />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <IPOSection articles={filtered} maxArticles={3} viewAllLink="/ipo" />
+            </motion.div>
           </div>
           <div className="home-sidebar">
             <MarketSnapshot />

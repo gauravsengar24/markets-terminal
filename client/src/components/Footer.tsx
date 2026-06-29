@@ -55,12 +55,10 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
               <span
-                className="w-2 h-2 rounded-full"
-                style={{ background: "var(--color-brand)", boxShadow: "0 0 6px rgba(31,147,255,0.5)" }}
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ background: "var(--color-brand)", boxShadow: "0 0 8px rgba(0,229,255,0.4)" }}
               />
-              <span className="text-sm font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-                Markets Terminal
-              </span>
+              <span className="w-1 h-1 rounded-full" style={{ background: "var(--color-soft-purple)", animation: "pulse-glow 2s ease-in-out infinite" }} />
             </div>
             <p className="text-xs leading-relaxed mb-4" style={{ color: "var(--color-text-tertiary)" }}>
               Real-time market intelligence with AI-powered analysis across crypto, stocks, commodities, and forex.
@@ -114,7 +112,7 @@ export function Footer() {
           style={{ borderTop: "1px solid var(--glass-border)" }}
         >
           <p className="text-[11px]" style={{ color: "var(--color-text-tertiary)" }}>
-            &copy; {new Date().getFullYear()} Markets Terminal. All data provided for informational purposes only.
+              &copy; {new Date().getFullYear()} Horizon Terminal. All data provided for informational purposes only.
           </p>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--color-text-tertiary)" }}>

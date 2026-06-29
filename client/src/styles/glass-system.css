@@ -119,31 +119,40 @@
   border-radius: 1px;
 }
 
-@utility gradient-text-blue-purple {
-  background: linear-gradient(135deg, #60cdff 0%, #b48cff 50%, #a78bfa 100%);
+@utility gradient-text-cyan-violet {
+  background: linear-gradient(135deg, #00e5ff 0%, #7c3aed 50%, #a78bfa 100%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: gradient-shift 6s ease infinite;
+  animation: gradient-shift 8s ease infinite;
 }
 
-@utility gradient-text-pink-gold {
-  background: linear-gradient(135deg, #ff64b4 0%, #f0b429 40%, #ff8c42 100%);
+@utility gradient-text-violet-pink {
+  background: linear-gradient(135deg, #7c3aed 0%, #ec4899 60%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: gradient-shift 6s ease infinite;
+  animation: gradient-shift 8s ease infinite;
 }
 
-@utility gradient-text-green-teal {
-  background: linear-gradient(135deg, #22c55e 0%, #60cdff 60%);
+@utility gradient-text-gold-amber {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: gradient-shift 6s ease infinite;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@utility gradient-text-emerald-cyan {
+  background: linear-gradient(135deg, #10b981 0%, #00e5ff 60%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 8s ease infinite;
 }
 
 @utility gradient-text-orange-red {
@@ -152,16 +161,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: gradient-shift 6s ease infinite;
-}
-
-@utility gradient-text-cyan-emerald {
-  background: linear-gradient(135deg, #22d3ee 0%, #34d399 60%);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradient-shift 6s ease infinite;
+  animation: gradient-shift 8s ease infinite;
 }
 
 @utility bg-orb {
@@ -179,18 +179,18 @@
   pointer-events: none;
   will-change: transform;
   width: 500px; height: 500px;
-  background: radial-gradient(circle, rgba(96,205,255,0.06), transparent 70%);
+  background: radial-gradient(circle, rgba(0,229,255,0.05), transparent 70%);
   animation: float 12s ease-in-out infinite;
 }
 
-@utility bg-orb-purple {
+@utility bg-orb-violet {
   position: absolute;
   border-radius: 50%;
   filter: blur(120px);
   pointer-events: none;
   will-change: transform;
   width: 400px; height: 400px;
-  background: radial-gradient(circle, rgba(180,140,255,0.04), transparent 70%);
+  background: radial-gradient(circle, rgba(124,58,237,0.04), transparent 70%);
   animation: float-slow 15s ease-in-out infinite reverse;
 }
 
@@ -201,6 +201,6 @@
   pointer-events: none;
   will-change: transform;
   width: 350px; height: 350px;
-  background: radial-gradient(circle, rgba(255,100,180,0.04), transparent 70%);
+  background: radial-gradient(circle, rgba(236,72,153,0.03), transparent 70%);
   animation: float 10s ease-in-out infinite 2s;
 }
