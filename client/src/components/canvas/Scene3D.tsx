@@ -1,37 +1,23 @@
 import { Suspense } from "react"
 import { Canvas } from "@react-three/fiber"
-import { Environment } from "@react-three/drei"
 import { AuroraBackground } from "./AuroraBackground"
-import { FloatingGeometries } from "./FloatingGeometries"
-import { MarketRings } from "./MarketRings"
 import { ParticleSystem } from "./ParticleSystem"
-import { PostFX } from "./PostFX"
-import { HeroGlobe } from "./HeroGlobe"
 
-interface Scene3DProps {
-  variant?: "full" | "minimal"
-}
-
-function SceneContent({ variant }: Scene3DProps) {
+function SceneContent() {
   return (
     <>
       <AuroraBackground />
-      <FloatingGeometries />
-      <MarketRings />
       <ParticleSystem />
-      {variant === "full" && <HeroGlobe />}
-      <PostFX />
-      <Environment preset="night" />
     </>
   )
 }
 
-export function Scene3D({ variant = "full" }: Scene3DProps) {
+export function Scene3D() {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
       <Suspense fallback={null}>
         <Canvas
-          camera={{ position: [0, 0, 3.5], fov: 70, near: 0.1, far: 20 }}
+          camera={{ position: [0, 0, 1], fov: 50, near: 0.1, far: 20 }}
           gl={{
             antialias: true,
             alpha: true,
@@ -43,7 +29,7 @@ export function Scene3D({ variant = "full" }: Scene3DProps) {
           flat
           style={{ background: "transparent" }}
         >
-          <SceneContent variant={variant} />
+          <SceneContent />
         </Canvas>
       </Suspense>
     </div>

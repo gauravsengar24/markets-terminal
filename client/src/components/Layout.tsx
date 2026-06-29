@@ -9,6 +9,7 @@ import { MarketTicker } from "./MarketTicker"
 import { LastUpdated } from "./LastUpdated"
 import { ImpactFilterBar } from "./ImpactFilterBar"
 import { Scene3D } from "./canvas/Scene3D"
+import { Footer } from "./Footer"
 
 export function Layout() {
   const navigate = useNavigate()
@@ -40,50 +41,43 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-oled-black relative">
-      <Scene3D variant="full" />
+      <Scene3D />
 
       <div className="glass-nav shrink-0 z-30 sticky top-0">
-        <div className="flex items-center justify-between px-4 md:px-5 py-2.5 md:py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 mr-1">
-              <motion.span
-                className="w-1.5 h-1.5 rounded-full inline-block"
-                style={{ background: 'rgba(6, 182, 212, 0.7)' }}
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <motion.span
-                className="w-1.5 h-1.5 rounded-full inline-block"
-                style={{ background: 'rgba(240, 180, 41, 0.5)' }}
-                animate={{ opacity: [0.3, 0.8, 0.3] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-              />
-            </div>
-            <button
-              onClick={() => navigate("/")}
-              className="font-semibold text-sm md:text-base tracking-tight hover:opacity-80 transition-opacity cursor-pointer"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              Markets Terminal
+        <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-3">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate("/")} className="flex items-center gap-2 cursor-pointer bg-transparent border-none p-0">
+              <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-brand)", boxShadow: "0 0 6px rgba(31,147,255,0.5)" }} />
+              <span className="font-bold text-sm md:text-base tracking-tight" style={{ color: 'var(--color-text-primary)' }}>
+                Markets Terminal
+              </span>
             </button>
+            <div className="hidden md:flex items-center gap-1">
+              {["Crypto", "Stocks", "Commodities", "IPO"].map((item) => (
+                <button
+                  key={item}
+                  onClick={() => navigate(`/${item.toLowerCase()}`)}
+                  className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors cursor-pointer bg-transparent border-none"
+                  style={{ color: "var(--color-text-tertiary)" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--color-text-primary)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--color-text-tertiary)"; e.currentTarget.style.background = "transparent" }}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <LastUpdated at={news.dataUpdatedAt} />
             <motion.button
               onClick={refresh}
               disabled={news.isRefetching}
-              className="action-link"
+              className="action-link text-xs"
               aria-label="Refresh news"
               whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.05 }}
             >
               {news.isRefetching ? (
-                <motion.span
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                >
-                  ⟳
-                </motion.span>
+                <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>⟳</motion.span>
               ) : "↻"}
             </motion.button>
           </div>
@@ -109,15 +103,17 @@ export function Layout() {
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+            initial={{ opacity: 0, y: 8, filter: "blur(3px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -8, filter: "blur(3px)" }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           >
             <Outlet context={ctxRef} />
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <Footer />
     </div>
   )
 }

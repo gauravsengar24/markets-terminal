@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate, useOutletContext } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { motion } from "framer-motion"
@@ -9,29 +9,10 @@ import { CryptoSection } from "../components/CryptoSection"
 import { StockSection } from "../components/StockSection"
 import { CommoditySection } from "../components/CommoditySection"
 import { IPOSection } from "../components/IPOSection"
-import { SectionHeading } from "../components/SectionHeading"
 import { ImpactAnalysis } from "../components/ImpactAnalysis"
 import { MarketSnapshot } from "../components/MarketSnapshot"
 import { HeroBanner } from "../components/HeroBanner"
-import { ScrollReveal, StaggerReveal, staggerItem } from "../components/ScrollReveal"
-import { AnimatedSection } from "../components/AnimatedSection"
-
-const SIDEBAR_SECTIONS = [
-  { label: "Crypto", link: "/crypto", color: "rgba(6, 182, 212, 0.6)", icon: "⟠" },
-  { label: "Stocks", link: "/stocks", color: "rgba(47, 128, 237, 0.6)", icon: "⬡" },
-  { label: "Commodities", link: "/commodities", color: "rgba(240, 180, 41, 0.6)", icon: "◇" },
-  { label: "IPO", link: "/ipo", color: "rgba(168, 85, 247, 0.6)", icon: "◆" },
-]
-
-const VOLATILITY_COLORS: Record<string, string> = {
-  high: "#ef4444",
-  medium: "#f59e0b",
-}
-
-const IMPACT_LABELS: Record<string, string> = {
-  "central-bank": "Central Bank", geopolitical: "Geopolitical", crisis: "Crisis",
-  pandemic: "Pandemic", trade: "Trade", election: "Election", currency: "Currency",
-}
+import { SignalChip } from "../components/SignalChip"
 
 const TOPIC_LABELS: Record<string, string> = {
   "tech-founder": "TECH", "politics-leader": "POLITICS", "ipo": "IPO",
@@ -45,29 +26,19 @@ const TOPIC_COLORS: Record<string, string> = {
   "trending": "#f97316", "markets": "#34d399",
 }
 
-const FEATURES = [
-  { icon: "⟠", title: "Real-Time Data", desc: "Live market prices across crypto, stocks, commodities and forex with sub-minute updates.", gradient: "blue-purple" as const },
-  { icon: "◇", title: "AI Analysis", desc: "AI-powered impact analysis with reasoning for every market-moving event.", gradient: "purple-pink" as const },
-  { icon: "◈", title: "Breaking News", desc: "Curated breaking news with topic classification and volatility scoring.", gradient: "orange-red" as const },
-  { icon: "⬢", title: "Market Intelligence", desc: "Comprehensive market snapshot with gainers, losers, and sector performance.", gradient: "green-teal" as const },
-]
-
-function fmtShort(iso: string) {
+function fmtRelative(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
+
+const TABS = ["All", "Market", "Crypto", "Stocks", "Commodities", "IPO"]
 
 export function HomePage() {
   const navigate = useNavigate()
   const { articles, selectedImpact } = useOutletContext<LayoutContext>()
-
-  const handleTopStoryClick = (url: string) => {
-    const found = articles.find(a => a.url === url)
-    if (found) navigate(`/article/${found.id}`)
-    else window.open(url, "_blank", "noopener")
-  }
+  const [activeTab, setActiveTab] = React.useState("All")
 
   const THREE_DAYS = 72 * 60 * 60 * 1000
 
@@ -90,324 +61,241 @@ export function HomePage() {
     [curated.data?.articles]
   )
 
-  const topArticles = useMemo(() => {
-    if (curatedArticles.length >= 3) {
-      const withTime = curatedArticles.map(a => ({ a, t: new Date(a.publishedAt).getTime() }))
-      withTime.sort((a, b) => b.t - a.t)
-      return withTime.slice(0, 3).map(({ a }) => a)
-    }
-    const withTime = filtered.map(a => ({ a, t: new Date(a.publishedAt).getTime() }))
-    withTime.sort((a, b) => b.t - a.t)
-    return withTime.slice(0, 3).map(({ a }) => a)
-  }, [curatedArticles, filtered])
+  const leadArticle = useMemo(() => {
+    const all = [...filtered].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    return all[0] || null
+  }, [filtered])
+
+  const timeline = useMemo(() => {
+    const all = [...filtered].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    return all.slice(0, 5).filter(a => a.id !== leadArticle?.id)
+  }, [filtered, leadArticle])
+
+  const trendingArticles = useMemo(() => {
+    let result = [...filtered]
+    result.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+
+    if (activeTab === "Crypto") result = result.filter(a => a.subCategory === "crypto" || a.assetClass === "crypto")
+    else if (activeTab === "Stocks") result = result.filter(a => a.subCategory === "stocks" && a.assetClass !== "crypto")
+    else if (activeTab === "Commodities") result = result.filter(a => a.subCategory === "commodities" || a.assetClass === "commodities")
+    else if (activeTab === "IPO") result = result.filter(a => a.subCategory === "ipo")
+
+    return result.slice(0, 8)
+  }, [filtered, activeTab])
+
+  const handleArticleClick = (url: string) => {
+    const found = articles.find(a => a.url === url)
+    if (found) navigate(`/article/${found.id}`)
+    else window.open(url, "_blank", "noopener")
+  }
 
   return (
-    <div>
+    <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
       <HeroBanner />
 
-      <AnimatedSection
-        gradient="blue-purple"
-        title="Market Intelligence Platform"
-        subtitle="Real-time data, AI-powered analysis, and breaking news across global markets"
-        delay={0.1}
-      >
-        <StaggerReveal stagger={0.08}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
-            {FEATURES.map((f) => (
-              <motion.div key={f.title} variants={staggerItem}>
-                <motion.div
-                  className="glass-section p-5 md:p-6"
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                >
-                  <motion.div
-                    className={`gradient-text-${f.gradient === "blue-purple" ? "blue-purple" : f.gradient === "purple-pink" ? "pink-gold" : f.gradient === "orange-red" ? "orange-red" : "green-teal"} text-2xl mb-3 inline-block`}
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    {f.icon}
-                  </motion.div>
-                  <h3 className="text-base font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{f.title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{f.desc}</p>
-                </motion.div>
-              </motion.div>
-            ))}
-          </div>
-        </StaggerReveal>
-      </AnimatedSection>
-
-      <AnimatedSection
-        gradient="purple-pink"
-        title="Live Market Dashboard"
-        subtitle="Stay ahead with real-time market data and AI-powered impact analysis"
-        delay={0.1}
-      >
-        <div className="home-layout">
-          <motion.div
-            className="home-left"
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-          >
-            <ImpactAnalysis />
-          </motion.div>
-
-          <div className="home-main">
-            <ScrollReveal direction="up" delay={0.1}>
-              {!articles.length ? (
-                <div className="flex items-center justify-center py-16">
-                  <motion.div
-                    className="glass-card"
-                    style={{ padding: '2.5rem', textAlign: 'center', maxWidth: '24rem' }}
-                    animate={{ opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading markets...</p>
-                  </motion.div>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-4 md:mb-5">
-                    <div className="flex items-center gap-2 px-2 md:px-5 mb-1.5 md:mb-2">
-                      <motion.div
-                        className="mac-dot"
-                        style={{ background: 'rgba(6, 182, 212, 0.8)' }}
-                        animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      />
-                      <h2 className="mac-section-title">
-                        {selectedImpact === "all" ? "Top Stories" : `${IMPACT_LABELS[selectedImpact] ?? "Top"} Stories`}
-                      </h2>
-                      <span className="mac-count-badge">{filtered.length}</span>
-                    </div>
-                    <motion.div
-                      className="px-2 md:px-5 grid gap-2"
-                      initial="hidden"
-                      whileInView="visible"
-                      viewport={{ once: true, margin: "-50px" }}
-                      variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
-                    >
-                      {topArticles.map((a) => {
-                        const curated = "topics" in a ? (a as CuratedArticle) : null
-                        const topic = curated?.topics?.[0]
-                        const volatility = "volatility" in a ? (a as NewsArticle).volatility : undefined
-                        return (
-                          <motion.button
-                            key={a.id}
-                            variants={{
-                              hidden: { opacity: 0, y: 16, scale: 0.98 },
-                              visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as const } },
-                            }}
-                            onClick={() => handleTopStoryClick(a.url)}
-                            className="news-card w-full text-left cursor-pointer"
-                            whileHover={{ scale: 1.005, y: -2 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                          >
-                            <div className="news-card-img-wrap">
-                              {a.imageUrl && (
-                                <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
-                              )}
-                            </div>
-                            <div className="news-card-body">
-                              <div className="flex items-center gap-2 mb-1.5">
-                                {topic && (
-                                  <span style={{
-                                    fontSize: "0.5rem", fontWeight: 600, textTransform: "uppercase",
-                                    padding: "0.1rem 0.35rem", borderRadius: "4px", letterSpacing: "0.06em",
-                                    background: `${TOPIC_COLORS[topic] || "#64748b"}20`,
-                                    border: `1px solid ${TOPIC_COLORS[topic] || "#64748b"}40`,
-                                    color: TOPIC_COLORS[topic] || "#64748b",
-                                  }}>{TOPIC_LABELS[topic] || topic.toUpperCase()}</span>
-                                )}
-                                <span className="mac-source">{a.source}</span>
-                                {volatility && (
-                                  <span style={{
-                                    fontSize: "0.5rem", fontWeight: 600, textTransform: "uppercase",
-                                    padding: "0.1rem 0.35rem", borderRadius: "4px",
-                                    background: `${VOLATILITY_COLORS[volatility]}15`,
-                                    border: `1px solid ${VOLATILITY_COLORS[volatility]}30`,
-                                    color: VOLATILITY_COLORS[volatility], letterSpacing: "0.06em",
-                                  }}>{volatility}</span>
-                                )}
-                                <span className="mac-meta">{fmtShort(a.publishedAt)}</span>
-                              </div>
-                              <div className="news-card-title">{decodeEntities(a.title)}</div>
-                              {a.snippet && <div className="news-card-snippet">{decodeEntities(a.snippet)}</div>}
-                            </div>
-                          </motion.button>
-                        )
-                      })}
-                    </motion.div>
-                  </div>
-
-                  <ScrollReveal direction="up" delay={0.1}>
-                    <CryptoSection articles={filtered} maxArticles={4} viewAllLink="/crypto" />
-                  </ScrollReveal>
-                  <ScrollReveal direction="up" delay={0.15}>
-                    <StockSection articles={filtered} maxArticles={4} viewAllLink="/stocks" />
-                  </ScrollReveal>
-                  <ScrollReveal direction="up" delay={0.2}>
-                    <CommoditySection articles={filtered} maxArticles={4} viewAllLink="/commodities" />
-                  </ScrollReveal>
-                  <ScrollReveal direction="up" delay={0.25}>
-                    <IPOSection articles={filtered} maxArticles={4} viewAllLink="/ipo" />
-                  </ScrollReveal>
-                </>
-              )}
-            </ScrollReveal>
-          </div>
-
-          <motion.div
-            className="home-sidebar"
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          >
-            <MarketSnapshot />
-          </motion.div>
+      {/* Split Featured Section */}
+      <section className="mb-6 md:mb-8">
+        <div className="flex items-center gap-2 mb-3 md:mb-4 px-1">
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--color-brand)" }} />
+          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
+            Top Stories
+          </h2>
         </div>
-      </AnimatedSection>
-
-      <AnimatedSection
-        gradient="green-teal"
-        title="Explore Markets"
-        subtitle="Navigate through crypto, stocks, commodities, and IPOs"
-        delay={0.1}
-      >
-        <StaggerReveal stagger={0.06}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {SIDEBAR_SECTIONS.map((s) => (
-              <motion.button
-                key={s.label}
-                variants={staggerItem}
-                onClick={() => navigate(s.link)}
-                className="glass-section p-6 text-left cursor-pointer"
-                whileHover={{ scale: 1.03, y: -6 }}
-                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Lead Article */}
+          {leadArticle && (
+            <motion.button
+              className="lg:col-span-2 text-left cursor-pointer bg-transparent border-none p-0 group"
+              onClick={() => handleArticleClick(leadArticle.url)}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div
+                className="relative overflow-hidden rounded-xl mb-3"
+                style={{ aspectRatio: "16/9", background: "linear-gradient(135deg, #1a1a2e, #0a0a1a)" }}
               >
-                <motion.div
-                  style={{ fontSize: "2rem", marginBottom: "0.75rem", color: s.color }}
-                  animate={{ rotate: [0, 5, -5, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  {s.icon}
-                </motion.div>
-                <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{s.label}</h3>
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                  View all {s.label.toLowerCase()} news and market data
+                {leadArticle.imageUrl && (
+                  <img
+                    src={leadArticle.imageUrl.replace(/&amp;/g, "&")}
+                    alt=""
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    style={{ position: "absolute", inset: 0 }}
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                  style={{ background: "var(--color-brand-soft)", color: "var(--color-brand)" }}>
+                  {leadArticle.source}
+                </span>
+                {leadArticle.volatility && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                    style={{
+                      background: leadArticle.volatility === "high" ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)",
+                      color: leadArticle.volatility === "high" ? "#ef4444" : "#f59e0b",
+                    }}>
+                    {leadArticle.volatility}
+                  </span>
+                )}
+                <span className="text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>
+                  {fmtRelative(leadArticle.publishedAt)}
+                </span>
+              </div>
+              <h3 className="text-lg md:text-xl font-bold leading-tight mb-1.5 transition-colors"
+                style={{ color: "var(--color-text-primary)", letterSpacing: "-0.02em" }}>
+                {decodeEntities(leadArticle.title)}
+              </h3>
+              {leadArticle.snippet && (
+                <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                  {decodeEntities(leadArticle.snippet)}
                 </p>
+              )}
+            </motion.button>
+          )}
+
+          {/* Timeline */}
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
+                Latest Updates
+              </h3>
+            </div>
+            {timeline.slice(0, 5).map((article, i) => (
+              <motion.button
+                key={article.id}
+                className="w-full text-left cursor-pointer bg-transparent border-none p-0 group"
+                onClick={() => handleArticleClick(article.url)}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div
+                  className="flex items-start gap-2.5 px-2 py-2 rounded-lg transition-colors"
+                  style={{ borderLeft: "2px solid var(--glass-border)" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderLeftColor = "var(--color-brand)" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderLeftColor = "var(--glass-border)" }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[9px] font-medium" style={{ color: "var(--color-text-tertiary)" }}>
+                        {article.source}
+                      </span>
+                      <span className="text-[9px]" style={{ color: "var(--color-text-tertiary)" }}>
+                        {fmtRelative(article.publishedAt)}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium leading-snug transition-colors line-clamp-2"
+                      style={{ color: "var(--color-text-secondary)" }}>
+                      {decodeEntities(article.title)}
+                    </p>
+                  </div>
+                </div>
               </motion.button>
             ))}
           </div>
-        </StaggerReveal>
-      </AnimatedSection>
+        </div>
+      </section>
 
-      <AnimatedSection
-        gradient="orange-red"
-        title="Your Market Command Center"
-        subtitle="AI-powered insights, real-time data, and comprehensive market coverage"
-        delay={0.1}
-      >
-        <ScrollReveal delay={0.2}>
-          <div className="text-center py-8">
-            <div className="gradient-divider max-w-md mx-auto mb-8" />
-            <p className="text-sm md:text-base" style={{ color: 'var(--text-tertiary)' }}>
-              Data refreshes every 60s · AI analysis updates every 5min · Breaking news in real-time
-            </p>
-            <motion.div
-              className="flex items-center justify-center gap-3 mt-4"
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <span className="live-dot" />
-              <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#22c55e' }}>Live Data Feed</span>
-            </motion.div>
+      {/* Three Column Content */}
+      <section className="mb-6 md:mb-8">
+        <div className="flex items-center gap-2 mb-3 md:mb-4 px-1">
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--color-soft-purple)" }} />
+          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
+            Markets Overview
+          </h2>
+        </div>
+        <div className="home-layout">
+          <div className="home-left">
+            <ImpactAnalysis />
           </div>
-        </ScrollReveal>
-      </AnimatedSection>
-
-      {filtered.length > 6 && (
-        <AnimatedSection
-          gradient="pink-gold"
-          title="More News"
-          subtitle="Continue exploring the latest market-moving stories"
-          delay={0.1}
-        >
-          <div className="px-2 md:px-0">
-            <StaggerReveal stagger={0.03}>
-              <div className="grid gap-1.5 md:gap-2">
-                {filtered.slice(3, 12).map((a) => (
-                  <motion.button
-                    key={a.id}
-                    variants={staggerItem as any}
-                    onClick={() => handleTopStoryClick(a.url)}
-                    className="news-card w-full text-left cursor-pointer"
-                    whileHover={{ scale: 1.005, y: -2 }}
+          <div className="home-main">
+            {/* Tabbed Trending */}
+            <div className="mb-4">
+              <div className="flex items-center gap-1 mb-3 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
+                {TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap bg-transparent border-none"
+                    style={{
+                      color: activeTab === tab ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+                      background: activeTab === tab ? "rgba(255,255,255,0.06)" : "transparent",
+                    }}
                   >
-                    <div className="news-card-img-wrap" style={{ width: 72, minWidth: 72, height: 72 }}>
-                      {a.imageUrl && (
-                        <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
-                      )}
-                    </div>
-                    <div className="news-card-body">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="mac-source">{a.source}</span>
-                        <span className="mac-meta">{fmtShort(a.publishedAt)}</span>
-                      </div>
-                      <div className="news-card-title">{decodeEntities(a.title)}</div>
-                      {a.snippet && <div className="news-card-snippet">{decodeEntities(a.snippet)}</div>}
-                    </div>
-                  </motion.button>
+                    {tab}
+                  </button>
                 ))}
               </div>
-            </StaggerReveal>
-          </div>
-        </AnimatedSection>
-      )}
 
-      <AnimatedSection
-        gradient="blue-purple"
-        title="Built for Traders & Analysts"
-        subtitle="Real-time market intelligence with AI-powered analysis — all in one terminal"
-        delay={0.1}
-        fullHeight={false}
-      >
-        <ScrollReveal delay={0.3}>
-          <div className="text-center py-6">
-            <div className="flex items-center justify-center gap-6 flex-wrap">
-              <motion.span
-                className="feature-badge"
-                whileHover={{ scale: 1.05 }}
-              >
-                <span className="live-dot" />Real-time
-              </motion.span>
-              <motion.span
-                className="feature-badge"
-                style={{ borderColor: 'rgba(180,140,255,0.15)', background: 'rgba(180,140,255,0.05)', color: '#b48cff' }}
-                whileHover={{ scale: 1.05 }}
-              >
-                AI-Powered
-              </motion.span>
-              <motion.span
-                className="feature-badge"
-                style={{ borderColor: 'rgba(255,100,180,0.15)', background: 'rgba(255,100,180,0.05)', color: '#ff64b4' }}
-                whileHover={{ scale: 1.05 }}
-              >
-                Multi-Market
-              </motion.span>
-              <motion.span
-                className="feature-badge"
-                style={{ borderColor: 'rgba(34,197,94,0.15)', background: 'rgba(34,197,94,0.05)', color: '#22c55e' }}
-                whileHover={{ scale: 1.05 }}
-              >
-                24/7 Live
-              </motion.span>
+              <div className="space-y-1.5">
+                {trendingArticles.map((a, i) => {
+                  const curated = "topics" in a ? (a as CuratedArticle) : null
+                  const topic = curated?.topics?.[0]
+                  const volatility = "volatility" in a ? (a as NewsArticle).volatility : undefined
+                  return (
+                    <motion.button
+                      key={a.id}
+                      onClick={() => handleArticleClick(a.url)}
+                      className="news-card w-full text-left cursor-pointer"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: i * 0.03 }}
+                    >
+                      <div className="news-card-img-wrap" style={{ width: 80, minWidth: 80, height: 60 }}>
+                        {a.imageUrl && (
+                          <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
+                        )}
+                      </div>
+                      <div className="news-card-body">
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          {topic && (
+                            <span style={{
+                              fontSize: "0.45rem", fontWeight: 700, textTransform: "uppercase",
+                              padding: "0.05rem 0.3rem", borderRadius: "3px", letterSpacing: "0.06em",
+                              background: `${TOPIC_COLORS[topic] || "#64748b"}15`,
+                              border: `1px solid ${TOPIC_COLORS[topic] || "#64748b"}30`,
+                              color: TOPIC_COLORS[topic] || "#64748b",
+                            }}>{TOPIC_LABELS[topic] || topic}</span>
+                          )}
+                          <span className="mac-source">{a.source}</span>
+                          {volatility && (
+                            <span style={{
+                              fontSize: "0.45rem", fontWeight: 700, textTransform: "uppercase",
+                              padding: "0.05rem 0.3rem", borderRadius: "3px",
+                              background: `${VOLATILITY_COLORS[volatility]}12`,
+                              border: `1px solid ${VOLATILITY_COLORS[volatility]}25`,
+                              color: VOLATILITY_COLORS[volatility],
+                            }}>{volatility}</span>
+                          )}
+                          <span className="mac-meta">{fmtRelative(a.publishedAt)}</span>
+                        </div>
+                        <div className="news-card-title" style={{ fontSize: "0.9rem" }}>{decodeEntities(a.title)}</div>
+                        {a.snippet && <div className="news-card-snippet" style={{ fontSize: "0.78rem" }}>{decodeEntities(a.snippet)}</div>}
+                      </div>
+                    </motion.button>
+                  )
+                })}
+              </div>
             </div>
+
+            {/* Market Sections */}
+            <CryptoSection articles={filtered} maxArticles={3} viewAllLink="/crypto" />
+            <StockSection articles={filtered} maxArticles={3} viewAllLink="/stocks" />
+            <CommoditySection articles={filtered} maxArticles={3} viewAllLink="/commodities" />
+            <IPOSection articles={filtered} maxArticles={3} viewAllLink="/ipo" />
           </div>
-        </ScrollReveal>
-      </AnimatedSection>
+          <div className="home-sidebar">
+            <MarketSnapshot />
+          </div>
+        </div>
+      </section>
     </div>
   )
+}
+
+const VOLATILITY_COLORS: Record<string, string> = {
+  high: "#ef4444",
+  medium: "#f59e0b",
 }

@@ -13,7 +13,6 @@ void main() {
 const fragment = `
 uniform float uTime;
 uniform vec2 uResolution;
-uniform vec2 uMouse;
 varying vec2 vUv;
 
 float hash(vec2 p) {
@@ -30,68 +29,45 @@ float noise(vec2 p) {
 float fbm(vec2 p) {
   float v = 0.0, a = 0.5;
   vec2 shift = vec2(100.0);
-  for (int i = 0; i < 5; i++) { v += a * noise(p); p = p * 2.0 + shift; a *= 0.5; }
+  for (int i = 0; i < 4; i++) { v += a * noise(p); p = p * 2.0 + shift; a *= 0.5; }
   return v;
-}
-
-vec3 palette(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
-  return a + b * cos(6.28318 * (c * t + d));
 }
 
 void main() {
   vec2 uv = vUv;
 
-  float aurora1 = fbm(uv * 1.5 + uTime * 0.015);
-  float aurora2 = fbm(uv * 2.0 - uTime * 0.02 + 1.0);
-  float aurora3 = fbm(uv * 3.0 + uTime * 0.01 + 2.0);
+  float n1 = fbm(uv * 0.8 + uTime * 0.008);
+  float n2 = fbm(uv * 1.2 - uTime * 0.006 + 1.0);
+  float n3 = fbm(uv * 0.5 + uTime * 0.004 + 2.0);
 
-  vec3 col1 = palette(aurora1 * 0.4 + uTime * 0.005,
-    vec3(0.5, 0.5, 0.5), vec3(0.5, 0.5, 0.5), vec3(1.0, 1.0, 1.0),
-    vec3(0.00, 0.10, 0.20));
+  float r = 0.05 + 0.04 * n1 + 0.02 * n2;
+  float g = 0.06 + 0.035 * n2 + 0.02 * n3;
+  float b = 0.12 + 0.06 * n1 + 0.04 * n3;
 
-  vec3 col2 = palette(aurora2 * 0.3 + uTime * 0.003 + 0.5,
-    vec3(0.5, 0.5, 0.5), vec3(0.5, 0.5, 0.5), vec3(1.0, 1.0, 1.0),
-    vec3(0.30, 0.20, 0.50));
+  float vignette = 1.0 - length(vUv - 0.5) * 0.5;
+  vec3 col = vec3(r, g, b) * vignette;
 
-  vec3 col3 = palette(aurora3 * 0.2 + uTime * 0.004 + 1.0,
-    vec3(0.5, 0.5, 0.5), vec3(0.5, 0.5, 0.5), vec3(1.0, 1.0, 1.0),
-    vec3(0.10, 0.40, 0.30));
+  float glow = 0.02 * (n1 + n2) * smoothstep(0.4, 0.8, abs(uv.y - 0.5));
+  col += vec3(0.2, 0.3, 0.6) * glow;
 
-  vec3 col = col1 * 0.4 + col2 * 0.35 + col3 * 0.25;
-
-  float vignette = 1.0 - length(vUv - 0.5) * 0.6;
-  col *= vignette;
-
-  float mouseGlow = 0.0;
-  vec2 m = uMouse;
-  float d = distance(uv, m);
-  mouseGlow = 0.08 / (d + 0.1);
-  col += vec3(0.3, 0.5, 0.8) * mouseGlow * 0.3;
-
-  col *= 0.7;
   col = pow(col, vec3(1.0 / 2.2));
 
-  gl_FragColor = vec4(col, 1.0);
+  gl_FragColor = vec4(col, 0.85);
 }
 `
 
 export function AuroraBackground() {
   const ref = useRef<THREE.ShaderMaterial>(null!)
 
-  useFrame(({ clock, pointer, size }) => {
+  useFrame(({ clock }) => {
     if (ref.current) {
       ref.current.uniforms.uTime.value = clock.getElapsedTime()
-      ref.current.uniforms.uMouse.value = new THREE.Vector2(
-        pointer.x / size.width * 0.5 + 0.25,
-        pointer.y / size.height * 0.5 + 0.25
-      )
     }
   })
 
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uResolution: { value: new THREE.Vector2(1920, 1080) },
-    uMouse: { value: new THREE.Vector2(0.5, 0.5) },
   }), [])
 
   return (
