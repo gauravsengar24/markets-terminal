@@ -67,6 +67,12 @@ export const BREAKING_RSS_FEEDS: RssFeed[] = [
   { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', region: 'USA', subCategory: 'stocks' },
   { url: 'https://time.com/nextadvisor/feed/', region: 'USA', subCategory: 'stocks' },
   { url: 'https://benjaminion.xyz/newineth2/rss_feed.xml', region: 'Europe', subCategory: 'crypto-defi' },
+  { url: 'https://www.economies.com/rss/', region: 'Europe', subCategory: 'stocks' },
+  { url: 'https://www.cryptotimes.io/feed/', region: 'USA', subCategory: 'crypto' },
+  { url: 'https://feeds.feedburner.com/TheHackersNews', region: 'USA', subCategory: 'tech' },
+  { url: 'https://www.prnewswire.com/rss/news-releases-list.rss', region: 'USA', subCategory: 'stocks' },
+  { url: 'https://www.kitco.com/rss', region: 'USA', subCategory: 'commodities' },
+  { url: 'https://www.analyticsinsight.net/stories.rss', region: 'USA', subCategory: 'tech' },
 ]
 
 export const RSS_FEEDS: RssFeed[] = [

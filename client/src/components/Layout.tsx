@@ -1,25 +1,60 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useMemo, useState, useEffect, useRef } from "react"
+import { useMemo, useState, useEffect, createContext, useContext } from "react"
 import { Outlet, useNavigate, useLocation } from "react-router-dom"
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion"
 import { fetchNews } from "../lib/api"
-import type { NewsArticle } from "@shared/types"
+import type { NewsArticle, LayoutContext } from "@shared/types"
 import { BreakingNewsBar } from "./BreakingNewsBar"
-import { LastUpdated } from "./LastUpdated"
-import { ImpactFilterBar } from "./ImpactFilterBar"
-import { Scene3D } from "./canvas/Scene3D"
 import { Footer } from "./Footer"
+
+type Theme = "light" | "dark"
+
+const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({ theme: "light", toggle: () => {} })
+export const useTheme = () => useContext(ThemeContext)
+
+const SPOT_METALS = [
+  { name: "Gold", symbol: "XAU", bid: "2,415.30", ask: "2,416.10", change: "+0.52%", up: true },
+  { name: "Silver", symbol: "XAG", bid: "30.82", ask: "30.87", change: "-0.48%", up: false },
+  { name: "Platinum", symbol: "XPT", bid: "1,045.00", ask: "1,050.00", change: "+0.50%", up: true },
+  { name: "Palladium", symbol: "XPD", bid: "982.00", ask: "987.00", change: "-0.86%", up: false },
+]
+
+const TICKER_ITEMS = [
+  { name: "S&P 500", value: "5,432.15", change: "+0.84%", up: true },
+  { name: "NASDAQ", value: "17,145.63", change: "+1.22%", up: true },
+  { name: "Dow Jones", value: "38,987.42", change: "+0.65%", up: true },
+  { name: "FTSE 100", value: "8,214.56", change: "-0.32%", up: false },
+  { name: "DAX", value: "18,325.78", change: "+0.47%", up: true },
+  { name: "Nifty 50", value: "25,012.30", change: "+0.92%", up: true },
+  { name: "Nikkei 225", value: "38,845.60", change: "-0.18%", up: false },
+  { name: "Gold", value: "$2,415.30", change: "+0.52%", up: true },
+  { name: "Crude Oil", value: "$78.42", change: "-1.15%", up: false },
+  { name: "Bitcoin", value: "$68,432", change: "+2.34%", up: true },
+]
 
 export function Layout() {
   const navigate = useNavigate()
   const client = useQueryClient()
   const location = useLocation()
-  const [selectedImpact, setSelectedImpact] = useState("all")
-  const mainRef = useRef<HTMLDivElement>(null!)
+
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme")
+      if (saved === "dark" || saved === "light") return saved
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+    }
+    return "light"
+  })
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme)
+    localStorage.setItem("theme", theme)
+  }, [theme])
+
+  const toggleTheme = () => setTheme(t => t === "light" ? "dark" : "light")
 
   const { scrollYProgress } = useScroll()
   const smoothScroll = useSpring(scrollYProgress, { stiffness: 100, damping: 30 })
-
   const [scrollVal, setScrollVal] = useState(0)
   useEffect(() => {
     const unsub = smoothScroll.on("change", (v) => setScrollVal(v))
@@ -36,9 +71,10 @@ export function Layout() {
 
   const ctxRef = useMemo(() => ({
     articles: news.data ?? [],
-    selectedImpact,
-    setSelectedImpact,
-  }), [news.data, selectedImpact, setSelectedImpact])
+    selectedImpact: "all",
+    setSelectedImpact: () => {},
+    scrollProgress: scrollVal,
+  }), [news.data, scrollVal])
 
   const refresh = () => client.invalidateQueries({ queryKey: ["news"] })
 
@@ -49,105 +85,104 @@ export function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-oled-black relative">
-      <div ref={mainRef} style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0, pointerEvents: "none" }}>
-        <Scene3D scrollProgress={scrollVal} />
-      </div>
+    <ThemeContext.Provider value={{ theme, toggle: toggleTheme }}>
+      <div className="min-h-screen flex flex-col" style={{ background: "var(--color-background)" }}>
+        <div className="progress-bar">
+          <motion.div className="progress-bar-fill" style={{ scaleX: scrollVal }} />
+        </div>
 
-      <ProgressBar scroll={scrollVal} />
-
-      <div className="glass-nav shrink-0 z-30 sticky top-0">
-        <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-3">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center gap-2 cursor-pointer bg-transparent border-none p-0 group"
-            >
-              <div className="relative">
-                <span className="w-2.5 h-2.5 rounded-full block transition-shadow duration-300 group-hover:shadow-[0_0_12px_var(--color-brand)]" style={{ background: "var(--color-brand)" }} />
-                <span className="absolute -top-0.5 -right-0.5 w-1 h-1 rounded-full" style={{ background: "var(--color-soft-purple)", animation: "pulse-glow 2s ease-in-out infinite" }} />
-              </div>
-            </button>
-            <div className="hidden md:flex items-center gap-1">
-              {["Crypto", "Stocks", "Commodities", "IPO"].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => navigate(`/${item.toLowerCase()}`)}
-                  className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors cursor-pointer bg-transparent border-none"
-                  style={{ color: "var(--color-text-tertiary)" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--color-text-primary)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--color-text-tertiary)"; e.currentTarget.style.background = "transparent" }}
-                >
-                  {item}
-                </button>
-              ))}
+        {/* Spot Price Bar */}
+        <div className="spot-bar">
+          <div className="spot-bar-inner">
+            {SPOT_METALS.map((metal, i) => (
+              <a key={i} href="/commodities" className="spot-item" onClick={(e) => { e.preventDefault(); navigate("/commodities"); }}>
+                <span className="spot-item-label">{metal.name}</span>
+                <span className={`spot-item-price ${metal.up ? "price-up" : "price-down"}`}>
+                  ${metal.bid}
+                </span>
+                <span className={`spot-item-change ${metal.up ? "price-up" : "price-down"}`}>
+                  {metal.change}
+                </span>
+              </a>
+            ))}
+            <div className="spot-market-status">
+              <span className="spot-market-dot open" />
+              <span>Spot Market Open</span>
             </div>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <LastUpdated at={news.dataUpdatedAt} />
-            <motion.button
-              onClick={refresh}
-              disabled={news.isRefetching}
-              className="action-link text-xs"
-              aria-label="Refresh news"
-              whileTap={{ scale: 0.95 }}
-            >
-              {news.isRefetching ? (
-                <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>⟳</motion.span>
-              ) : "↻"}
-            </motion.button>
           </div>
         </div>
 
-        {news.error && (
-          <div className="px-3 md:px-5 py-2 text-sm" style={{ color: 'var(--color-negative)' }}>
-            Failed to load news. Check API keys or try again later.
+        {/* Main Header */}
+        <header className="site-header">
+          <div className="header-inner">
+            <button onClick={() => navigate("/")} className="flex items-center gap-2 bg-transparent border-none p-0 cursor-pointer" style={{ flexShrink: 0 }}>
+              <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="45" fill="#d4a017" />
+                <text x="50" y="62" textAnchor="middle" fill="#1C1C1C" fontSize="40" fontWeight="800" fontFamily="Inter,sans-serif">M</text>
+              </svg>
+              <span style={{ color: "white", fontSize: "1.1rem", fontWeight: 700, letterTracking: "-0.02em" }}>
+                Market<span style={{ color: "#d4a017" }}>Pulse</span>
+              </span>
+            </button>
+
+            <nav className="nav-pill" style={{ display: "none" }} id="desktop-nav">
+              <button className="nav-link" onClick={() => navigate("/")}>News</button>
+              <button className="nav-link" onClick={() => navigate("/crypto")}>Crypto</button>
+              <button className="nav-link" onClick={() => navigate("/stocks")}>Stocks</button>
+              <button className="nav-link" onClick={() => navigate("/commodities")}>Commodities</button>
+            </nav>
+
+            <div className="flex items-center gap-2">
+              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", display: "none" }} className="hidden md:inline">
+                Jun 30, 2026
+              </span>
+              <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
+                {theme === "light" ? "🌙" : "☀️"}
+              </button>
+            </div>
           </div>
-        )}
+        </header>
+
+        <div className="header-spacer" />
+
+        {/* Market Ticker */}
+        <div className="market-ticker">
+          <div className="market-ticker-inner">
+            <div className="ticker-label">Markets</div>
+            <div className="ticker-scroll">
+              <div className="ticker-track animate-ticker">
+                {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
+                  <a key={i} href="/" className="ticker-item" onClick={(e) => { e.preventDefault(); }}>
+                    <span>{item.name}</span>
+                    <span style={{ fontWeight: 600 }}>{item.value}</span>
+                    <span className={item.up ? "price-up" : "price-down"}>
+                      {item.up ? "▲" : "▼"} {item.change}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <BreakingNewsBar onSelect={handleBreakingNewsSelect} />
+
+        <div className="flex-1">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Outlet context={ctxRef} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <Footer />
       </div>
-
-      <BreakingNewsBar onSelect={handleBreakingNewsSelect} />
-
-      <ImpactFilterBar
-        selected={selectedImpact}
-        onSelect={setSelectedImpact}
-        articles={news.data ?? []}
-      />
-
-      <div className="flex-1 relative z-10">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 8, filter: "blur(3px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -8, filter: "blur(3px)" }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <Outlet context={{ ...ctxRef, scrollProgress: scrollVal }} />
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      <Footer />
-    </div>
-  )
-}
-
-function ProgressBar({ scroll }: { scroll: number }) {
-  return (
-    <div
-      className="fixed top-0 left-0 right-0 z-50"
-      style={{ height: 1.5, pointerEvents: "none" }}
-    >
-      <motion.div
-        style={{
-          height: "100%",
-          background: "linear-gradient(90deg, var(--color-brand), var(--color-soft-purple), var(--color-soft-pink))",
-          boxShadow: "0 0 10px rgba(0,229,255,0.3)",
-          transformOrigin: "0%",
-          scaleX: scroll,
-        }}
-      />
-    </div>
+    </ThemeContext.Provider>
   )
 }

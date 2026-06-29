@@ -1,47 +1,48 @@
-import { useMemo, useState, useRef } from "react"
+import { useMemo } from "react"
 import { useNavigate, useOutletContext } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { motion, useScroll, useTransform } from "framer-motion"
 import type { NewsArticle, LayoutContext, CuratedArticle } from "@shared/types"
 import { fetchCuratedBreakingNews } from "../lib/api"
 import { decodeEntities } from "../lib/format"
-import { CryptoSection } from "../components/CryptoSection"
-import { StockSection } from "../components/StockSection"
-import { CommoditySection } from "../components/CommoditySection"
-import { IPOSection } from "../components/IPOSection"
-import { ImpactAnalysis } from "../components/ImpactAnalysis"
-import { MarketSnapshot } from "../components/MarketSnapshot"
-import { HeroBanner } from "../components/HeroBanner"
-import { SignalChip } from "../components/SignalChip"
 
-const TOPIC_LABELS: Record<string, string> = {
-  "tech-founder": "TECH", "politics-leader": "POLITICS", "ipo": "IPO",
-  "war-conflict": "CONFLICT", "crypto-defi": "DeFi", "crypto-regulation": "REGULATION",
-  "trending": "TRENDING", "markets": "MARKETS",
-}
+const SPOT_METALS_DATA = [
+  { name: "Gold", symbol: "XAU", bid: "2,415.30", ask: "2,416.10", change: "+12.40", changePct: "+0.52%", up: true },
+  { name: "Silver", symbol: "XAG", bid: "30.82", ask: "30.87", change: "-0.15", changePct: "-0.48%", up: false },
+  { name: "Platinum", symbol: "XPT", bid: "1,045.00", ask: "1,050.00", change: "+5.20", changePct: "+0.50%", up: true },
+  { name: "Palladium", symbol: "XPD", bid: "982.00", ask: "987.00", change: "-8.50", changePct: "-0.86%", up: false },
+]
 
-const TOPIC_COLORS: Record<string, string> = {
-  "tech-founder": "#60cdff", "politics-leader": "#f59e0b", "ipo": "#22c55e",
-  "war-conflict": "#ef4444", "crypto-defi": "#a78bfa", "crypto-regulation": "#f472b6",
-  "trending": "#f97316", "markets": "#34d399",
-}
+const KITCO_INDICES = [
+  { name: "XAU Index", value: "128.45", change: "+0.38%", up: true },
+  { name: "HUI Index", value: "295.60", change: "-0.22%", up: false },
+  { name: "KGX", value: "1,842.70", change: "+0.45%", up: true },
+]
+
+const CRYPTO_QUOTES = [
+  { name: "Bitcoin", symbol: "BTC", price: "$68,432", change: "+2.34%", up: true },
+  { name: "Ethereum", symbol: "ETH", price: "$3,521", change: "+1.87%", up: true },
+  { name: "Solana", symbol: "SOL", price: "$148.25", change: "-0.62%", up: false },
+  { name: "XRP", symbol: "XRP", price: "$0.54", change: "+1.15%", up: true },
+]
+
+const MORNING_FIX_ROWS = [
+  { hub: "Hong Kong", flag: "🇭🇰" },
+  { hub: "Mumbai", flag: "🇮🇳" },
+  { hub: "London", flag: "🇬🇧", gold: "Coming in 0h 0m" },
+  { hub: "New York", flag: "🇺🇸", gold: "Coming in 0h 0m" },
+]
 
 function fmtRelative(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
+  if (diff < 60000) return "Just now"
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
-const TABS = ["All", "Market", "Crypto", "Stocks", "Commodities", "IPO"]
-
 export function HomePage() {
   const navigate = useNavigate()
-  const { articles, selectedImpact, scrollProgress } = useOutletContext<LayoutContext>()
-  const [activeTab, setActiveTab] = useState("All")
-  const heroRef = useRef<HTMLDivElement>(null!)
-  const { scrollYProgress: localScroll } = useScroll({ target: heroRef, offset: ["start start", "end start"] })
-  const heroParallax = useTransform(localScroll, [0, 1], [0, 80])
+  const { articles } = useOutletContext<LayoutContext>()
 
   const THREE_DAYS = 72 * 60 * 60 * 1000
 
@@ -51,289 +52,303 @@ export function HomePage() {
     staleTime: 0,
   })
 
-  const filtered = useMemo(() => {
-    let result = articles.filter(a => Date.now() - new Date(a.publishedAt).getTime() < THREE_DAYS)
-    if (selectedImpact !== "all") {
-      result = result.filter(a => a.impactCategory === selectedImpact)
-    }
-    return result
-  }, [articles, selectedImpact])
+  const active = useMemo(() =>
+    articles.filter(a => Date.now() - new Date(a.publishedAt).getTime() < THREE_DAYS),
+    [articles]
+  )
+
+  const latestArticles = useMemo(() => {
+    const all = [...active].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    return all.slice(0, 6)
+  }, [active])
 
   const curatedArticles = useMemo(() =>
     (curated.data?.articles ?? []).filter(a => Date.now() - new Date(a.publishedAt).getTime() < THREE_DAYS),
     [curated.data?.articles]
   )
 
-  const leadArticle = useMemo(() => {
-    const all = [...filtered].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    return all[0] || null
-  }, [filtered])
+  const sidebarArticles = useMemo(() => {
+    const all = [...curatedArticles, ...active]
+    const seen = new Set<string>()
+    return all.filter(a => {
+      if (seen.has(a.url)) return false
+      seen.add(a.url)
+      return true
+    }).slice(0, 6)
+  }, [curatedArticles, active])
 
-  const timeline = useMemo(() => {
-    const all = [...filtered].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    return all.slice(0, 5).filter(a => a.id !== leadArticle?.id)
-  }, [filtered, leadArticle])
+  const cryptoArticles = useMemo(() =>
+    active.filter(a => a.subCategory === "crypto" || a.assetClass === "crypto").slice(0, 3),
+    [active]
+  )
 
-  const trendingArticles = useMemo(() => {
-    let result = [...filtered]
-    result.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-
-    if (activeTab === "Crypto") result = result.filter(a => a.subCategory === "crypto" || a.assetClass === "crypto")
-    else if (activeTab === "Stocks") result = result.filter(a => a.subCategory === "stocks" && a.assetClass !== "crypto")
-    else if (activeTab === "Commodities") result = result.filter(a => a.subCategory === "commodities" || a.assetClass === "commodities")
-    else if (activeTab === "IPO") result = result.filter(a => a.subCategory === "ipo")
-
-    return result.slice(0, 8)
-  }, [filtered, activeTab])
-
-  const handleArticleClick = (url: string) => {
+  const handleClick = (url: string) => {
     const found = articles.find(a => a.url === url)
     if (found) navigate(`/article/${found.id}`)
     else window.open(url, "_blank", "noopener")
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
-      <div ref={heroRef}>
-        <motion.div style={{ y: heroParallax }}>
-          <HeroBanner />
-        </motion.div>
-      </div>
-
-      {/* Split Featured Section */}
-      <section className="mb-6 md:mb-8">
-        <div className="flex items-center gap-2 mb-3 md:mb-4 px-1">
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--color-brand)" }} />
-          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
-            Top Stories
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Lead Article */}
-          {leadArticle && (
-            <motion.button
-              className="lg:col-span-2 text-left cursor-pointer bg-transparent border-none p-0 group"
-              onClick={() => handleArticleClick(leadArticle.url)}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <div
-                className="relative overflow-hidden rounded-xl mb-3"
-                style={{ aspectRatio: "16/9", background: "linear-gradient(135deg, #1a1a2e, #0a0a1a)" }}
-              >
-                {leadArticle.imageUrl && (
-                  <img
-                    src={leadArticle.imageUrl.replace(/&amp;/g, "&")}
-                    alt=""
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    style={{ position: "absolute", inset: 0 }}
-                  />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                  style={{ background: "var(--color-brand-soft)", color: "var(--color-brand)" }}>
-                  {leadArticle.source}
-                </span>
-                {leadArticle.volatility && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                    style={{
-                      background: leadArticle.volatility === "high" ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)",
-                      color: leadArticle.volatility === "high" ? "#ef4444" : "#f59e0b",
-                    }}>
-                    {leadArticle.volatility}
-                  </span>
-                )}
-                <span className="text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>
-                  {fmtRelative(leadArticle.publishedAt)}
+    <div className="container-main" style={{ paddingTop: "1.5rem", paddingBottom: "2rem" }}>
+      {/* Spot Prices Hero */}
+      <section className="spot-hero" style={{ margin: "-1.5rem -1rem 1.5rem", padding: "1.5rem 1rem" }}>
+        <div className="" style={{ maxWidth: "1280px", margin: "0 auto" }}>
+          <div className="spot-hero-grid" style={{ animation: "fade-in-up 0.5s ease-out" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
+                <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.6)" }}>Live Spot Prices</h2>
+                <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>
+                  <span className="spot-market-dot open" /> Market Open
                 </span>
               </div>
-              <h3 className="text-lg md:text-xl font-bold leading-tight mb-1.5 transition-colors"
-                style={{ color: "var(--color-text-primary)", letterSpacing: "-0.02em" }}>
-                {decodeEntities(leadArticle.title)}
-              </h3>
-              {leadArticle.snippet && (
-                <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                  {decodeEntities(leadArticle.snippet)}
-                </p>
-              )}
-            </motion.button>
-          )}
-
-          {/* Timeline */}
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2 mb-2 px-1">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
-                Latest Updates
-              </h3>
-            </div>
-            {timeline.slice(0, 5).map((article, i) => (
-              <motion.button
-                key={article.id}
-                className="w-full text-left cursor-pointer bg-transparent border-none p-0 group"
-                onClick={() => handleArticleClick(article.url)}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <div
-                  className="flex items-start gap-2.5 px-2 py-2 rounded-lg transition-colors"
-                  style={{ borderLeft: "2px solid var(--glass-border)" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderLeftColor = "var(--color-brand)" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderLeftColor = "var(--glass-border)" }}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-[9px] font-medium" style={{ color: "var(--color-text-tertiary)" }}>
-                        {article.source}
+              <div className="spot-cards">
+                {SPOT_METALS_DATA.map((metal, i) => (
+                  <div key={i} className="spot-card" style={{ animation: `fade-in-up 0.4s ease-out ${i * 0.08}s both` }}>
+                    <div className="spot-card-header">
+                      <span className="spot-card-name">{metal.name}</span>
+                      <span className="spot-card-symbol">{metal.symbol}</span>
+                    </div>
+                    <div className="spot-card-price">${metal.bid}</div>
+                    <div className="spot-card-footer">
+                      <span className={`spot-item-change ${metal.up ? "price-up" : "price-down"}`}>
+                        {metal.up ? "▲" : "▼"} {metal.changePct}
                       </span>
-                      <span className="text-[9px]" style={{ color: "var(--color-text-tertiary)" }}>
-                        {fmtRelative(article.publishedAt)}
+                      <span style={{ fontSize: "0.6875rem", color: "rgba(255,255,255,0.4)" }}>
+                        Bid {metal.bid} / Ask {metal.ask}
                       </span>
                     </div>
-                    <p className="text-xs font-medium leading-snug transition-colors line-clamp-2"
-                      style={{ color: "var(--color-text-secondary)" }}>
-                      {decodeEntities(article.title)}
-                    </p>
                   </div>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Three Column Content */}
-      <section className="mb-6 md:mb-8">
-        <div className="flex items-center gap-2 mb-3 md:mb-4 px-1">
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--color-soft-purple)" }} />
-          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
-            Markets Overview
-          </h2>
-        </div>
-        <div className="home-layout">
-          <div className="home-left">
-            <ImpactAnalysis />
-          </div>
-          <div className="home-main">
-            {/* Tabbed Trending */}
-            <div className="mb-4">
-              <div className="flex items-center gap-1 mb-3 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
-                {TABS.map((tab) => (
-                  <motion.button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap bg-transparent border-none"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    style={{
-                      color: activeTab === tab ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
-                      background: activeTab === tab ? "rgba(0,229,255,0.08)" : "transparent",
-                      border: activeTab === tab ? "1px solid rgba(0,229,255,0.15)" : "1px solid transparent",
-                    }}
-                  >
-                    {tab}
-                  </motion.button>
                 ))}
-              </div>
-
-              <div className="space-y-1.5">
-                {trendingArticles.map((a, i) => {
-                  const curated = "topics" in a ? (a as CuratedArticle) : null
-                  const topic = curated?.topics?.[0]
-                  const volatility = "volatility" in a ? (a as NewsArticle).volatility : undefined
-                  return (
-                    <motion.button
-                      key={a.id}
-                      onClick={() => handleArticleClick(a.url)}
-                      className="news-card w-full text-left cursor-pointer"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: i * 0.03 }}
-                    >
-                      <div className="news-card-img-wrap" style={{ width: 80, minWidth: 80, height: 60 }}>
-                        {a.imageUrl && (
-                          <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="news-card-img" loading="lazy" />
-                        )}
-                      </div>
-                      <div className="news-card-body">
-                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                          {topic && (
-                            <span style={{
-                              fontSize: "0.45rem", fontWeight: 700, textTransform: "uppercase",
-                              padding: "0.05rem 0.3rem", borderRadius: "3px", letterSpacing: "0.06em",
-                              background: `${TOPIC_COLORS[topic] || "#64748b"}15`,
-                              border: `1px solid ${TOPIC_COLORS[topic] || "#64748b"}30`,
-                              color: TOPIC_COLORS[topic] || "#64748b",
-                            }}>{TOPIC_LABELS[topic] || topic}</span>
-                          )}
-                          <span className="mac-source">{a.source}</span>
-                          {volatility && (
-                            <span style={{
-                              fontSize: "0.45rem", fontWeight: 700, textTransform: "uppercase",
-                              padding: "0.05rem 0.3rem", borderRadius: "3px",
-                              background: `${VOLATILITY_COLORS[volatility]}12`,
-                              border: `1px solid ${VOLATILITY_COLORS[volatility]}25`,
-                              color: VOLATILITY_COLORS[volatility],
-                            }}>{volatility}</span>
-                          )}
-                          <span className="mac-meta">{fmtRelative(a.publishedAt)}</span>
-                        </div>
-                        <div className="news-card-title" style={{ fontSize: "0.9rem" }}>{decodeEntities(a.title)}</div>
-                        {a.snippet && <div className="news-card-snippet" style={{ fontSize: "0.78rem" }}>{decodeEntities(a.snippet)}</div>}
-                      </div>
-                    </motion.button>
-                  )
-                })}
               </div>
             </div>
 
-            {/* Market Sections */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.6 }}
-            >
-              <CryptoSection articles={filtered} maxArticles={3} viewAllLink="/crypto" />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
-              <StockSection articles={filtered} maxArticles={3} viewAllLink="/stocks" />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.5, delay: 0.15 }}
-            >
-              <CommoditySection articles={filtered} maxArticles={3} viewAllLink="/commodities" />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <IPOSection articles={filtered} maxArticles={3} viewAllLink="/ipo" />
-            </motion.div>
-          </div>
-          <div className="home-sidebar">
-            <MarketSnapshot />
+            <div className="indices-panel">
+              <h3 className="indices-panel-title">Market Indices</h3>
+              {KITCO_INDICES.map((idx, i) => (
+                <div key={i} className="index-row" style={{ animation: `fade-in-up 0.3s ease-out ${i * 0.06}s both` }}>
+                  <span className="index-row-name">{idx.name}</span>
+                  <div className="index-row-value">
+                    <div className="index-row-price">{idx.value}</div>
+                    <div className={`index-row-change ${idx.up ? "price-up" : "price-down"}`}>{idx.change}</div>
+                  </div>
+                </div>
+              ))}
+              <div className="indices-footer">
+                <div className="indices-footer-row">
+                  <span>Gold/Oz</span>
+                  <span className="indices-footer-value">$2,415.30</span>
+                </div>
+                <div className="indices-footer-row">
+                  <span>Silver/Oz</span>
+                  <span className="indices-footer-value">$30.82</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Main Content Grid */}
+      <div className="kitco-grid">
+        <div className="content-main" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+
+          {/* Latest News */}
+          <section>
+            <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "1rem" }}>
+              Latest News
+            </h2>
+            <div className="animate-stagger">
+              {latestArticles.map((a) => (
+                <button key={a.id} onClick={() => handleClick(a.url)} className="news-list-item">
+                  <div className="news-list-item-header">
+                    <span style={{ fontSize: "0.6875rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", padding: "0.125rem 0.5rem", borderRadius: "3px", background: "var(--color-surface-muted)", color: "var(--color-text-secondary)" }}>
+                      {a.source}
+                    </span>
+                    <span style={{ fontSize: "0.6875rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", padding: "0.125rem 0.5rem", borderRadius: "3px", background: "var(--color-surface-muted)", color: "var(--color-text-secondary)" }}>
+                      {a.subCategory || a.assetClass}
+                    </span>
+                  </div>
+                  <h3 className="news-list-item-title">{decodeEntities(a.title)}</h3>
+                  <div className="news-list-item-meta">
+                    <span>{a.source}</span>
+                    <span>·</span>
+                    <time>{fmtRelative(a.publishedAt)}</time>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => navigate("/news")} className="view-all-link" style={{ marginTop: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+              More News →
+            </button>
+          </section>
+
+          {/* Crypto Market Table */}
+          <section>
+            <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "1rem" }}>
+              Cryptocurrency Market
+            </h2>
+            <div className="data-table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Symbol</th>
+                    <th>Price</th>
+                    <th>24h Change</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {CRYPTO_QUOTES.map((coin, i) => (
+                    <tr key={i} style={{ animation: `fade-in-up 0.3s ease-out ${i * 0.06}s both` }}>
+                      <td style={{ fontWeight: 600 }}>{coin.name}</td>
+                      <td style={{ color: "var(--color-text-tertiary)" }}>{coin.symbol}</td>
+                      <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{coin.price}</td>
+                      <td style={{ fontWeight: 600, color: coin.up ? "var(--color-positive)" : "var(--color-negative)" }}>{coin.change}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button onClick={() => navigate("/crypto")} className="view-all-link" style={{ marginTop: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+              View all coins →
+            </button>
+          </section>
+
+          {/* Morning Fix Table */}
+          <section>
+            <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "0.5rem" }}>
+              Morning Fix — Global Hub Prices
+            </h2>
+            <p style={{ fontSize: "0.75rem", color: "var(--color-text-tertiary)", marginBottom: "0.75rem" }}>
+              Prices posted around 10:30 AM local time in each hub
+            </p>
+            <div className="data-table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Gold</th>
+                    <th>Silver</th>
+                    <th>Platinum</th>
+                    <th>Palladium</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {MORNING_FIX_ROWS.map((row, i) => (
+                    <tr key={i} style={{ animation: `fade-in-up 0.3s ease-out ${i * 0.08}s both` }}>
+                      <td style={{ fontWeight: 600 }}>{row.flag} {row.hub}</td>
+                      <td style={{ color: row.gold ? "var(--color-text-primary)" : "var(--color-text-tertiary)" }}>{row.gold || "—"}</td>
+                      <td style={{ color: "var(--color-text-tertiary)" }}>—</td>
+                      <td style={{ color: "var(--color-text-tertiary)" }}>—</td>
+                      <td style={{ color: "var(--color-text-tertiary)" }}>—</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Crypto News */}
+          {cryptoArticles.length > 0 && (
+            <section>
+              <div className="section-header">
+                <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "0" }}>
+                  Crypto News
+                </h2>
+                <button onClick={() => navigate("/crypto")} className="view-all-link">View All →</button>
+              </div>
+              <div className="article-grid-3">
+                {cryptoArticles.map((a) => (
+                  <button key={a.id} onClick={() => handleClick(a.url)} className="article-card">
+                    <div className="article-card-img">
+                      {a.imageUrl ? (
+                        <img src={a.imageUrl.replace(/&amp;/g, "&")} alt="" className="article-card-img-inner" loading="lazy" />
+                      ) : (
+                        <div style={{ width: "100%", height: "100%", background: "var(--color-shades-extra-light)" }} />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="article-card-category">{a.source}</span>
+                      <span className="article-card-meta" style={{ margin: 0 }}>{fmtRelative(a.publishedAt)}</span>
+                    </div>
+                    <h3 className="article-card-title">{decodeEntities(a.title)}</h3>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+        </div>
+
+        {/* Sidebar */}
+        <div className="content-sidebar">
+          {/* Spot Prices Quick View */}
+          <div style={{ background: "var(--color-surface-warm)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", padding: "1rem" }}>
+            <h3 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
+              Spot Prices
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+              {SPOT_METALS_DATA.map((metal, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>{metal.symbol}</span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--color-text-tertiary)" }}>{metal.name}</span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${metal.bid}</div>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: metal.up ? "var(--color-positive)" : "var(--color-negative)" }}>
+                      {metal.changePct}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Latest Headlines */}
+          <div>
+            <h3 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-gold)", flexShrink: 0 }} />
+              Latest
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {sidebarArticles.map((a, i) => (
+                <button
+                  key={a.id}
+                  onClick={() => handleClick(a.url)}
+                  style={{ textAlign: "left", background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", animation: `fade-in-up 0.3s ease-out ${i * 0.05}s both` }}
+                >
+                  <h4 style={{ fontSize: "0.875rem", fontWeight: 500, lineHeight: "1.3", color: "var(--color-text-primary)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", transition: "color 0.15s", margin: 0 }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = "var(--color-accent-blue)"}
+                    onMouseLeave={(e) => e.currentTarget.style.color = "var(--color-text-primary)"}
+                  >
+                    {decodeEntities(a.title)}
+                  </h4>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "var(--color-text-tertiary)", marginTop: "0.25rem" }}>
+                    <span style={{ color: "var(--color-text-secondary)" }}>{a.source}</span>
+                    <span>·</span>
+                    <time>{fmtRelative(a.publishedAt)}</time>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ height: "1px", background: "var(--color-border)" }} />
+
+          {/* Market Status */}
+          <div style={{ background: "var(--color-surface-muted)", borderRadius: "var(--radius-md)", padding: "1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+              <span className="spot-market-dot open" />
+              <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-positive)" }}>Market Open</span>
+            </div>
+            <p style={{ fontSize: "0.75rem", color: "var(--color-text-tertiary)", margin: 0 }}>
+              Will close in 22 hrs 57 mins<br />
+              Jun 30, 2026
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   )
-}
-
-const VOLATILITY_COLORS: Record<string, string> = {
-  high: "#ef4444",
-  medium: "#f59e0b",
 }

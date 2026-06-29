@@ -17,9 +17,9 @@ export function ArticlePage() {
   if (!article) {
     return (
       <div className="flex items-center justify-center" style={{ minHeight: "50vh" }}>
-        <div className="glass-card" style={{ padding: "2rem", textAlign: "center", maxWidth: "24rem" }}>
-          <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>Article not found.</p>
-          <button onClick={() => navigate("/")} className="action-link text-xs">← Back to Home</button>
+        <div style={{ padding: "2rem", textAlign: "center", maxWidth: "24rem" }}>
+          <p style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)", marginBottom: "1rem" }}>Article not found.</p>
+          <button onClick={() => navigate("/")} className="view-all-link">← Back to Home</button>
         </div>
       </div>
     )
@@ -31,12 +31,14 @@ export function ArticlePage() {
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0.75rem" }}>
-      <button onClick={() => navigate(-1)} className="action-link text-xs mb-4">← Back</button>
+    <div className="container-main" style={{ paddingTop: "1.5rem" }}>
+      <button onClick={() => navigate(-1)} className="view-all-link" style={{ marginBottom: "1rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+        ← Back
+      </button>
 
-      <div className="glass-card" style={{ padding: "1.25rem", marginBottom: "0.75rem" }}>
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span className="mac-source">{article.source}</span>
+      <div className="article-page">
+        <div className="flex items-center gap-3 mb-3 flex-wrap">
+          <span className="article-card-category">{article.source}</span>
           {article.volatility && (
             <span style={{
               fontSize: "0.5rem", fontWeight: 600, textTransform: "uppercase",
@@ -50,15 +52,15 @@ export function ArticlePage() {
             <span style={{
               fontSize: "0.5rem", fontWeight: 600, textTransform: "uppercase",
               padding: "0.1rem 0.35rem", borderRadius: "4px",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid var(--glass-border)",
-              color: "var(--text-tertiary)", letterSpacing: "0.04em",
+              background: "var(--color-surface-muted)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text-tertiary)", letterSpacing: "0.04em",
             }}>{article.impactCategory}</span>
           )}
-          <span className="mono" style={{ fontSize: "0.6rem", color: regionColors[article.region] ?? "var(--text-tertiary)" }}>{article.region}</span>
-          <span className="mono" style={{ fontSize: "0.6rem", color: "var(--text-tertiary)" }}>{fmtTime(article.publishedAt)}</span>
+          <span style={{ fontSize: "0.6rem", fontWeight: 600, color: regionColors[article.region] ?? "var(--color-text-tertiary)" }}>{article.region}</span>
+          <span style={{ fontSize: "0.6rem", color: "var(--color-text-tertiary)", fontFamily: "'Chivo Mono', monospace" }}>{fmtTime(article.publishedAt)}</span>
         </div>
-        <h1 className="article-title" style={{ fontSize: "1.15rem", fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.02em" }}>{article.title}</h1>
+        <h1 className="article-h1">{article.title}</h1>
       </div>
 
       <NewsBriefing
@@ -72,8 +74,8 @@ export function ArticlePage() {
         snippet={article.snippet}
       />
 
-      <div className="flex justify-center mt-4 pb-6">
-        <button onClick={() => navigate("/")} className="action-link text-xs">← Back to Home</button>
+      <div className="flex justify-center pb-6" style={{ marginTop: "2rem" }}>
+        <button onClick={() => navigate("/")} className="view-all-link">← Back to Home</button>
       </div>
     </div>
   )
