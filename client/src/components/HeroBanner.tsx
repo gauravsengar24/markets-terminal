@@ -82,27 +82,6 @@ export function HeroBanner() {
         <ScrollReveal direction="none">
           <div className="text-center mb-10 md:mb-14">
             <motion.div
-              initial={{ opacity: 0, y: 30, filter: "blur(6px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <h1 className="hero-title text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.92] tracking-[-0.04em] mb-6">
-                <span className="gradient-text-cyan-violet">Real-Time</span>
-                <br />
-                <span className="gradient-text-violet-pink">Market Intelligence</span>
-              </h1>
-            </motion.div>
-            <motion.p
-              initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="text-lg md:text-xl max-w-2xl mx-auto mb-8 font-light"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              AI-powered analysis across crypto, stocks, commodities & forex
-            </motion.p>
-
-            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
