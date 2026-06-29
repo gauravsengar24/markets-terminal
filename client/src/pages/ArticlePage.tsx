@@ -17,7 +17,7 @@ export function ArticlePage() {
   if (!article) {
     return (
       <div className="flex items-center justify-center" style={{ minHeight: "50vh" }}>
-        <div className="mac-panel" style={{ padding: "2rem", textAlign: "center", maxWidth: "24rem" }}>
+        <div className="glass-card" style={{ padding: "2rem", textAlign: "center", maxWidth: "24rem" }}>
           <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>Article not found.</p>
           <button onClick={() => navigate("/")} className="action-link text-xs">← Back to Home</button>
         </div>
@@ -34,7 +34,7 @@ export function ArticlePage() {
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0.75rem" }}>
       <button onClick={() => navigate(-1)} className="action-link text-xs mb-4">← Back</button>
 
-      <div className="mac-panel" style={{ padding: "1.25rem", marginBottom: "0.75rem" }}>
+      <div className="glass-card" style={{ padding: "1.25rem", marginBottom: "0.75rem" }}>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <span className="mac-source">{article.source}</span>
           {article.volatility && (

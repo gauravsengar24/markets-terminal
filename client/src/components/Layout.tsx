@@ -39,20 +39,20 @@ export function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--oled-black)', position: 'relative' }}>
+    <div className="min-h-screen flex flex-col bg-oled-black relative">
       <ParticleField />
 
       <div className="glass-nav shrink-0 z-20 sticky top-0">
         <div className="flex items-center justify-between px-4 md:px-5 py-2.5 md:py-3">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 mr-1">
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(6, 182, 212, 0.7)', display: 'inline-block' }} />
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(240, 180, 41, 0.5)', display: 'inline-block' }} />
+              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: 'rgba(6, 182, 212, 0.7)' }} />
+              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: 'rgba(240, 180, 41, 0.5)' }} />
             </div>
             <button
               onClick={() => navigate("/")}
-              className="font-semibold text-sm md:text-base tracking-[-0.01em] hover:opacity-80 transition-opacity cursor-pointer"
-              style={{ color: 'var(--text-primary)' }}
+              className="font-semibold text-sm md:text-base tracking-tight hover:opacity-80 transition-opacity cursor-pointer"
+              style={{ color: 'var(--color-text-primary)' }}
             >
               Markets Terminal
             </button>
@@ -62,9 +62,8 @@ export function Layout() {
             <button
               onClick={refresh}
               disabled={news.isRefetching}
-              className="action-link text-xs"
+              className="action-link"
               aria-label="Refresh news"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.95rem' }}
             >
               {news.isRefetching ? "⟳" : "↻"}
             </button>
@@ -72,7 +71,7 @@ export function Layout() {
         </div>
 
         {news.error && (
-          <div className="px-3 md:px-5 py-2 text-sm text-term-red" style={{ color: 'var(--color-negative)' }}>
+          <div className="px-3 md:px-5 py-2 text-sm" style={{ color: 'var(--color-negative)' }}>
             Failed to load news. Check API keys or try again later.
           </div>
         )}

@@ -1,0 +1,238 @@
+/* ═══════════════════════════════════════════
+   Glassmorphism Design System
+   ═══════════════════════════════════════════ */
+
+/* ─── Base Glass Surface (CSS class for composition) ─── */
+.glass-surface-base {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-surface-base::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+  pointer-events: none;
+}
+
+/* ─── Glass Navbar ─── */
+@utility glass-nav {
+  background: rgba(8, 8, 15, 0.75);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border);
+  position: relative;
+  z-index: 10;
+}
+
+/* ─── Glass Card (macOS acrylic panel) ─── */
+@utility glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s var(--ease-out-expo), box-shadow 0.25s var(--ease-out-expo), transform 0.25s var(--ease-out-expo);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+    pointer-events: none;
+  }
+
+  &:hover {
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+  }
+}
+
+/* ─── Glass Gradient Card ─── */
+@utility glass-gradient {
+  background: linear-gradient(135deg, var(--glass-bg), rgba(8, 8, 15, 0.6));
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease-out-expo), border-color 0.3s var(--ease-out-expo), box-shadow 0.3s var(--ease-out-expo);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-2px) scale(1.005);
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--shadow-card-hover);
+  }
+}
+
+/* ─── Glass Section Card ─── */
+@utility glass-section {
+  background: linear-gradient(135deg, rgba(255,255,255,0.045), rgba(8,8,15,0.6));
+  backdrop-filter: blur(25px) saturate(210%);
+  -webkit-backdrop-filter: blur(25px) saturate(210%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s var(--ease-out-expo);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+    pointer-events: none;
+  }
+
+  &:hover {
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+  }
+}
+
+/* ─── Glass Surface (flat variant) ─── */
+@utility glass-surface {
+  background: linear-gradient(135deg, var(--glass-bg), rgba(5, 5, 8, 0.6));
+  backdrop-filter: blur(25px) saturate(210%);
+  -webkit-backdrop-filter: blur(25px) saturate(210%);
+  border: 1px solid var(--glass-border);
+}
+
+/* ─── Glass Pills (filters/tabs) ─── */
+@utility glass-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: all 0.2s var(--ease-out-expo);
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: var(--color-text-primary);
+  }
+}
+
+/* ─── Gradient Dividers ─── */
+@utility gradient-divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(96, 205, 255, 0.4), rgba(180, 140, 255, 0.4), rgba(255, 100, 180, 0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer-wide 4s ease-in-out infinite;
+  border-radius: 1px;
+}
+
+/* ─── Gradient Text ─── */
+@utility gradient-text-blue-purple {
+  background: linear-gradient(135deg, #60cdff 0%, #b48cff 50%, #a78bfa 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 6s ease infinite;
+}
+
+@utility gradient-text-pink-gold {
+  background: linear-gradient(135deg, #ff64b4 0%, #f0b429 40%, #ff8c42 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 6s ease infinite;
+}
+
+@utility gradient-text-green-teal {
+  background: linear-gradient(135deg, #22c55e 0%, #60cdff 60%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 6s ease infinite;
+}
+
+@utility gradient-text-orange-red {
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 60%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 6s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-text-blue-purple,
+  .gradient-text-pink-gold,
+  .gradient-text-green-teal,
+  .gradient-text-orange-red {
+    animation: none;
+  }
+}
+
+/* ─── Ambient Background Orbs ─── */
+@utility bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  will-change: transform;
+}
+
+@utility bg-orb-cyan {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  will-change: transform;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(96,205,255,0.08), transparent 70%);
+  animation: float 12s ease-in-out infinite;
+}
+
+@utility bg-orb-purple {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  will-change: transform;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(180,140,255,0.06), transparent 70%);
+  animation: float-slow 15s ease-in-out infinite reverse;
+}
+
+@utility bg-orb-pink {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  will-change: transform;
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(255,100,180,0.05), transparent 70%);
+  animation: float 10s ease-in-out infinite 2s;
+}

@@ -117,7 +117,7 @@ export function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
             {FEATURES.map((f) => (
               <motion.div key={f.title} variants={staggerItem}>
-                <div className="glass-section-card p-5 md:p-6">
+                <div className="glass-section p-5 md:p-6">
                   <div className={`gradient-text-${f.gradient === "blue-purple" ? "blue-purple" : f.gradient === "purple-pink" ? "pink-gold" : f.gradient === "orange-red" ? "orange-red" : "green-teal"} text-2xl mb-3 inline-block`}>
                     {f.icon}
                   </div>
@@ -152,7 +152,7 @@ export function HomePage() {
             <ScrollReveal direction="up" delay={0.1}>
               {!articles.length ? (
                 <div className="flex items-center justify-center py-16">
-                  <div className="mac-panel" style={{ padding: '2.5rem', textAlign: 'center', maxWidth: '24rem' }}>
+                  <div className="glass-card" style={{ padding: '2.5rem', textAlign: 'center', maxWidth: '24rem' }}>
                     <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading markets...</p>
                   </div>
                 </div>
@@ -267,7 +267,7 @@ export function HomePage() {
                 key={s.label}
                 variants={staggerItem}
                 onClick={() => navigate(s.link)}
-                className="glass-section-card p-6 text-left cursor-pointer"
+                className="glass-section p-6 text-left cursor-pointer"
                 whileHover={{ scale: 1.03, y: -3 }}
               >
                 <div style={{ fontSize: "2rem", marginBottom: "0.75rem", color: s.color }}>{s.icon}</div>

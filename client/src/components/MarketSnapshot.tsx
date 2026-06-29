@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import type { MarketPrice, MarketSnapshotResponse } from "@shared/types"
 
 function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
@@ -18,12 +18,9 @@ function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
   }, [price])
 
   return (
-    <motion.div
-      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap"
-      style={{
-        position: "relative",
-        transition: "background 0.2s cubic-bezier(.16,1,.3,1)",
-      }}
+    <div
+      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap relative transition-[background] duration-200"
+      style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
     >
@@ -55,7 +52,7 @@ function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
       <span className={`text-right text-[13px] font-semibold font-mono tabular-nums w-[68px] shrink-0 ${positive ? "text-up" : "text-down"}`}>
         {positive ? "+" : ""}{changePercent.toFixed(2)}%
       </span>
-    </motion.div>
+    </div>
   )
 }
 
@@ -110,16 +107,6 @@ function MoversCard({ title, items, type }: { title: string; items: MarketPrice[
   )
 }
 
-function Shimmer({ count = 6 }: { count?: number }) {
-  return (
-    <>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="h-5 rounded-md bg-gradient-to-r from-[rgba(255,255,255,0.03)] via-[rgba(255,255,255,0.06)] to-[rgba(255,255,255,0.03)] bg-[length:200%_100%] animate-shimmer" />
-      ))}
-    </>
-  )
-}
-
 export function MarketSnapshot() {
   const [data, setData] = useState<MarketSnapshotResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -150,39 +137,10 @@ export function MarketSnapshot() {
   const isLive = dataAge < 150_000
 
   return (
-    <div
-      className="vibrant-glass-card"
-      style={{
-        padding: 0,
-        overflow: "hidden",
-        borderRadius: "16px",
-        border: "1px solid rgba(255,255,255,0.08)",
-        background: "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(5,5,8,0.6))",
-        backdropFilter: "blur(25px) saturate(210%)",
-        WebkitBackdropFilter: "blur(25px) saturate(210%)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
-        transition: "all 0.3s cubic-bezier(.16,1,.3,1)",
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)"
-        e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)"
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"
-        e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)"
-      }}
-    >
-      <div style={{
-        position: "relative",
-        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)",
-        height: "1px",
-        pointerEvents: "none",
-      }} />
-
+    <div className="glass-gradient" style={{ padding: 0, overflow: "hidden" }}>
       <div className="flex items-center justify-between px-3 py-3 border-b border-[rgba(255,255,255,0.06)]">
         <div className="flex items-center gap-2">
-          <div style={{
-            width: "7px", height: "7px", borderRadius: "50%",
+          <div className="w-[7px] h-[7px] rounded-full" style={{
             background: "rgba(6, 182, 212, 0.8)",
             boxShadow: "0 0 8px rgba(6, 182, 212, 0.3)",
           }} />
@@ -193,11 +151,10 @@ export function MarketSnapshot() {
         </div>
         <div className="flex items-center gap-1.5">
           <span
-            className="block w-1.5 h-1.5 rounded-full"
+            className={`block w-1.5 h-1.5 rounded-full ${isLive ? "animate-blink" : ""}`}
             style={{
               background: isLive ? "#22c55e" : "rgba(255,255,255,0.3)",
               boxShadow: isLive ? "0 0 6px rgba(34,197,94,0.6)" : "none",
-              animation: isLive ? "1.2s ease-in-out infinite ticker-blink" : "none",
             }}
           />
           <span className="text-[11px] font-semibold" style={{ color: isLive ? "#22c55e" : "rgba(255,255,255,0.35)" }}>
@@ -206,9 +163,11 @@ export function MarketSnapshot() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="p-3 space-y-3">
-          <Shimmer count={8} />
+        {loading ? (
+        <div className="p-3 flex flex-col gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-5 rounded-md animate-shimmer" style={{ background: "linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 100%)", backgroundSize: "200% 100%" }} />
+          ))}
         </div>
       ) : (
         <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "clamp(300px, calc(100vh - 200px), 600px)" }}>

@@ -96,7 +96,7 @@ export function HeroBanner() {
               initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="text-lg md:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto mb-8 font-light"
+              className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-8 font-light"
             >
               Real-time market intelligence with AI-powered analysis
             </motion.p>

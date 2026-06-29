@@ -48,7 +48,7 @@ export function NewsBriefing({ url, fullPage, articleTitle, source, region, impa
   if (!url) {
     return (
       <div className={`p-3 md:p-5 ${wrapper}`}>
-        <div className="mac-panel" style={{ textAlign: "center", padding: fullPage ? "1.5rem" : "1rem" }}>
+        <div className="glass-card" style={{ textAlign: "center", padding: fullPage ? "1.5rem" : "1rem" }}>
           <p style={{ fontSize: "1rem", color: "var(--text-secondary)" }}>Select a headline to view the full article.</p>
         </div>
       </div>
@@ -58,7 +58,7 @@ export function NewsBriefing({ url, fullPage, articleTitle, source, region, impa
   if (query.isLoading) {
     return (
       <div className={`p-3 md:p-5 ${wrapper}`}>
-        <div className="mac-panel" style={{ padding: fullPage ? "1.5rem" : "1rem" }}>
+        <div className="glass-card" style={{ padding: fullPage ? "1.5rem" : "1rem" }}>
           <div className="animate-pulse space-y-3">
             <div style={{ height: "0.7rem", background: "var(--glass-border)", borderRadius: "4px", width: "60%" }} />
             <div style={{ height: "0.5rem", background: "var(--glass-border)", borderRadius: "4px", width: "100%" }} />
@@ -96,7 +96,7 @@ export function NewsBriefing({ url, fullPage, articleTitle, source, region, impa
 
     return (
       <div className={`p-3 md:p-5 ${wrapper}`}>
-        <div className="mac-panel" style={{ padding: fullPage ? "1.5rem 1.75rem 1.25rem" : "1rem 1.15rem" }}>
+        <div className="glass-card" style={{ padding: fullPage ? "1.5rem 1.75rem 1.25rem" : "1rem 1.15rem" }}>
           {(hasFullContent || wh.length > 0) && (
             <>
               <div className="briefing-section">
@@ -187,7 +187,7 @@ export function NewsBriefing({ url, fullPage, articleTitle, source, region, impa
 
   return (
     <div className={`p-3 md:p-5 ${wrapper}`}>
-      <div className="mac-panel" style={{ textAlign: "center", padding: fullPage ? "1.5rem" : "1rem" }}>
+      <div className="glass-card" style={{ textAlign: "center", padding: fullPage ? "1.5rem" : "1rem" }}>
         <p style={{ fontSize: "1rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>No article available.</p>
         <a href={url} target="_blank" rel="noopener noreferrer" className="action-link text-xs">Read original article ↗</a>
       </div>
