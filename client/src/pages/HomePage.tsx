@@ -4,6 +4,12 @@ import { useQuery } from "@tanstack/react-query"
 import type { NewsArticle, LayoutContext, CuratedArticle } from "@shared/types"
 import { fetchCuratedBreakingNews } from "../lib/api"
 import { decodeEntities } from "../lib/format"
+import { PriceChart } from "../components/PriceChart"
+import { MarketMovers } from "../components/MarketMovers"
+import { MarketTimer } from "../components/MarketTimer"
+import { MarketSummary } from "../components/MarketSummary"
+import { TrendingTopics } from "../components/TrendingTopics"
+import { SearchBar } from "../components/SearchBar"
 
 const SPOT_METALS_DATA = [
   { name: "Gold", symbol: "XAU", bid: "2,415.30", ask: "2,416.10", change: "+12.40", changePct: "+0.52%", up: true },
@@ -23,13 +29,6 @@ const CRYPTO_QUOTES = [
   { name: "Ethereum", symbol: "ETH", price: "$3,521", change: "+1.87%", up: true },
   { name: "Solana", symbol: "SOL", price: "$148.25", change: "-0.62%", up: false },
   { name: "XRP", symbol: "XRP", price: "$0.54", change: "+1.15%", up: true },
-]
-
-const MORNING_FIX_ROWS = [
-  { hub: "Hong Kong", flag: "🇭🇰" },
-  { hub: "Mumbai", flag: "🇮🇳" },
-  { hub: "London", flag: "🇬🇧", gold: "Coming in 0h 0m" },
-  { hub: "New York", flag: "🇺🇸", gold: "Coming in 0h 0m" },
 ]
 
 function fmtRelative(iso: string) {
@@ -59,7 +58,7 @@ export function HomePage() {
 
   const latestArticles = useMemo(() => {
     const all = [...active].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    return all.slice(0, 6)
+    return all.slice(0, 5)
   }, [active])
 
   const curatedArticles = useMemo(() =>
@@ -74,7 +73,7 @@ export function HomePage() {
       if (seen.has(a.url)) return false
       seen.add(a.url)
       return true
-    }).slice(0, 6)
+    }).slice(0, 5)
   }, [curatedArticles, active])
 
   const cryptoArticles = useMemo(() =>
@@ -90,16 +89,25 @@ export function HomePage() {
 
   return (
     <div className="container-main" style={{ paddingTop: "1.5rem", paddingBottom: "2rem" }}>
-      {/* Spot Prices Hero */}
-      <section className="spot-hero" style={{ margin: "-1.5rem -1rem 1.5rem", padding: "1.5rem 1rem" }}>
-        <div className="" style={{ maxWidth: "1280px", margin: "0 auto" }}>
+      {/* Market Summary — Full Width */}
+      <MarketSummary />
+
+      <div className="section-divider" />
+
+      {/* Spot Prices Hero — Full Width */}
+      <section className="full-width-section spot-hero" style={{ paddingTop: "1.5rem", paddingBottom: "2rem", marginBottom: "2rem" }}>
+        <div className="container-main">
           <div className="spot-hero-grid" style={{ animation: "fade-in-up 0.5s ease-out" }}>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
-                <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.6)" }}>Live Spot Prices</h2>
-                <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>
-                  <span className="spot-market-dot open" /> Market Open
-                </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+                <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.6)", margin: 0 }}>
+                  Live Spot Prices
+                </h2>
+                <span className="spot-market-dot open" style={{ marginLeft: "0.25rem" }} />
+                <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>Market Open</span>
+                <div style={{ marginLeft: "auto" }}>
+                  <SearchBar placeholder="Search markets, news..." />
+                </div>
               </div>
               <div className="spot-cards">
                 {SPOT_METALS_DATA.map((metal, i) => (
@@ -123,7 +131,7 @@ export function HomePage() {
             </div>
 
             <div className="indices-panel">
-              <h3 className="indices-panel-title">Market Indices</h3>
+              <h3 className="indices-panel-title">Mining Indices</h3>
               {KITCO_INDICES.map((idx, i) => (
                 <div key={i} className="index-row" style={{ animation: `fade-in-up 0.3s ease-out ${i * 0.06}s both` }}>
                   <span className="index-row-name">{idx.name}</span>
@@ -148,43 +156,72 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Main Content Grid */}
+      {/* Two-Column Layout: News + MarketMovers */}
       <div className="kitco-grid">
-        <div className="content-main" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+        <div className="content-main" style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
 
           {/* Latest News */}
           <section>
-            <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "1rem" }}>
+            <h2 style={{
+              fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase",
+              letterSpacing: "0.08em", color: "var(--color-text-secondary)",
+              paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)",
+              marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem"
+            }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-gold)", flexShrink: 0 }} />
               Latest News
             </h2>
-            <div className="animate-stagger">
-              {latestArticles.map((a) => (
-                <button key={a.id} onClick={() => handleClick(a.url)} className="news-list-item">
-                  <div className="news-list-item-header">
-                    <span style={{ fontSize: "0.6875rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", padding: "0.125rem 0.5rem", borderRadius: "3px", background: "var(--color-surface-muted)", color: "var(--color-text-secondary)" }}>
-                      {a.source}
-                    </span>
-                    <span style={{ fontSize: "0.6875rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", padding: "0.125rem 0.5rem", borderRadius: "3px", background: "var(--color-surface-muted)", color: "var(--color-text-secondary)" }}>
-                      {a.subCategory || a.assetClass}
-                    </span>
-                  </div>
-                  <h3 className="news-list-item-title">{decodeEntities(a.title)}</h3>
-                  <div className="news-list-item-meta">
-                    <span>{a.source}</span>
-                    <span>·</span>
-                    <time>{fmtRelative(a.publishedAt)}</time>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <button onClick={() => navigate("/news")} className="view-all-link" style={{ marginTop: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+            {latestArticles.length > 0 ? (
+              <div className="animate-stagger">
+                {latestArticles.map((a) => (
+                  <button key={a.id} onClick={() => handleClick(a.url)} className="news-list-item">
+                    <div className="news-list-item-header">
+                      <span style={{
+                        fontSize: "0.6875rem", fontWeight: 600, textTransform: "uppercase",
+                        letterSpacing: "0.05em", padding: "0.125rem 0.5rem", borderRadius: "3px",
+                        background: "var(--color-surface-muted)", color: "var(--color-text-secondary)"
+                      }}>
+                        {a.source}
+                      </span>
+                      <span style={{
+                        fontSize: "0.6875rem", fontWeight: 600, textTransform: "uppercase",
+                        letterSpacing: "0.05em", padding: "0.125rem 0.5rem", borderRadius: "3px",
+                        background: "var(--color-surface-muted)", color: "var(--color-text-secondary)"
+                      }}>
+                        {a.subCategory || a.assetClass}
+                      </span>
+                    </div>
+                    <h3 className="news-list-item-title">{decodeEntities(a.title)}</h3>
+                    <div className="news-list-item-meta">
+                      <span>{a.source}</span>
+                      <span>·</span>
+                      <time>{fmtRelative(a.publishedAt)}</time>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: "2rem 0", textAlign: "center", color: "var(--color-text-tertiary)", fontSize: "0.875rem" }}>
+                Loading latest news...
+              </div>
+            )}
+            <button onClick={() => navigate("/news")} className="view-all-link" style={{ marginTop: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.25rem", fontWeight: 600 }}>
               More News →
             </button>
           </section>
 
+          {/* Price Chart */}
+          <PriceChart />
+
           {/* Crypto Market Table */}
           <section>
-            <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "1rem" }}>
+            <h2 style={{
+              fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase",
+              letterSpacing: "0.08em", color: "var(--color-text-secondary)",
+              paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)",
+              marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem"
+            }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-gold)", flexShrink: 0 }} />
               Cryptocurrency Market
             </h2>
             <div className="data-table-container">
@@ -193,8 +230,8 @@ export function HomePage() {
                   <tr>
                     <th>Name</th>
                     <th>Symbol</th>
-                    <th>Price</th>
-                    <th>24h Change</th>
+                    <th style={{ textAlign: "right" }}>Price</th>
+                    <th style={{ textAlign: "right" }}>24h Change</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,60 +239,35 @@ export function HomePage() {
                     <tr key={i} style={{ animation: `fade-in-up 0.3s ease-out ${i * 0.06}s both` }}>
                       <td style={{ fontWeight: 600 }}>{coin.name}</td>
                       <td style={{ color: "var(--color-text-tertiary)" }}>{coin.symbol}</td>
-                      <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{coin.price}</td>
-                      <td style={{ fontWeight: 600, color: coin.up ? "var(--color-positive)" : "var(--color-negative)" }}>{coin.change}</td>
+                      <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>{coin.price}</td>
+                      <td style={{ fontWeight: 600, color: coin.up ? "var(--color-positive)" : "var(--color-negative)", textAlign: "right" }}>{coin.change}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <button onClick={() => navigate("/crypto")} className="view-all-link" style={{ marginTop: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+            <button onClick={() => navigate("/crypto")} className="view-all-link" style={{ marginTop: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.25rem", fontWeight: 600 }}>
               View all coins →
             </button>
           </section>
 
-          {/* Morning Fix Table */}
-          <section>
-            <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "0.5rem" }}>
-              Morning Fix — Global Hub Prices
-            </h2>
-            <p style={{ fontSize: "0.75rem", color: "var(--color-text-tertiary)", marginBottom: "0.75rem" }}>
-              Prices posted around 10:30 AM local time in each hub
-            </p>
-            <div className="data-table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th>Gold</th>
-                    <th>Silver</th>
-                    <th>Platinum</th>
-                    <th>Palladium</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {MORNING_FIX_ROWS.map((row, i) => (
-                    <tr key={i} style={{ animation: `fade-in-up 0.3s ease-out ${i * 0.08}s both` }}>
-                      <td style={{ fontWeight: 600 }}>{row.flag} {row.hub}</td>
-                      <td style={{ color: row.gold ? "var(--color-text-primary)" : "var(--color-text-tertiary)" }}>{row.gold || "—"}</td>
-                      <td style={{ color: "var(--color-text-tertiary)" }}>—</td>
-                      <td style={{ color: "var(--color-text-tertiary)" }}>—</td>
-                      <td style={{ color: "var(--color-text-tertiary)" }}>—</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          {/* Trending Topics */}
+          <TrendingTopics />
 
           {/* Crypto News */}
           {cryptoArticles.length > 0 && (
             <section>
-              <div className="section-header">
-                <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "0" }}>
+              <div className="section-header" style={{ marginBottom: "0.75rem" }}>
+                <h2 style={{
+                  fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase",
+                  letterSpacing: "0.08em", color: "var(--color-text-secondary)",
+                  paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)",
+                  margin: 0, display: "flex", alignItems: "center", gap: "0.5rem"
+                }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-gold)", flexShrink: 0 }} />
                   Crypto News
                 </h2>
-                <button onClick={() => navigate("/crypto")} className="view-all-link">View All →</button>
+                <button onClick={() => navigate("/crypto")} className="view-all-link" style={{ fontWeight: 600 }}>View All →</button>
               </div>
               <div className="article-grid-3">
                 {cryptoArticles.map((a) => (
@@ -277,11 +289,13 @@ export function HomePage() {
               </div>
             </section>
           )}
-
         </div>
 
         {/* Sidebar */}
         <div className="content-sidebar">
+          {/* Market Timer */}
+          <MarketTimer />
+
           {/* Spot Prices Quick View */}
           <div style={{ background: "var(--color-surface-warm)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", padding: "1rem" }}>
             <h3 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
@@ -305,26 +319,46 @@ export function HomePage() {
             </div>
           </div>
 
+          {/* Market Movers */}
+          <MarketMovers />
+
           {/* Latest Headlines */}
           <div>
-            <h3 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <h3 style={{
+              fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase",
+              letterSpacing: "0.08em", color: "var(--color-text-secondary)",
+              paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)",
+              marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem"
+            }}>
               <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-gold)", flexShrink: 0 }} />
-              Latest
+              Latest Headlines
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {sidebarArticles.map((a, i) => (
                 <button
                   key={a.id}
                   onClick={() => handleClick(a.url)}
-                  style={{ textAlign: "left", background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", animation: `fade-in-up 0.3s ease-out ${i * 0.05}s both` }}
+                  style={{
+                    textAlign: "left", background: "transparent", border: "none",
+                    padding: 0, cursor: "pointer", fontFamily: "inherit",
+                    animation: `fade-in-up 0.3s ease-out ${i * 0.05}s both`
+                  }}
                 >
-                  <h4 style={{ fontSize: "0.875rem", fontWeight: 500, lineHeight: "1.3", color: "var(--color-text-primary)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", transition: "color 0.15s", margin: 0 }}
+                  <h4 style={{
+                    fontSize: "0.875rem", fontWeight: 500, lineHeight: "1.3",
+                    color: "var(--color-text-primary)", display: "-webkit-box",
+                    WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                    transition: "color 0.15s", margin: 0
+                  }}
                     onMouseEnter={(e) => e.currentTarget.style.color = "var(--color-accent-blue)"}
                     onMouseLeave={(e) => e.currentTarget.style.color = "var(--color-text-primary)"}
                   >
                     {decodeEntities(a.title)}
                   </h4>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "var(--color-text-tertiary)", marginTop: "0.25rem" }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: "0.5rem",
+                    fontSize: "0.75rem", color: "var(--color-text-tertiary)", marginTop: "0.25rem"
+                  }}>
                     <span style={{ color: "var(--color-text-secondary)" }}>{a.source}</span>
                     <span>·</span>
                     <time>{fmtRelative(a.publishedAt)}</time>
@@ -336,16 +370,14 @@ export function HomePage() {
 
           <div style={{ height: "1px", background: "var(--color-border)" }} />
 
-          {/* Market Status */}
-          <div style={{ background: "var(--color-surface-muted)", borderRadius: "var(--radius-md)", padding: "1rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-              <span className="spot-market-dot open" />
-              <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-positive)" }}>Market Open</span>
+          {/* Newsletter Signup */}
+          <div className="newsletter-card">
+            <h4 className="newsletter-title">Market Briefing</h4>
+            <p className="newsletter-sub">Get gold prices and market news in your inbox daily.</p>
+            <div className="newsletter-form">
+              <input type="email" className="newsletter-input" placeholder="your@email.com" />
+              <button className="newsletter-btn">Subscribe</button>
             </div>
-            <p style={{ fontSize: "0.75rem", color: "var(--color-text-tertiary)", margin: 0 }}>
-              Will close in 22 hrs 57 mins<br />
-              Jun 30, 2026
-            </p>
           </div>
         </div>
       </div>
