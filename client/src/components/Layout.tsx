@@ -5,7 +5,6 @@ import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion"
 import { fetchNews } from "../lib/api"
 import type { NewsArticle } from "@shared/types"
 import { BreakingNewsBar } from "./BreakingNewsBar"
-import { MarketTicker } from "./MarketTicker"
 import { LastUpdated } from "./LastUpdated"
 import { ImpactFilterBar } from "./ImpactFilterBar"
 import { Scene3D } from "./canvas/Scene3D"
@@ -108,7 +107,6 @@ export function Layout() {
       </div>
 
       <BreakingNewsBar onSelect={handleBreakingNewsSelect} />
-      <MarketTicker />
 
       <ImpactFilterBar
         selected={selectedImpact}

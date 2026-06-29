@@ -89,11 +89,6 @@
   100% { transform: translateX(-100%); }
 }
 
-@keyframes ticker-scroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
 @keyframes live-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -130,7 +125,7 @@
 }
 
 @utility marquee-cards {
-  animation: ticker-marquee 98s linear infinite;
+  animation: ticker-marquee 180s linear infinite;
   &:hover { animation-play-state: paused; }
 }
 
