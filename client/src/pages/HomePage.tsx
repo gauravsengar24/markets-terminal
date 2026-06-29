@@ -38,7 +38,7 @@ const TABS = ["All", "Market", "Crypto", "Stocks", "Commodities", "IPO"]
 export function HomePage() {
   const navigate = useNavigate()
   const { articles, selectedImpact } = useOutletContext<LayoutContext>()
-  const [activeTab, setActiveTab] = React.useState("All")
+  const [activeTab, setActiveTab] = useState("All")
 
   const THREE_DAYS = 72 * 60 * 60 * 1000
 
