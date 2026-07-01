@@ -162,13 +162,7 @@ export function HomePage() {
 
           {/* Latest News */}
           <section>
-            <h2 style={{
-              fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase",
-              letterSpacing: "0.08em", color: "var(--color-text-secondary)",
-              paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)",
-              marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem"
-            }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-gold)", flexShrink: 0 }} />
+            <h2 className="section-heading">
               Latest News
             </h2>
             {latestArticles.length > 0 ? (
@@ -176,20 +170,8 @@ export function HomePage() {
                 {latestArticles.map((a) => (
                   <button key={a.id} onClick={() => handleClick(a.url)} className="news-list-item">
                     <div className="news-list-item-header">
-                      <span style={{
-                        fontSize: "0.6875rem", fontWeight: 600, textTransform: "uppercase",
-                        letterSpacing: "0.05em", padding: "0.125rem 0.5rem", borderRadius: "3px",
-                        background: "var(--color-surface-muted)", color: "var(--color-text-secondary)"
-                      }}>
-                        {a.source}
-                      </span>
-                      <span style={{
-                        fontSize: "0.6875rem", fontWeight: 600, textTransform: "uppercase",
-                        letterSpacing: "0.05em", padding: "0.125rem 0.5rem", borderRadius: "3px",
-                        background: "var(--color-surface-muted)", color: "var(--color-text-secondary)"
-                      }}>
-                        {a.subCategory || a.assetClass}
-                      </span>
+                      <span className="source-chip">{a.source}</span>
+                      <span className="source-chip">{a.subCategory || a.assetClass}</span>
                     </div>
                     <h3 className="news-list-item-title">{decodeEntities(a.title)}</h3>
                     <div className="news-list-item-meta">
@@ -215,13 +197,7 @@ export function HomePage() {
 
           {/* Crypto Market Table */}
           <section>
-            <h2 style={{
-              fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase",
-              letterSpacing: "0.08em", color: "var(--color-text-secondary)",
-              paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)",
-              marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem"
-            }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-gold)", flexShrink: 0 }} />
+            <h2 className="section-heading">
               Cryptocurrency Market
             </h2>
             <div className="data-table-container">
@@ -258,13 +234,7 @@ export function HomePage() {
           {cryptoArticles.length > 0 && (
             <section>
               <div className="section-header" style={{ marginBottom: "0.75rem" }}>
-                <h2 style={{
-                  fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase",
-                  letterSpacing: "0.08em", color: "var(--color-text-secondary)",
-                  paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)",
-                  margin: 0, display: "flex", alignItems: "center", gap: "0.5rem"
-                }}>
-                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-gold)", flexShrink: 0 }} />
+                <h2 className="section-heading" style={{ margin: 0 }}>
                   Crypto News
                 </h2>
                 <button onClick={() => navigate("/crypto")} className="view-all-link" style={{ fontWeight: 600 }}>View All →</button>
@@ -297,20 +267,20 @@ export function HomePage() {
           <MarketTimer />
 
           {/* Spot Prices Quick View */}
-          <div style={{ background: "var(--color-surface-warm)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", padding: "1rem" }}>
-            <h3 style={{ fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
+          <div className="p-4 border rounded-md" style={{ background: "var(--color-surface-warm)", borderColor: "var(--color-border)" }}>
+            <h3 className="section-heading" style={{ marginBottom: "0.75rem" }}>
               Spot Prices
             </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+            <div className="flex flex-col gap-2.5">
               {SPOT_METALS_DATA.map((metal, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>{metal.symbol}</span>
-                    <span style={{ fontSize: "0.75rem", color: "var(--color-text-tertiary)" }}>{metal.name}</span>
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{metal.symbol}</span>
+                    <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>{metal.name}</span>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "0.875rem", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${metal.bid}</div>
-                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: metal.up ? "var(--color-positive)" : "var(--color-negative)" }}>
+                    <div className="text-sm font-bold tabular-nums">${metal.bid}</div>
+                    <div className="text-xs font-semibold" style={{ color: metal.up ? "var(--color-positive)" : "var(--color-negative)" }}>
                       {metal.changePct}
                     </div>
                   </div>
@@ -324,35 +294,18 @@ export function HomePage() {
 
           {/* Latest Headlines */}
           <div>
-            <h3 style={{
-              fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase",
-              letterSpacing: "0.08em", color: "var(--color-text-secondary)",
-              paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)",
-              marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem"
-            }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-gold)", flexShrink: 0 }} />
+            <h3 className="section-heading">
               Latest Headlines
             </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <div className="flex flex-col gap-3">
               {sidebarArticles.map((a, i) => (
                 <button
                   key={a.id}
                   onClick={() => handleClick(a.url)}
-                  style={{
-                    textAlign: "left", background: "transparent", border: "none",
-                    padding: 0, cursor: "pointer", fontFamily: "inherit",
-                    animation: `fade-in-up 0.3s ease-out ${i * 0.05}s both`
-                  }}
+                  className="text-left bg-transparent border-none p-0 cursor-pointer"
+                  style={{ fontFamily: "inherit", animation: `fade-in-up 0.3s ease-out ${i * 0.05}s both` }}
                 >
-                  <h4 style={{
-                    fontSize: "0.875rem", fontWeight: 500, lineHeight: "1.3",
-                    color: "var(--color-text-primary)", display: "-webkit-box",
-                    WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-                    transition: "color 0.15s", margin: 0
-                  }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = "var(--color-accent-blue)"}
-                    onMouseLeave={(e) => e.currentTarget.style.color = "var(--color-text-primary)"}
-                  >
+                  <h4 className="sidebar-headline">
                     {decodeEntities(a.title)}
                   </h4>
                   <div style={{

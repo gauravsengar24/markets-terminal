@@ -19,9 +19,9 @@ function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
 
   return (
     <div
-      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap relative transition-[background] duration-200"
-      style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
+      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap relative"
+      style={{ transition: "background 0.2s var(--ease-out-expo)" }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--color-surface-muted)" }}
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
     >
       {flash && (
@@ -38,14 +38,14 @@ function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
           }}
         />
       )}
-      <span className="flex-1 min-w-[90px] text-xs truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{displayName}</span>
+      <span className="flex-1 min-w-[90px] text-xs truncate" style={{ color: "var(--color-text-secondary)" }}>{displayName}</span>
       <motion.span
         key={`${symbol}-${price}`}
         initial={{ scale: 1.15 }}
         animate={{ scale: 1 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className="text-right text-xs font-medium font-mono tabular-nums w-[80px] shrink-0"
-        style={{ color: "rgba(255,255,255,0.85)" }}
+        style={{ color: "var(--color-text-primary)" }}
       >
         {price < 10 ? price.toFixed(4) : price < 1000 ? price.toFixed(2) : price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
       </motion.span>
@@ -59,10 +59,10 @@ function PriceRow({ symbol, name, price, changePercent }: MarketPrice) {
 function SectionCard({ title, items }: { title: string; items: MarketPrice[] }) {
   if (!items.length) return null
   return (
-    <div className="border-b border-[rgba(255,255,255,0.06)] last:border-b-0">
-      <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ background: "rgba(255,255,255,0.02)" }}>
-        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>{title}</span>
-        <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.18)" }}>({items.length})</span>
+    <div className="border-b border-[var(--color-border)] last:border-b-0">
+      <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ background: "var(--color-surface-muted)" }}>
+        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "var(--color-text-tertiary)" }}>{title}</span>
+        <span className="text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>({items.length})</span>
       </div>
       <div className="py-0.5">
         {items.map(item => <PriceRow key={item.symbol} {...item} />)}
@@ -75,10 +75,10 @@ function MoversCard({ title, items, type }: { title: string; items: MarketPrice[
   if (!items.length) return null
   const accent = type === "gainers" ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"
   return (
-    <div className="border-b border-[rgba(255,255,255,0.06)] last:border-b-0">
-      <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ background: "rgba(255,255,255,0.02)" }}>
-        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>{title}</span>
-        <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.18)" }}>({items.length})</span>
+    <div className="border-b border-[var(--color-border)] last:border-b-0">
+      <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ background: "var(--color-surface-muted)" }}>
+        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "var(--color-text-tertiary)" }}>{title}</span>
+        <span className="text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>({items.length})</span>
       </div>
       <div className="py-0.5">
         {items.map(item => {
@@ -86,14 +86,14 @@ function MoversCard({ title, items, type }: { title: string; items: MarketPrice[
           return (
             <div
               key={item.symbol}
-      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-default flex-nowrap"
               style={{ transition: "all 0.2s cubic-bezier(.16,1,.3,1)" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--color-surface-muted)" }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
             >
               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: accent, boxShadow: `0 0 4px ${accent}` }} />
-              <span className="flex-1 min-w-[90px] text-xs truncate" style={{ color: "rgba(255,255,255,0.65)" }}>{(item.name || item.symbol)}</span>
-              <span className="text-right text-xs font-medium font-mono tabular-nums w-[80px] shrink-0" style={{ color: "rgba(255,255,255,0.85)" }}>
+              <span className="flex-1 min-w-[90px] text-xs truncate" style={{ color: "var(--color-text-secondary)" }}>{(item.name || item.symbol)}</span>
+              <span className="text-right text-xs font-medium font-mono tabular-nums w-[80px] shrink-0" style={{ color: "var(--color-text-primary)" }}>
                 {item.price < 10 ? item.price.toFixed(4) : item.price < 1000 ? item.price.toFixed(2) : item.price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
               </span>
               <span className={`text-right text-[13px] font-semibold font-mono tabular-nums w-[68px] shrink-0 ${p ? "text-up" : "text-down"}`}>
@@ -138,13 +138,13 @@ export function MarketSnapshot() {
 
   return (
     <div className="glass-gradient" style={{ padding: 0, overflow: "hidden" }}>
-      <div className="flex items-center justify-between px-3 py-3 border-b border-[rgba(255,255,255,0.06)]">
+      <div className="flex items-center justify-between px-3 py-3 border-b border-[var(--color-border)]">
         <div className="flex items-center gap-2">
           <div className="w-[7px] h-[7px] rounded-full" style={{
             background: "rgba(6, 182, 212, 0.8)",
             boxShadow: "0 0 8px rgba(6, 182, 212, 0.3)",
           }} />
-          <h3 className="text-xs font-bold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <h3 className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--color-text-secondary)" }}>
             Market Snapshot
           </h3>
           {error && <span className="text-[10px]" style={{ color: "#f59e0b" }}>⚠ {error}</span>}
@@ -153,25 +153,25 @@ export function MarketSnapshot() {
           <span
             className={`block w-1.5 h-1.5 rounded-full ${isLive ? "animate-blink" : ""}`}
             style={{
-              background: isLive ? "#22c55e" : "rgba(255,255,255,0.3)",
+              background: isLive ? "#22c55e" : "var(--color-text-tertiary)",
               boxShadow: isLive ? "0 0 6px rgba(34,197,94,0.6)" : "none",
             }}
           />
-          <span className="text-[11px] font-semibold" style={{ color: isLive ? "#22c55e" : "rgba(255,255,255,0.35)" }}>
+          <span className="text-[11px] font-semibold" style={{ color: isLive ? "#22c55e" : "var(--color-text-tertiary)" }}>
             {isLive ? "LIVE" : "DELAYED"}
           </span>
         </div>
       </div>
 
-        {loading ? (
+      {loading ? (
         <div className="p-3 flex flex-col gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-5 rounded-md animate-shimmer" style={{ background: "linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 100%)", backgroundSize: "200% 100%" }} />
+            <div key={i} className="h-5 rounded-md animate-shimmer" style={{ background: "linear-gradient(90deg, rgba(128,128,128,0.05) 0%, rgba(128,128,128,0.12) 50%, rgba(128,128,128,0.05) 100%)", backgroundSize: "200% 100%" }} />
           ))}
         </div>
       ) : (
         <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "clamp(300px, calc(100vh - 200px), 600px)" }}>
-          <div className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
+          <div className="flex flex-col divide-y divide-[var(--color-border)]">
             {data?.crypto?.length ? <SectionCard title="Crypto" items={data.crypto} /> : null}
             {data?.indiaIndices?.length ? <SectionCard title="Indian Stocks" items={data.indiaIndices} /> : null}
             {data?.usIndices?.length ? <SectionCard title="US Stocks" items={data.usIndices} /> : null}

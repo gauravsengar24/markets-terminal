@@ -5,7 +5,7 @@
   left: 0;
   right: 0;
   z-index: 50;
-  background: var(--color-navy, #1a1a2e);
+  background: var(--nav-bg);
 }
 
 .header-inner {
@@ -37,8 +37,8 @@
 
 /* ─── Spot Price Bar ─── */
 .spot-bar {
-  background: var(--color-navy, #1a1a2e);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: var(--spot-bar-bg);
+  border-bottom: 1px solid var(--nav-border);
 }
 
 .spot-bar-inner {
@@ -79,7 +79,7 @@
 .spot-item-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(255,255,255,0.6);
+  color: var(--spot-bar-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -88,6 +88,7 @@
   font-size: 0.9rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--spot-bar-text);
 }
 
 .spot-item-change {
@@ -102,7 +103,7 @@
   flex-shrink: 0;
   margin-left: auto;
   font-size: 0.75rem;
-  color: rgba(255,255,255,0.5);
+  color: var(--spot-bar-text-muted);
 }
 
 .spot-market-dot {
@@ -118,7 +119,7 @@
 
 /* ─── Market Ticker ─── */
 .market-ticker {
-  background: var(--color-surface-muted);
+  background: var(--ticker-bg);
   border-bottom: 1px solid var(--color-border);
   overflow: hidden;
 }
@@ -262,6 +263,11 @@
 .spot-hero {
   background: linear-gradient(180deg, var(--color-navy, #1a1a2e), var(--color-navy-mid, #16213e));
   color: white;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+[data-theme="light"] .spot-hero {
+  background: linear-gradient(180deg, var(--color-navy, #1a1a2e), var(--color-navy-mid, #16213e));
 }
 
 .spot-hero-grid {
@@ -679,8 +685,8 @@
 .site-footer {
   position: relative;
   z-index: 1;
-  background: var(--color-navy, #1a1a2e);
-  color: rgba(255,255,255,0.6);
+  background: var(--footer-bg);
+  color: var(--footer-text);
   border-radius: 20px 20px 0 0;
   margin-top: 3rem;
 }
@@ -721,7 +727,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255,255,255,0.9);
+  color: var(--footer-text);
+  opacity: 0.9;
   margin: 0 0 1rem;
 }
 
@@ -823,14 +830,14 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: rgba(255,255,255,0.6);
+  color: var(--spot-bar-text-muted);
   font-size: 1.1rem;
   transition: background 0.15s var(--ease-in-out), color 0.15s var(--ease-in-out);
 }
 
 .theme-toggle:hover {
-  background: rgba(255,255,255,0.1);
-  color: white;
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
 }
 
 /* ─── Article Page Styles ─── */
@@ -1301,6 +1308,10 @@
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   color: white;
+}
+
+[data-theme="light"] .newsletter-card {
+  background: linear-gradient(135deg, var(--color-navy, #1a1a2e), var(--color-navy-mid, #16213e));
 }
 .newsletter-title {
   font-size: 1rem;

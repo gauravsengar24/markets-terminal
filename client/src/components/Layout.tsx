@@ -120,7 +120,7 @@ export function Layout() {
                 <circle cx="50" cy="50" r="45" fill="#d4a017" />
                 <text x="50" y="62" textAnchor="middle" fill="#1C1C1C" fontSize="40" fontWeight="800" fontFamily="Inter,sans-serif">M</text>
               </svg>
-              <span style={{ color: "white", fontSize: "1.1rem", fontWeight: 700, letterTracking: "-0.02em" }}>
+              <span style={{ color: "var(--nav-text)", fontSize: "1.1rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
                 Market<span style={{ color: "#d4a017" }}>Pulse</span>
               </span>
             </button>
@@ -133,7 +133,7 @@ export function Layout() {
             </nav>
 
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", display: "none" }} className="hidden md:inline">
+              <span style={{ fontSize: "0.75rem", color: "var(--spot-bar-text-muted)", display: "none" }} className="hidden md:inline">
                 Jun 30, 2026
               </span>
               <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
