@@ -16,5 +16,5 @@ export function LastUpdated({ at }: { at: number }) {
     return () => clearInterval(id)
   }, [at])
 
-  return <span className="mono" style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>{label && `updated ${label}`}</span>
+  return <span className="mono" style={{ fontSize: '0.82rem', color: 'var(--color-text-tertiary)' }}>{label && `updated ${label}`}</span>
 }

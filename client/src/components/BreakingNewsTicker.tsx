@@ -59,10 +59,10 @@ export function BreakingNewsTicker() {
                       <span className="block w-1 h-1 rounded-full" style={{ background: "var(--color-negative)", animation: "ticker-blink 1.2s ease-in-out infinite" }} />
                       LIVE
                     </span>
-                    <span style={{ fontSize: "9px", color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>{a.source}</span>
-                    <span style={{ fontSize: "9px", color: "var(--text-tertiary)", opacity: 0.6, whiteSpace: "nowrap" }}>{fmtTime(a.publishedAt)}</span>
+                    <span style={{ fontSize: "9px", color: "var(--color-text-tertiary)", whiteSpace: "nowrap" }}>{a.source}</span>
+                    <span style={{ fontSize: "9px", color: "var(--color-text-tertiary)", opacity: 0.6, whiteSpace: "nowrap" }}>{fmtTime(a.publishedAt)}</span>
                   </div>
-                  <div style={{ fontSize: "11px", color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{a.title}</div>
+                  <div style={{ fontSize: "11px", color: "var(--color-text-primary)", fontWeight: 500, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{a.title}</div>
                 </div>
               </a>
             ))}

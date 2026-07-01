@@ -22,12 +22,7 @@ export function MarketMovers() {
 
   return (
     <section>
-      <h2 style={{
-        fontSize: "0.8125rem", fontWeight: 700, textTransform: "uppercase",
-        letterSpacing: "0.08em", color: "var(--color-text-secondary)",
-        paddingBottom: "0.5rem", borderBottom: "2px solid var(--color-border)",
-        marginBottom: 0
-      }}>
+      <h2 className="section-heading" style={{ marginBottom: 0 }}>
         Market Movers
       </h2>
       <div className="movers-tabs">

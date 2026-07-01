@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 
 const TIMEFRAMES = ["1D", "1W", "1M", "3M", "1Y"] as const
 type TF = (typeof TIMEFRAMES)[number]
@@ -38,10 +38,12 @@ export function PriceChart() {
     return () => clearTimeout(t)
   }, [])
 
-  const pointCounts: Record<TF, number> = { "1D": 24, "1W": 40, "1M": 60, "3M": 90, "1Y": 120 }
-  const n = pointCounts[tf]
-  const goldData = generateData(n, GOLD_SEED)
-  const silverData = generateData(n, SILVER_SEED)
+  const n = useMemo(() => {
+    const counts: Record<TF, number> = { "1D": 24, "1W": 40, "1M": 60, "3M": 90, "1Y": 120 }
+    return counts[tf]
+  }, [tf])
+  const goldData = useMemo(() => generateData(n, GOLD_SEED), [n])
+  const silverData = useMemo(() => generateData(n, SILVER_SEED), [n])
 
   const pad = { t: 20, r: 16, b: 24, l: 48 }
   const cw = dims.w - pad.l - pad.r

@@ -73,8 +73,8 @@ export function Layout() {
     articles: news.data ?? [],
     selectedImpact: "all",
     setSelectedImpact: () => {},
-    scrollProgress: scrollVal,
-  }), [news.data, scrollVal])
+    scrollProgress: 0,
+  }  ), [news.data])
 
   const refresh = () => client.invalidateQueries({ queryKey: ["news"] })
 
