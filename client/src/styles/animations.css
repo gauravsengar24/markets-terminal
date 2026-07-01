@@ -73,6 +73,11 @@
   50% { box-shadow: 0 0 12px rgba(212, 160, 23, 0.4); }
 }
 
+@keyframes fade-out-flash {
+  0% { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }

@@ -4,38 +4,21 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom"
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion"
 import { fetchNews } from "../lib/api"
 import type { NewsArticle, LayoutContext } from "@shared/types"
+import { useMarketData } from "../hooks/useMarketData"
 import { BreakingNewsBar } from "./BreakingNewsBar"
 import { Footer } from "./Footer"
+import { PriceFlash } from "./PriceFlash"
 
 type Theme = "light" | "dark"
 
 const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({ theme: "light", toggle: () => {} })
 export const useTheme = () => useContext(ThemeContext)
 
-const SPOT_METALS = [
-  { name: "Gold", symbol: "XAU", bid: "2,415.30", ask: "2,416.10", change: "+0.52%", up: true },
-  { name: "Silver", symbol: "XAG", bid: "30.82", ask: "30.87", change: "-0.48%", up: false },
-  { name: "Platinum", symbol: "XPT", bid: "1,045.00", ask: "1,050.00", change: "+0.50%", up: true },
-  { name: "Palladium", symbol: "XPD", bid: "982.00", ask: "987.00", change: "-0.86%", up: false },
-]
-
-const TICKER_ITEMS = [
-  { name: "S&P 500", value: "5,432.15", change: "+0.84%", up: true },
-  { name: "NASDAQ", value: "17,145.63", change: "+1.22%", up: true },
-  { name: "Dow Jones", value: "38,987.42", change: "+0.65%", up: true },
-  { name: "FTSE 100", value: "8,214.56", change: "-0.32%", up: false },
-  { name: "DAX", value: "18,325.78", change: "+0.47%", up: true },
-  { name: "Nifty 50", value: "25,012.30", change: "+0.92%", up: true },
-  { name: "Nikkei 225", value: "38,845.60", change: "-0.18%", up: false },
-  { name: "Gold", value: "$2,415.30", change: "+0.52%", up: true },
-  { name: "Crude Oil", value: "$78.42", change: "-1.15%", up: false },
-  { name: "Bitcoin", value: "$68,432", change: "+2.34%", up: true },
-]
-
 export function Layout() {
   const navigate = useNavigate()
   const client = useQueryClient()
   const location = useLocation()
+  const { spotMetals, tickerItems } = useMarketData()
 
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
@@ -74,9 +57,7 @@ export function Layout() {
     selectedImpact: "all",
     setSelectedImpact: () => {},
     scrollProgress: 0,
-  }  ), [news.data])
-
-  const refresh = () => client.invalidateQueries({ queryKey: ["news"] })
+  }), [news.data])
 
   function handleBreakingNewsSelect(url: string) {
     const article = news.data?.find(a => a.url === url)
@@ -94,16 +75,18 @@ export function Layout() {
         {/* Spot Price Bar */}
         <div className="spot-bar">
           <div className="spot-bar-inner">
-            {SPOT_METALS.map((metal, i) => (
-              <a key={i} href="/commodities" className="spot-item" onClick={(e) => { e.preventDefault(); navigate("/commodities"); }}>
-                <span className="spot-item-label">{metal.name}</span>
-                <span className={`spot-item-price ${metal.up ? "price-up" : "price-down"}`}>
-                  ${metal.bid}
-                </span>
-                <span className={`spot-item-change ${metal.up ? "price-up" : "price-down"}`}>
-                  {metal.change}
-                </span>
-              </a>
+            {spotMetals.map((metal, i) => (
+              <PriceFlash key={metal.symbol} price={metal.price}>
+                <a href="/commodities" className="spot-item" onClick={(e) => { e.preventDefault(); navigate("/commodities"); }}>
+                  <span className="spot-item-label">{metal.name}</span>
+                  <span className={`spot-item-price ${metal.up ? "price-up" : "price-down"}`}>
+                    ${metal.bid}
+                  </span>
+                  <span className={`spot-item-change ${metal.up ? "price-up" : "price-down"}`}>
+                    {metal.change}
+                  </span>
+                </a>
+              </PriceFlash>
             ))}
             <div className="spot-market-status">
               <span className="spot-market-dot open" />
@@ -134,7 +117,7 @@ export function Layout() {
 
             <div className="flex items-center gap-2">
               <span style={{ fontSize: "0.75rem", color: "var(--spot-bar-text-muted)", display: "none" }} className="hidden md:inline">
-                Jun 30, 2026
+                {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
               </span>
               <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
                 {theme === "light" ? "🌙" : "☀️"}
@@ -151,14 +134,16 @@ export function Layout() {
             <div className="ticker-label">Markets</div>
             <div className="ticker-scroll">
               <div className="ticker-track animate-ticker">
-                {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
-                  <a key={i} href="/" className="ticker-item" onClick={(e) => { e.preventDefault(); }}>
-                    <span>{item.name}</span>
-                    <span style={{ fontWeight: 600 }}>{item.value}</span>
-                    <span className={item.up ? "price-up" : "price-down"}>
-                      {item.up ? "▲" : "▼"} {item.change}
-                    </span>
-                  </a>
+                {[...tickerItems, ...tickerItems].map((item, i) => (
+                  <PriceFlash key={`${item.name}-${i}`} price={item.price}>
+                    <a href="/" className="ticker-item" onClick={(e) => { e.preventDefault(); }}>
+                      <span>{item.name}</span>
+                      <span style={{ fontWeight: 600 }}>{item.value}</span>
+                      <span className={item.up ? "price-up" : "price-down"}>
+                        {item.up ? "▲" : "▼"} {item.change}
+                      </span>
+                    </a>
+                  </PriceFlash>
                 ))}
               </div>
             </div>

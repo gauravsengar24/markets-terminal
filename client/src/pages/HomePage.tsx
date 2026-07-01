@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query"
 import type { NewsArticle, LayoutContext, CuratedArticle } from "@shared/types"
 import { fetchCuratedBreakingNews } from "../lib/api"
 import { decodeEntities } from "../lib/format"
+import { useMarketData } from "../hooks/useMarketData"
+import { PriceFlash } from "../components/PriceFlash"
 import { PriceChart } from "../components/PriceChart"
 import { MarketMovers } from "../components/MarketMovers"
 import { MarketTimer } from "../components/MarketTimer"
@@ -11,24 +13,10 @@ import { MarketSummary } from "../components/MarketSummary"
 import { TrendingTopics } from "../components/TrendingTopics"
 import { SearchBar } from "../components/SearchBar"
 
-const SPOT_METALS_DATA = [
-  { name: "Gold", symbol: "XAU", bid: "2,415.30", ask: "2,416.10", change: "+12.40", changePct: "+0.52%", up: true },
-  { name: "Silver", symbol: "XAG", bid: "30.82", ask: "30.87", change: "-0.15", changePct: "-0.48%", up: false },
-  { name: "Platinum", symbol: "XPT", bid: "1,045.00", ask: "1,050.00", change: "+5.20", changePct: "+0.50%", up: true },
-  { name: "Palladium", symbol: "XPD", bid: "982.00", ask: "987.00", change: "-8.50", changePct: "-0.86%", up: false },
-]
-
 const KITCO_INDICES = [
   { name: "XAU Index", value: "128.45", change: "+0.38%", up: true },
   { name: "HUI Index", value: "295.60", change: "-0.22%", up: false },
   { name: "KGX", value: "1,842.70", change: "+0.45%", up: true },
-]
-
-const CRYPTO_QUOTES = [
-  { name: "Bitcoin", symbol: "BTC", price: "$68,432", change: "+2.34%", up: true },
-  { name: "Ethereum", symbol: "ETH", price: "$3,521", change: "+1.87%", up: true },
-  { name: "Solana", symbol: "SOL", price: "$148.25", change: "-0.62%", up: false },
-  { name: "XRP", symbol: "XRP", price: "$0.54", change: "+1.15%", up: true },
 ]
 
 function fmtRelative(iso: string) {
@@ -42,6 +30,7 @@ function fmtRelative(iso: string) {
 export function HomePage() {
   const navigate = useNavigate()
   const { articles } = useOutletContext<LayoutContext>()
+  const { spotMetals, cryptoQuotes } = useMarketData()
 
   const THREE_DAYS = 72 * 60 * 60 * 1000
 
@@ -110,22 +99,24 @@ export function HomePage() {
                 </div>
               </div>
               <div className="spot-cards">
-                {SPOT_METALS_DATA.map((metal, i) => (
-                  <div key={i} className="spot-card" style={{ animation: `fade-in-up 0.4s ease-out ${i * 0.08}s both` }}>
-                    <div className="spot-card-header">
-                      <span className="spot-card-name">{metal.name}</span>
-                      <span className="spot-card-symbol">{metal.symbol}</span>
+                {spotMetals.map((metal, i) => (
+                  <PriceFlash key={metal.symbol} price={metal.price}>
+                    <div className="spot-card" style={{ animation: `fade-in-up 0.4s ease-out ${i * 0.08}s both` }}>
+                      <div className="spot-card-header">
+                        <span className="spot-card-name">{metal.name}</span>
+                        <span className="spot-card-symbol">{metal.symbol}</span>
+                      </div>
+                      <div className="spot-card-price">${metal.bid}</div>
+                      <div className="spot-card-footer">
+                        <span className={`spot-item-change ${metal.up ? "price-up" : "price-down"}`}>
+                          {metal.up ? "▲" : "▼"} {metal.changePct}
+                        </span>
+                        <span style={{ fontSize: "0.6875rem", color: "rgba(255,255,255,0.4)" }}>
+                          Bid {metal.bid}
+                        </span>
+                      </div>
                     </div>
-                    <div className="spot-card-price">${metal.bid}</div>
-                    <div className="spot-card-footer">
-                      <span className={`spot-item-change ${metal.up ? "price-up" : "price-down"}`}>
-                        {metal.up ? "▲" : "▼"} {metal.changePct}
-                      </span>
-                      <span style={{ fontSize: "0.6875rem", color: "rgba(255,255,255,0.4)" }}>
-                        Bid {metal.bid} / Ask {metal.ask}
-                      </span>
-                    </div>
-                  </div>
+                  </PriceFlash>
                 ))}
               </div>
             </div>
@@ -144,11 +135,11 @@ export function HomePage() {
               <div className="indices-footer">
                 <div className="indices-footer-row">
                   <span>Gold/Oz</span>
-                  <span className="indices-footer-value">$2,415.30</span>
+                  <span className="indices-footer-value">${spotMetals[0]?.bid || "—"}</span>
                 </div>
                 <div className="indices-footer-row">
                   <span>Silver/Oz</span>
-                  <span className="indices-footer-value">$30.82</span>
+                  <span className="indices-footer-value">${spotMetals[1]?.bid || "—"}</span>
                 </div>
               </div>
             </div>
@@ -200,28 +191,34 @@ export function HomePage() {
             <h2 className="section-heading">
               Cryptocurrency Market
             </h2>
-            <div className="data-table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Symbol</th>
-                    <th style={{ textAlign: "right" }}>Price</th>
-                    <th style={{ textAlign: "right" }}>24h Change</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {CRYPTO_QUOTES.map((coin, i) => (
-                    <tr key={i} style={{ animation: `fade-in-up 0.3s ease-out ${i * 0.06}s both` }}>
-                      <td style={{ fontWeight: 600 }}>{coin.name}</td>
-                      <td style={{ color: "var(--color-text-tertiary)" }}>{coin.symbol}</td>
-                      <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>{coin.price}</td>
-                      <td style={{ fontWeight: 600, color: coin.up ? "var(--color-positive)" : "var(--color-negative)", textAlign: "right" }}>{coin.change}</td>
+            {cryptoQuotes.length > 0 ? (
+              <div className="data-table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Symbol</th>
+                      <th style={{ textAlign: "right" }}>Price</th>
+                      <th style={{ textAlign: "right" }}>24h Change</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {cryptoQuotes.map((coin, i) => (
+                      <tr key={i} style={{ animation: `fade-in-up 0.3s ease-out ${i * 0.06}s both` }}>
+                        <td style={{ fontWeight: 600 }}>{coin.name}</td>
+                        <td style={{ color: "var(--color-text-tertiary)" }}>{coin.symbol}</td>
+                        <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>{coin.price}</td>
+                        <td style={{ fontWeight: 600, color: coin.up ? "var(--color-positive)" : "var(--color-negative)", textAlign: "right" }}>{coin.change}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center p-6" style={{ color: "var(--color-text-tertiary)", fontSize: "0.875rem" }}>
+                Loading prices...
+              </div>
+            )}
             <button onClick={() => navigate("/crypto")} className="view-all-link" style={{ marginTop: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.25rem", fontWeight: 600 }}>
               View all coins →
             </button>
@@ -272,19 +269,21 @@ export function HomePage() {
               Spot Prices
             </h3>
             <div className="flex flex-col gap-2.5">
-              {SPOT_METALS_DATA.map((metal, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{metal.symbol}</span>
-                    <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>{metal.name}</span>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div className="text-sm font-bold tabular-nums">${metal.bid}</div>
-                    <div className="text-xs font-semibold" style={{ color: metal.up ? "var(--color-positive)" : "var(--color-negative)" }}>
-                      {metal.changePct}
+              {spotMetals.map((metal, i) => (
+                <PriceFlash key={metal.symbol} price={metal.price}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold">{metal.symbol}</span>
+                      <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>{metal.name}</span>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div className="text-sm font-bold tabular-nums">${metal.bid}</div>
+                      <div className="text-xs font-semibold" style={{ color: metal.up ? "var(--color-positive)" : "var(--color-negative)" }}>
+                        {metal.changePct}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </PriceFlash>
               ))}
             </div>
           </div>
